@@ -1,0 +1,6 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# GDD et docs internes (pas en clair sur le repo public)
+docs/
