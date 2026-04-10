@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Deep Rows — Proto</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    color: #eee;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 20px;
+    gap: 30px;
+  }
+  #game-area { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+  canvas { cursor: pointer; border-radius: 8px; }
+  #info {
+    display: flex;
+    gap: 30px;
+    font-size: 20px;
+    font-weight: bold;
+  }
+  #info span { padding: 8px 16px; border-radius: 6px; background: #16213e; }
+  #score-val { color: #e2b714; }
+  #target-val { color: #ff6b6b; }
+  #deck-val { color: #4ecdc4; }
+  #stream-label { font-size: 16px; color: #888; margin-top: 5px; }
+  #message {
+    font-size: 24px;
+    font-weight: bold;
+    height: 36px;
+    text-align: center;
+  }
+  .win { color: #4ecdc4; }
+  .lose { color: #ff6b6b; }
+  .cascade { color: #e2b714; }
+  #controls { display: flex; gap: 10px; margin-top: 10px; }
+  button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #16213e;
+    color: #eee;
+    transition: background 0.2s;
+  }
+  button:hover { background: #1a3a5c; }
+  #sidebar {
+    background: #16213e;
+    border-radius: 8px;
+    padding: 20px;
+    min-width: 240px;
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  #sidebar h3 { color: #e2b714; margin-bottom: 10px; }
+  #sidebar .key { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
+  #sidebar .rock-key { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: middle; margin-right: 6px; background: #6b6b7a; border: 1px solid #4a4a55; }
+</style>
+</head>
+<body>
+
+<div id="game-area">
+  <div id="info">
+    <span>Score: <b id="score-val">0</b></span>
+    <span>Cible: <b id="target-val">0</b></span>
+    <span>Deck: <b id="deck-val">0</b></span>
+  </div>
+  <div id="message"></div>
+  <canvas id="grid-canvas"></canvas>
+  <div id="stream-label">Hold (H)  ·  Current  ·  Next</div>
+  <canvas id="stream-canvas"></canvas>
+  <div id="controls">
+    <button onclick="newRound()">Nouvelle Manche</button>
+    <button onclick="newRun()">Nouveau Run</button>
+  </div>
+</div>
+
+<div id="sidebar">
+  <h3>Deep Rows — Proto</h3>
+  <p><b>Formes valides :</b></p>
+  <p>Lignes droites 3+ (h / v / diag)</p>
+  <p>Carres 2x2 plein</p>
+  <p style="color:#888; font-size:12px">Pas de L, T, zigzag.</p>
+  <br>
+  <p><b>Patterns actifs :</b></p>
+  <p>Meme famille (couleur)</p>
+  <p>Meme chiffre (valeur)</p>
+  <p style="color:#888; font-size:12px">Un jeton peut scorer les deux !</p>
+  <br>
+  <p><b>Scoring lignes :</b></p>
+  <p>3 = somme x1</p>
+  <p>4 = somme x2</p>
+  <p>5 = somme x3</p>
+  <p>6+ = somme x5</p>
+  <p><b>Carre 2x2 :</b> somme x3</p>
+  <p>Cascade = score x2</p>
+  <br>
+  <p><b>Familles :</b></p>
+  <p><span class="key" style="background:#e74c3c"></span>Corail</p>
+  <p><span class="key" style="background:#3498db"></span>Abyssal</p>
+  <p><span class="key" style="background:#2ecc71"></span>Drift</p>
+  <p><span class="key" style="background:#f1c40f"></span>Shell</p>
+  <p><span class="rock-key"></span>Rock (ne score pas)</p>
+  <br>
+  <p><b>Specials dans le deck :</b></p>
+  <p><b style="color:#5d4e8a">F</b> Fantome ×2 — pousse colonne vers le haut, residue en bas</p>
+  <p><b style="color:#ff6b6b">B</b> Bombe ×3 — explose 3x3, score (somme x2)</p>
+  <p><b style="color:#16a085">M</b> Marée ×1 — vague qui ecarte la ligne autour du clic</p>
+  <br>
+  <p><b>Controles :</b></p>
+  <p>Clic colonne = drop le current</p>
+  <p>Clic cellule (Marée) = impact</p>
+  <p>Clic Hold ou <b>H</b> = swap</p>
+</div>
+
+<script>
+// === CONFIG ===
+const COLS = 6;
+const ROWS = 8;
+const CELL = 60;
+const PAD = 4;
+const FAMILIES = [
+  { name: 'Corail',  color: '#e74c3c' },
+  { name: 'Abyssal', color: '#3498db' },
+  { name: 'Drift',   color: '#2ecc71' },
+  { name: 'Shell',   color: '#f1c40f' },
+];
+const DECK_BASE_COUNT = 50;
+const DECK_ROCK_COUNT = 8;
+const DECK_SPECIALS = { fantome: 2, bombe: 3, maree: 1 };
+const PREVIEW_SIZE = 3;
+const BASE_TARGET = 100;
+const BOMBE_MULT = 2; // Bombe scores sum * BOMBE_MULT
+
+// Stream layout: [HOLD] gap [CURRENT] gap [NEXT1 NEXT2 NEXT3]
+const STREAM_GAP = 20;
+const STREAM_SLOTS = 1 + 1 + PREVIEW_SIZE; // hold + current + previews
+const STREAM_WIDTH = STREAM_SLOTS * CELL + STREAM_GAP * 2;
+
+// === STATE ===
+let grid = [];      // grid[col][row], row 0 = bottom
+let deck = [];
+let current = null;
+let hold = null;
+let score = 0;
+let target = BASE_TARGET;
+let round = 1;
+let animating = false;
+
+// === CANVAS SETUP ===
+const gridCanvas = document.getElementById('grid-canvas');
+const gridCtx = gridCanvas.getContext('2d');
+gridCanvas.width = COLS * CELL;
+gridCanvas.height = ROWS * CELL;
+
+const streamCanvas = document.getElementById('stream-canvas');
+const streamCtx = streamCanvas.getContext('2d');
+streamCanvas.width = STREAM_WIDTH;
+streamCanvas.height = CELL;
+
+// === TOKEN ===
+// kind: 'base' | 'rock' | 'fantome-residue' | 'special'
+// base    : { kind, family, value }
+// rock    : { kind }
+// residue : { kind }   (left behind by a Fantome, non-scorable, anchors stack)
+// special : { kind, special: 'fantome' | 'bombe' | 'maree' }
+function makeBaseToken(family, value) {
+  return { kind: 'base', family, value };
+}
+
+function makeRock() {
+  return { kind: 'rock' };
+}
+
+function makeResidue() {
+  return { kind: 'fantome-residue' };
+}
+
+function makeSpecial(type) {
+  return { kind: 'special', special: type };
+}
+
+function randomBaseToken() {
+  return makeBaseToken(
+    Math.floor(Math.random() * FAMILIES.length),
+    Math.floor(Math.random() * 5) + 1
+  );
+}
+
+// === DECK ===
+function buildDeck() {
+  deck = [];
+  for (let i = 0; i < DECK_BASE_COUNT; i++) deck.push(randomBaseToken());
+  for (let i = 0; i < DECK_ROCK_COUNT; i++) deck.push(makeRock());
+  for (const [type, count] of Object.entries(DECK_SPECIALS)) {
+    for (let i = 0; i < count; i++) deck.push(makeSpecial(type));
+  }
+  shuffle(deck);
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+// Pull next token from deck into current (if current is null)
+function advanceStream() {
+  if (current === null && deck.length > 0) {
+    current = deck.pop();
+  }
+}
+
+// Swap current with hold
+function doHold() {
+  if (animating) return;
+  if (current === null) return;
+  if (hold === null) {
+    hold = current;
+    current = null;
+    advanceStream();
+  } else {
+    const tmp = current;
+    current = hold;
+    hold = tmp;
+  }
+  renderStream();
+}
+
+// === GRID ===
+function initGrid() {
+  grid = [];
+  for (let c = 0; c < COLS; c++) {
+    grid[c] = [];
+    for (let r = 0; r < ROWS; r++) {
+      grid[c][r] = null;
+    }
+  }
+}
+
+function columnHeight(col) {
+  for (let r = ROWS - 1; r >= 0; r--) {
+    if (grid[col][r] !== null) return r + 1;
+  }
+  return 0;
+}
+
+function dropToken(col, token) {
+  const h = columnHeight(col);
+  if (h >= ROWS) return false;
+  grid[col][h] = token;
+  return true;
+}
+
+// === SPECIALS ===
+
+// Returns true if the token can be played at the given (col, row).
+// row is only used by Marée; other tokens ignore it.
+function canPlay(token, col, row) {
+  if (col < 0 || col >= COLS) return false;
+  if (token.kind === 'base' || token.kind === 'rock') {
+    return columnHeight(col) < ROWS;
+  }
+  if (token.kind === 'special') {
+    if (token.special === 'fantome') return true; // can target full columns
+    if (token.special === 'bombe') return columnHeight(col) < ROWS;
+    if (token.special === 'maree') return row >= 0 && row < ROWS;
+  }
+  return false;
+}
+
+// Fantome: shifts column up by 1, top destroyed if full,
+// places a residue at row 0 to anchor the new stack.
+function executeFantome(col) {
+  const colTokens = [];
+  for (let r = 0; r < ROWS; r++) {
+    if (grid[col][r] !== null) colTokens.push(grid[col][r]);
+  }
+  // Drop top if full
+  if (colTokens.length >= ROWS) colTokens.pop();
+  // Clear column
+  for (let r = 0; r < ROWS; r++) grid[col][r] = null;
+  // Place residue at row 0
+  grid[col][0] = makeResidue();
+  // Re-place existing tokens shifted up by 1
+  for (let i = 0; i < colTokens.length; i++) {
+    grid[col][i + 1] = colTokens[i];
+  }
+}
+
+// Bombe: lands normally at top of column, destroys 3x3 around landing,
+// scores all base tokens in the area.
+function executeBombe(col) {
+  const landingRow = columnHeight(col);
+  if (landingRow >= ROWS) return;
+
+  let scoreSum = 0;
+  for (let dc = -1; dc <= 1; dc++) {
+    for (let dr = -1; dr <= 1; dr++) {
+      const cc = col + dc;
+      const rr = landingRow + dr;
+      if (cc < 0 || cc >= COLS || rr < 0 || rr >= ROWS) continue;
+      const t = grid[cc][rr];
+      if (t === null) continue;
+      if (t.kind === 'base') scoreSum += t.value;
+      grid[cc][rr] = null;
+    }
+  }
+  score += scoreSum * BOMBE_MULT;
+  showMessage('BOMBE +' + (scoreSum * BOMBE_MULT), 'cascade');
+}
+
+// Marée: wave that pushes outward from impact point.
+// The clicked cell stays. Left half shifts left by 1 (col 0 destroyed),
+// right half shifts right by 1 (last col destroyed).
+function executeMaree(col, row) {
+  const rowTokens = [];
+  for (let c = 0; c < COLS; c++) rowTokens.push(grid[c][row]);
+
+  const newRow = new Array(COLS).fill(null);
+  newRow[col] = rowTokens[col];
+
+  // Left half: cols 0..col-2 take from old cols 1..col-1
+  // (col-1 becomes the gap, old col 0 destroyed)
+  for (let c = 0; c < col - 1; c++) {
+    newRow[c] = rowTokens[c + 1];
+  }
+  // Right half: cols col+2..COLS-1 take from old cols col+1..COLS-2
+  // (col+1 becomes the gap, old last col destroyed)
+  for (let c = col + 2; c < COLS; c++) {
+    newRow[c] = rowTokens[c - 1];
+  }
+
+  for (let c = 0; c < COLS; c++) grid[c][row] = newRow[c];
+}
+
+function applyTokenEffect(token, col, row) {
+  if (token.kind === 'base' || token.kind === 'rock') {
+    dropToken(col, token);
+    return;
+  }
+  if (token.kind === 'special') {
+    if (token.special === 'fantome') executeFantome(col);
+    else if (token.special === 'bombe') executeBombe(col);
+    else if (token.special === 'maree') executeMaree(col, row);
+  }
+}
+
+// === PATTERN DETECTION ===
+// Only base tokens score. Rocks, Fantome residues, and unplayed specials never do.
+function isScorable(token) {
+  return token !== null && token.kind === 'base';
+}
+
+const MATCHERS = [
+  { type: 'family', fn: (a, b) => a.family === b.family },
+  { type: 'value',  fn: (a, b) => a.value === b.value },
+];
+
+// Find all straight lines of 3+ matching tokens.
+// Axes: horizontal, vertical, diagonal NE, diagonal SE.
+function findLines() {
+  const lines = [];
+  const axes = [[1, 0], [0, 1], [1, 1], [1, -1]];
+
+  for (const [dx, dy] of axes) {
+    for (const { type, fn } of MATCHERS) {
+      for (let c = 0; c < COLS; c++) {
+        for (let r = 0; r < ROWS; r++) {
+          if (!isScorable(grid[c][r])) continue;
+
+          // Skip if previous cell along axis already continues the same line
+          // (to avoid emitting the same line multiple times).
+          const pc = c - dx, pr = r - dy;
+          if (pc >= 0 && pc < COLS && pr >= 0 && pr < ROWS &&
+              isScorable(grid[pc][pr]) && fn(grid[pc][pr], grid[c][r])) {
+            continue;
+          }
+
+          // Walk forward gathering matching cells.
+          const line = [[c, r]];
+          let nc = c + dx, nr = r + dy;
+          while (nc >= 0 && nc < COLS && nr >= 0 && nr < ROWS &&
+                 isScorable(grid[nc][nr]) && fn(grid[nc][nr], grid[c][r])) {
+            line.push([nc, nr]);
+            nc += dx;
+            nr += dy;
+          }
+
+          if (line.length >= 3) {
+            line._type = type + '-line';
+            lines.push(line);
+          }
+        }
+      }
+    }
+  }
+  return lines;
+}
+
+// Find all 2x2 squares of matching tokens.
+function findSquares() {
+  const squares = [];
+  for (let c = 0; c < COLS - 1; c++) {
+    for (let r = 0; r < ROWS - 1; r++) {
+      const cells = [[c, r], [c + 1, r], [c, r + 1], [c + 1, r + 1]];
+      const tokens = cells.map(([cc, rr]) => grid[cc][rr]);
+      if (!tokens.every(isScorable)) continue;
+      for (const { type, fn } of MATCHERS) {
+        if (tokens.every(t => fn(t, tokens[0]))) {
+          const sq = cells.slice();
+          sq._type = type + '-square';
+          squares.push(sq);
+        }
+      }
+    }
+  }
+  return squares;
+}
+
+function findConnectedGroups() {
+  return [...findLines(), ...findSquares()];
+}
+
+// === RESOLUTION ===
+function getMultiplier(group) {
+  // Squares 2x2 — fixed x3 (cf. GDD: pattern "Recif")
+  if (group._type && group._type.endsWith('-square')) return 3;
+  // Lines — multiplier scales with length
+  const len = group.length;
+  if (len === 3) return 1;
+  if (len === 4) return 2;
+  if (len === 5) return 3;
+  return 5; // 6+
+}
+
+function resolveGroups(groups, cascadeLevel) {
+  let totalScore = 0;
+  const toRemove = new Set();
+
+  for (const group of groups) {
+    let sum = 0;
+    for (const [c, r] of group) {
+      sum += grid[c][r].value;
+    }
+    const mult = getMultiplier(group);
+    const cascadeMult = Math.pow(2, cascadeLevel);
+    const groupScore = sum * mult * cascadeMult;
+    totalScore += groupScore;
+
+    for (const [c, r] of group) {
+      toRemove.add(c + ',' + r);
+    }
+  }
+
+  for (const key of toRemove) {
+    const [c, r] = key.split(',').map(Number);
+    grid[c][r] = null;
+  }
+
+  return totalScore;
+}
+
+function applyGravity() {
+  // Rocks are subject to gravity exactly like other tokens.
+  // Returns true if anything actually moved (used to skip empty animation frames).
+  let moved = false;
+  for (let c = 0; c < COLS; c++) {
+    let write = 0;
+    for (let r = 0; r < ROWS; r++) {
+      if (grid[c][r] !== null) {
+        if (write !== r) {
+          grid[c][write] = grid[c][r];
+          grid[c][r] = null;
+          moved = true;
+        }
+        write++;
+      }
+    }
+  }
+  return moved;
+}
+
+async function resolveAll() {
+  animating = true;
+
+  // Initial gravity pass — handles holes left by specials (Bombe, Marée)
+  // that don't create patterns directly. Skip the animation delay if nothing moved.
+  if (applyGravity()) {
+    renderGrid();
+    await sleep(200);
+  }
+
+  let cascadeLevel = 0;
+
+  while (true) {
+    const groups = findConnectedGroups();
+    if (groups.length === 0) break;
+
+    highlightGroups(groups);
+    await sleep(400);
+
+    const earned = resolveGroups(groups, cascadeLevel);
+    score += earned;
+
+    if (cascadeLevel > 0) {
+      showMessage('CASCADE x' + Math.pow(2, cascadeLevel) + '! +' + earned, 'cascade');
+    } else {
+      showMessage('+' + earned, '');
+    }
+
+    renderGrid();
+    updateUI();
+    await sleep(300);
+
+    applyGravity();
+    renderGrid();
+    await sleep(200);
+
+    cascadeLevel++;
+  }
+
+  // Win check
+  if (score >= target) {
+    showMessage('SCORE ATTEINT ! (' + score + '/' + target + ')', 'win');
+    animating = false;
+    return;
+  }
+
+  // Refill stream
+  advanceStream();
+
+  // Lose check: deck vide ET current vide ET hold vide
+  if (current === null && hold === null && deck.length === 0) {
+    showMessage('GAME OVER - ' + score + '/' + target, 'lose');
+    animating = false;
+    return;
+  }
+
+  // Si current est vide mais hold ne l'est pas, on force le hold a sortir
+  if (current === null && hold !== null) {
+    current = hold;
+    hold = null;
+  }
+
+  showMessage('', '');
+  renderStream();
+  animating = false;
+}
+
+// === RENDERING ===
+function renderGrid() {
+  gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+
+  gridCtx.fillStyle = '#0f3460';
+  gridCtx.beginPath();
+  gridCtx.roundRect(0, 0, gridCanvas.width, gridCanvas.height, 8);
+  gridCtx.fill();
+
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      const x = c * CELL + PAD;
+      const y = (ROWS - 1 - r) * CELL + PAD;  // flip Y so row 0 = bottom
+      const size = CELL - PAD * 2;
+
+      // Empty cell background
+      gridCtx.fillStyle = '#16213e';
+      gridCtx.beginPath();
+      gridCtx.arc(x + size/2 + PAD/2, y + size/2 + PAD/2, size/2 - 2, 0, Math.PI * 2);
+      gridCtx.fill();
+
+      const token = grid[c][r];
+      if (token) {
+        drawToken(gridCtx, x + PAD/2, y + PAD/2, size, token, false);
+      }
+    }
+  }
+}
+
+function renderGridWithHighlight(highlights) {
+  renderGrid();
+  for (const [c, r] of highlights) {
+    const x = c * CELL + PAD;
+    const y = (ROWS - 1 - r) * CELL + PAD;
+    const size = CELL - PAD * 2;
+    gridCtx.strokeStyle = '#fff';
+    gridCtx.lineWidth = 3;
+    gridCtx.beginPath();
+    gridCtx.arc(x + size/2 + PAD/2, y + size/2 + PAD/2, size/2 - 2, 0, Math.PI * 2);
+    gridCtx.stroke();
+  }
+}
+
+function highlightGroups(groups) {
+  const all = groups.flat();
+  renderGridWithHighlight(all);
+}
+
+// Stream slot positions: [HOLD] gap [CURRENT] gap [NEXT1 NEXT2 NEXT3]
+function streamSlotX(slot) {
+  // slot 0 = hold, 1 = current, 2..4 = previews
+  if (slot === 0) return 0;
+  if (slot === 1) return CELL + STREAM_GAP;
+  return 2 * CELL + STREAM_GAP * 2 + (slot - 2) * CELL;
+}
+
+function renderStream() {
+  streamCtx.clearRect(0, 0, streamCanvas.width, streamCanvas.height);
+
+  // Slot frames
+  for (let s = 0; s < STREAM_SLOTS; s++) {
+    const x = streamSlotX(s);
+    streamCtx.fillStyle = (s === 1) ? '#1a3a5c' : '#16213e';
+    streamCtx.beginPath();
+    streamCtx.roundRect(x, 0, CELL, CELL, 8);
+    streamCtx.fill();
+  }
+
+  // Hold slot label
+  streamCtx.fillStyle = '#888';
+  streamCtx.font = 'bold 11px Segoe UI';
+  streamCtx.textAlign = 'center';
+  streamCtx.textBaseline = 'middle';
+  if (hold === null) {
+    streamCtx.fillText('HOLD', streamSlotX(0) + CELL / 2, CELL / 2);
+  }
+
+  // Hold token
+  if (hold !== null) {
+    drawToken(streamCtx, streamSlotX(0) + PAD, PAD, CELL - PAD * 2, hold, false);
+  }
+
+  // Current token (highlighted)
+  if (current !== null) {
+    drawToken(streamCtx, streamSlotX(1) + PAD, PAD, CELL - PAD * 2, current, true);
+  }
+
+  // Preview tokens (next 3 from end of deck — deck.pop pulls from end)
+  for (let i = 0; i < PREVIEW_SIZE; i++) {
+    const idx = deck.length - 1 - i;
+    if (idx < 0) break;
+    const token = deck[idx];
+    const slot = 2 + i;
+    streamCtx.globalAlpha = 1 - (i * 0.25);
+    drawToken(streamCtx, streamSlotX(slot) + PAD, PAD, CELL - PAD * 2, token, false);
+    streamCtx.globalAlpha = 1;
+  }
+}
+
+function drawToken(ctx, x, y, size, token, highlighted) {
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+  const radius = size / 2 - 4;
+
+  if (token.kind === 'rock') {
+    ctx.fillStyle = '#6b6b7a';
+    ctx.beginPath();
+    ctx.roundRect(cx - radius, cy - radius, radius * 2, radius * 2, 6);
+    ctx.fill();
+    ctx.strokeStyle = highlighted ? '#fff' : '#4a4a55';
+    ctx.lineWidth = highlighted ? 3 : 2;
+    ctx.beginPath();
+    ctx.roundRect(cx - radius, cy - radius, radius * 2, radius * 2, 6);
+    ctx.stroke();
+    ctx.fillStyle = '#4a4a55';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+
+  if (token.kind === 'fantome-residue') {
+    // Pale ghostly disc, distinct from rocks
+    ctx.fillStyle = '#b8b3d6';
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#7a7397';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    return;
+  }
+
+  if (token.kind === 'special') {
+    drawSpecial(ctx, cx, cy, radius, token.special, highlighted);
+    return;
+  }
+
+  // base
+  const family = FAMILIES[token.family];
+  ctx.fillStyle = family.color;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = highlighted ? '#fff' : 'rgba(0,0,0,0.3)';
+  ctx.lineWidth = highlighted ? 3 : 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 22px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(token.value, cx, cy);
+}
+
+function drawSpecial(ctx, cx, cy, radius, type, highlighted) {
+  let bg, fg, label;
+  if (type === 'fantome')      { bg = '#ecf0f1'; fg = '#5d4e8a'; label = 'F'; }
+  else if (type === 'bombe')   { bg = '#2c2c2c'; fg = '#ff6b6b'; label = 'B'; }
+  else if (type === 'maree')   { bg = '#16a085'; fg = '#ffffff'; label = 'M'; }
+  else                         { bg = '#888';    fg = '#fff';    label = '?'; }
+
+  ctx.fillStyle = bg;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = highlighted ? '#fff' : 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = highlighted ? 3 : 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.fillStyle = fg;
+  ctx.font = 'bold 24px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, cx, cy);
+}
+
+// === UI ===
+function updateUI() {
+  document.getElementById('score-val').textContent = score;
+  document.getElementById('target-val').textContent = target;
+  document.getElementById('deck-val').textContent = deck.length;
+}
+
+function showMessage(text, cls) {
+  const el = document.getElementById('message');
+  el.textContent = text;
+  el.className = cls;
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// === INPUT ===
+streamCanvas.addEventListener('click', (e) => {
+  if (animating) return;
+  const rect = streamCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  // Click on hold slot triggers hold/swap
+  if (x >= streamSlotX(0) && x < streamSlotX(0) + CELL) {
+    doHold();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'h' || e.key === 'H') {
+    doHold();
+  }
+});
+
+gridCanvas.addEventListener('click', async (e) => {
+  if (animating) return;
+  if (current === null) return;
+
+  const rect = gridCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const col = Math.floor(x / CELL);
+  const visualRow = Math.floor(y / CELL);
+  const row = ROWS - 1 - visualRow; // flip Y so row 0 = bottom
+
+  if (!canPlay(current, col, row)) return;
+
+  const token = current;
+  current = null;
+
+  applyTokenEffect(token, col, row);
+  advanceStream();
+  renderGrid();
+  renderStream();
+  updateUI();
+
+  await sleep(150);
+  await resolveAll();
+
+  renderGrid();
+  renderStream();
+  updateUI();
+});
+
+// Hover preview, dispatched by current token kind
+gridCanvas.addEventListener('mousemove', (e) => {
+  if (animating || current === null) return;
+  renderGrid();
+  const rect = gridCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const col = Math.floor(x / CELL);
+  const visualRow = Math.floor(y / CELL);
+  const row = ROWS - 1 - visualRow;
+
+  if (!canPlay(current, col, row)) return;
+
+  const tok = current;
+
+  // Marée: highlight whole row, no landing token
+  if (tok.kind === 'special' && tok.special === 'maree') {
+    gridCtx.fillStyle = 'rgba(22, 160, 133, 0.18)';
+    gridCtx.fillRect(0, visualRow * CELL, gridCanvas.width, CELL);
+    // Mark the click cell
+    gridCtx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    gridCtx.lineWidth = 2;
+    gridCtx.strokeRect(col * CELL + 2, visualRow * CELL + 2, CELL - 4, CELL - 4);
+    return;
+  }
+
+  // Fantome: highlight column, show residue at row 0
+  if (tok.kind === 'special' && tok.special === 'fantome') {
+    gridCtx.fillStyle = 'rgba(184, 179, 214, 0.15)';
+    gridCtx.fillRect(col * CELL, 0, CELL, gridCanvas.height);
+    const px = col * CELL + PAD + PAD/2;
+    const py = (ROWS - 1 - 0) * CELL + PAD + PAD/2;
+    const size = CELL - PAD * 2;
+    gridCtx.globalAlpha = 0.5;
+    drawToken(gridCtx, px, py, size, tok, false);
+    gridCtx.globalAlpha = 1;
+    return;
+  }
+
+  // Bombe: highlight 3x3 around landing
+  if (tok.kind === 'special' && tok.special === 'bombe') {
+    const landingRow = columnHeight(col);
+    if (landingRow < ROWS) {
+      gridCtx.fillStyle = 'rgba(255, 107, 107, 0.18)';
+      for (let dc = -1; dc <= 1; dc++) {
+        for (let dr = -1; dr <= 1; dr++) {
+          const cc = col + dc;
+          const rr = landingRow + dr;
+          if (cc < 0 || cc >= COLS || rr < 0 || rr >= ROWS) continue;
+          const vr = ROWS - 1 - rr;
+          gridCtx.fillRect(cc * CELL, vr * CELL, CELL, CELL);
+        }
+      }
+      const px = col * CELL + PAD + PAD/2;
+      const py = (ROWS - 1 - landingRow) * CELL + PAD + PAD/2;
+      const size = CELL - PAD * 2;
+      gridCtx.globalAlpha = 0.5;
+      drawToken(gridCtx, px, py, size, tok, false);
+      gridCtx.globalAlpha = 1;
+    }
+    return;
+  }
+
+  // Base / rock — column drop preview
+  gridCtx.fillStyle = 'rgba(255,255,255,0.05)';
+  gridCtx.fillRect(col * CELL, 0, CELL, gridCanvas.height);
+  const landingRow = columnHeight(col);
+  const px = col * CELL + PAD + PAD/2;
+  const py = (ROWS - 1 - landingRow) * CELL + PAD + PAD/2;
+  const size = CELL - PAD * 2;
+  gridCtx.globalAlpha = 0.4;
+  drawToken(gridCtx, px, py, size, tok, false);
+  gridCtx.globalAlpha = 1;
+});
+
+// === GAME FLOW ===
+function newRound() {
+  initGrid();
+  score = 0;
+  target = BASE_TARGET + (round - 1) * 30;
+  current = null;
+  hold = null;
+  advanceStream();
+  showMessage('', '');
+  renderGrid();
+  renderStream();
+  updateUI();
+}
+
+function newRun() {
+  round = 1;
+  buildDeck();
+  initGrid();
+  score = 0;
+  current = null;
+  hold = null;
+  target = BASE_TARGET;
+  advanceStream();
+  showMessage('', '');
+  renderGrid();
+  renderStream();
+  updateUI();
+}
+
+// === INIT ===
+newRun();
+</script>
+</body>
+</html>
