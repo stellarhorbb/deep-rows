@@ -20,6 +20,8 @@ var score_manager: ScoreManager
 var pattern_manager: PatternManager
 
 var _current_round: int = 1
+var _displayed_score: int = 0
+var _score_tween: Tween = null
 
 
 func _ready() -> void:
@@ -79,7 +81,10 @@ func _wire_signals() -> void:
 
 func _start_new_run() -> void:
 	_current_round = 1
+	_displayed_score = 0
 	message_display.clear_message()
+	# Centrer le pivot du score label pour le scale bump
+	score_label.pivot_offset = score_label.size * 0.5
 	turn_controller.start_round(_current_round)
 	_update_score_display()
 	grid_visual.refresh()
@@ -92,10 +97,11 @@ func _update_score_display() -> void:
 
 
 func _on_score_changed(new_score: int, _delta: int) -> void:
-	score_label.text = _format_number(new_score)
+	_animate_score_to(new_score)
 
 
 func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
+	grid_visual.clear_hover()
 	if timeline.size() > 0:
 		await grid_visual.play_timeline(timeline)
 	grid_visual.refresh()
@@ -142,6 +148,23 @@ func _on_special_executed(special_type: TokenData.SpecialType, _col: int, _row: 
 	# Petite pause pour que le joueur voie le resultat de l'impact
 	await get_tree().create_timer(0.3).timeout
 	turn_controller.notify_special_effect_done()
+
+
+func _animate_score_to(target: int) -> void:
+	var from: int = _displayed_score
+	_displayed_score = target
+
+	if _score_tween != null and _score_tween.is_valid():
+		_score_tween.kill()
+
+	_score_tween = create_tween()
+	_score_tween.tween_method(func(val: float) -> void:
+		score_label.text = _format_number(int(val))
+	, float(from), float(target), 0.4).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+
+	# Scale bump
+	_score_tween.tween_property(score_label, "scale", Vector2(1.12, 1.12), 0.08).set_ease(Tween.EASE_OUT)
+	_score_tween.tween_property(score_label, "scale", Vector2.ONE, 0.15).set_ease(Tween.EASE_IN_OUT)
 
 
 static func _format_number(n: int) -> String:

@@ -11,6 +11,7 @@ extends Node2D
 
 func _input(event: InputEvent) -> void:
 	if grid_visual.is_animating():
+		grid_visual.clear_hover()
 		return
 
 	if event is InputEventKey:
@@ -20,11 +21,36 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 
+	if event is InputEventMouseMotion:
+		_handle_hover(event.global_position)
+
 	if event is InputEventMouseButton:
 		var mouse_event: InputEventMouseButton = event as InputEventMouseButton
 		if mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT:
+			grid_visual.clear_hover()
 			_handle_click(mouse_event.global_position)
 			get_viewport().set_input_as_handled()
+
+
+func _handle_hover(global_pos: Vector2) -> void:
+	if turn_controller.get_state() != TurnController.State.AWAITING_INPUT:
+		grid_visual.clear_hover()
+		return
+
+	var token: TokenData = deck_manager.get_current()
+	if token == null:
+		grid_visual.clear_hover()
+		return
+
+	var grid_local: Vector2 = grid_visual.get_global_transform().affine_inverse() * global_pos
+	var grid_size: Vector2 = grid_visual.get_grid_pixel_size()
+
+	if grid_local.x < 0.0 or grid_local.x > grid_size.x or grid_local.y < 0.0 or grid_local.y > grid_size.y:
+		grid_visual.clear_hover()
+		return
+
+	var cell: Vector2i = grid_visual.pixel_to_grid(grid_local)
+	grid_visual.update_hover(cell.x, token)
 
 
 func _handle_click(global_pos: Vector2) -> void:

@@ -23,10 +23,18 @@ var _token_sprites: Dictionary = {}  # Vector2i -> Sprite2D
 var _is_animating: bool = false
 var _popup_font: Font = null
 
+## Hover preview
+var _hover_sprite: Sprite2D = null
+var _hover_col: int = -1
+
+## Shake
+var _base_position: Vector2 = Vector2.ZERO
+
 
 func setup() -> void:
 	grid_manager.grid_reset.connect(_on_grid_reset)
 	_popup_font = load("res://assets/fonts/LondrinaSolid-Black.ttf") as Font
+	_base_position = position
 
 
 func _draw() -> void:
@@ -88,7 +96,9 @@ func animate_drop(col: int, row: int, token: TokenData) -> void:
 
 	var tween: Tween = create_tween()
 	tween.tween_property(sprite, "position", end_pos, drop_duration).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
-	# Petit bounce a l'arrivee
+	# Double bounce a l'arrivee
+	tween.tween_property(sprite, "position:y", end_pos.y - 12.0, 0.08).set_ease(Tween.EASE_OUT)
+	tween.tween_property(sprite, "position:y", end_pos.y, 0.08).set_ease(Tween.EASE_IN)
 	tween.tween_property(sprite, "position:y", end_pos.y - 4.0, 0.06).set_ease(Tween.EASE_OUT)
 	tween.tween_property(sprite, "position:y", end_pos.y, 0.06).set_ease(Tween.EASE_IN)
 	await tween.finished
@@ -129,6 +139,111 @@ func refresh() -> void:
 	queue_redraw()
 
 
+## --- Hover preview ---
+
+## Met a jour le fantome de preview sur la colonne survolee.
+func update_hover(col: int, token: TokenData) -> void:
+	if col == _hover_col and _hover_sprite != null:
+		return
+	clear_hover()
+	if col < 0 or col >= GameRules.COLS or token == null:
+		_hover_col = -1
+		return
+
+	var landing_row: int = _get_hover_landing_row(col, token)
+	if landing_row < 0 or landing_row >= GameRules.ROWS:
+		_hover_col = -1
+		return
+
+	_hover_col = col
+	_hover_sprite = Sprite2D.new()
+	_hover_sprite.centered = true
+
+	var tex: Texture2D = null
+	if token.kind == TokenData.Kind.SPECIAL:
+		match token.special_type:
+			TokenData.SpecialType.FANTOME:
+				tex = load("res://assets/special-tokens/ghost.png") as Texture2D
+			TokenData.SpecialType.BOMBE:
+				tex = load("res://assets/special-tokens/bomb.png") as Texture2D
+			TokenData.SpecialType.MAREE:
+				tex = load("res://assets/special-tokens/tide.png") as Texture2D
+	else:
+		tex = TokenVisual.get_texture(token)
+
+	if tex == null:
+		_hover_sprite.queue_free()
+		_hover_sprite = null
+		return
+
+	_hover_sprite.texture = tex
+	var tex_size: float = maxf(tex.get_width(), tex.get_height())
+	var target_scale: float = cell_size / tex_size
+	_hover_sprite.scale = Vector2(target_scale, target_scale)
+	_hover_sprite.modulate = Color(1.0, 1.0, 1.0, 0.35)
+	_hover_sprite.position = _grid_to_pixel(col, landing_row)
+	add_child(_hover_sprite)
+
+
+func _get_hover_landing_row(col: int, token: TokenData) -> int:
+	if token.kind == TokenData.Kind.SPECIAL:
+		match token.special_type:
+			TokenData.SpecialType.FANTOME:
+				return 0
+			TokenData.SpecialType.BOMBE:
+				return grid_manager.column_height(col)
+			TokenData.SpecialType.MAREE:
+				return grid_manager.column_height(col)
+	return grid_manager.column_height(col)
+
+
+func clear_hover() -> void:
+	if _hover_sprite != null:
+		_hover_sprite.queue_free()
+		_hover_sprite = null
+	_hover_col = -1
+
+
+## --- Shake ---
+
+func apply_shake(cascade_level: int) -> void:
+	var intensity: float = 5.0 + cascade_level * 3.0
+	var shake_tween: Tween = create_tween()
+	shake_tween.tween_method(_set_shake, Vector2.ZERO, Vector2(intensity, intensity), 0.06)
+	shake_tween.tween_method(_set_shake, Vector2(intensity, intensity), Vector2(-intensity * 0.7, -intensity * 0.5), 0.05)
+	shake_tween.tween_method(_set_shake, Vector2(-intensity * 0.7, -intensity * 0.5), Vector2(intensity * 0.4, intensity * 0.3), 0.04)
+	shake_tween.tween_method(_set_shake, Vector2(intensity * 0.4, intensity * 0.3), Vector2.ZERO, 0.05)
+
+
+func _set_shake(offset: Vector2) -> void:
+	position = _base_position + offset
+
+
+## --- Pattern label ---
+
+func _spawn_pattern_label(pos: Vector2, pattern_text: String) -> void:
+	var label: Label = Label.new()
+	label.text = pattern_text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.position = pos - Vector2(100, 40)
+	label.custom_minimum_size = Vector2(200, 0)
+	if _popup_font != null:
+		label.add_theme_font_override("font", _popup_font)
+	label.add_theme_font_size_override("font_size", 20)
+	label.add_theme_color_override("font_color", Color("3d3d5c"))
+	label.modulate.a = 0.0
+	add_child(label)
+
+	var tween: Tween = create_tween()
+	# Fade in rapide + monte en parallele
+	tween.set_parallel(true)
+	tween.tween_property(label, "modulate:a", 1.0, 0.1)
+	tween.tween_property(label, "position:y", pos.y - 80.0, 0.7).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	# Fade out apres la montee
+	tween.chain().tween_property(label, "modulate:a", 0.0, 0.3)
+	tween.chain().tween_callback(label.queue_free)
+
+
 ## --- Animations internes ---
 
 func _animate_match(event: Dictionary) -> void:
@@ -136,28 +251,68 @@ func _animate_match(event: Dictionary) -> void:
 	var scores: Array = event["scores"] as Array
 	var cascade_level: int = event["cascade_level"] as int
 
-	# Pulse les jetons matches
+	# Shake la grille
+	apply_shake(cascade_level)
+
+	# Shake les jetons matches
 	var all_cells: Dictionary = {}
 	for group in groups:
 		for cell in group["cells"]:
 			all_cells[cell] = true
 
-	# Animation de pulse sur tous les sprites concernes
-	var pulse_tween: Tween = create_tween().set_parallel(true)
+	# Flash blanc
 	for cell_key in all_cells:
 		var cell: Vector2i = cell_key as Vector2i
 		if _token_sprites.has(cell):
 			var sprite: Sprite2D = _token_sprites[cell] as Sprite2D
-			pulse_tween.tween_property(sprite, "scale", Vector2(1.15, 1.15), match_highlight_duration * 0.5).set_ease(Tween.EASE_OUT)
+			sprite.modulate = Color(3.0, 3.0, 3.0, 1.0)
+	await get_tree().create_timer(0.04).timeout
+	for cell_key in all_cells:
+		var cell: Vector2i = cell_key as Vector2i
+		if _token_sprites.has(cell):
+			var sprite: Sprite2D = _token_sprites[cell] as Sprite2D
+			sprite.modulate = Color.WHITE
 
-	await pulse_tween.finished
+	# Shake rapide sur chaque sprite matche
+	var shake_amount: float = 4.0
+	var shake_tw: Tween = create_tween()
+	for step in range(3):
+		var dir: float = 1.0 if step % 2 == 0 else -1.0
+		shake_tw.set_parallel(true)
+		for cell_key in all_cells:
+			var cell: Vector2i = cell_key as Vector2i
+			if _token_sprites.has(cell):
+				var sprite: Sprite2D = _token_sprites[cell] as Sprite2D
+				var base_pos: Vector2 = _grid_to_pixel(cell.x, cell.y)
+				var offset_pos: Vector2 = base_pos + Vector2(shake_amount * dir, 0.0)
+				shake_tw.tween_property(sprite, "position", offset_pos, 0.04)
+		shake_tw.set_parallel(false)
+		shake_tw.tween_interval(0.0)
+		shake_amount *= 0.6
 
-	# Score popups par groupe
+	# Retour a la position d'origine
+	shake_tw.set_parallel(true)
+	for cell_key in all_cells:
+		var cell: Vector2i = cell_key as Vector2i
+		if _token_sprites.has(cell):
+			var sprite: Sprite2D = _token_sprites[cell] as Sprite2D
+			var base_pos: Vector2 = _grid_to_pixel(cell.x, cell.y)
+			shake_tw.tween_property(sprite, "position", base_pos, 0.03)
+	shake_tw.set_parallel(false)
+
+	await shake_tw.finished
+
+	# Pattern labels + score popups par groupe
 	for i in range(groups.size()):
 		var group: Dictionary = groups[i] as Dictionary
 		var group_score: int = scores[i] as int
+		var center: Vector2 = _group_center(group["cells"] as Array)
+
+		# Pattern label (ex: "FAMILY LINE x4")
+		var pattern_text: String = _build_pattern_text(group)
+		_spawn_pattern_label(center, pattern_text)
+
 		if group_score > 0:
-			var center: Vector2 = _group_center(group["cells"] as Array)
 			var popup_text: String = "+" + str(group_score)
 			if cascade_level > 0:
 				popup_text += " x" + str(int(pow(2, cascade_level)))
@@ -217,6 +372,29 @@ func _animate_gravity(event: Dictionary) -> void:
 
 	await gravity_tween.finished
 
+	# Petit bounce a l'atterrissage
+	var bounce_tween: Tween = create_tween().set_parallel(true)
+	for movement in movements:
+		var col: int = movement["col"] as int
+		var to_row: int = movement["to_row"] as int
+		var to_cell: Vector2i = Vector2i(col, to_row)
+		if _token_sprites.has(to_cell):
+			var sprite: Sprite2D = _token_sprites[to_cell] as Sprite2D
+			var base_y: float = _grid_to_pixel(col, to_row).y
+			bounce_tween.tween_property(sprite, "position:y", base_y - 6.0, 0.06).set_ease(Tween.EASE_OUT)
+	await bounce_tween.finished
+
+	var settle_tween: Tween = create_tween().set_parallel(true)
+	for movement in movements:
+		var col: int = movement["col"] as int
+		var to_row: int = movement["to_row"] as int
+		var to_cell: Vector2i = Vector2i(col, to_row)
+		if _token_sprites.has(to_cell):
+			var sprite: Sprite2D = _token_sprites[to_cell] as Sprite2D
+			var base_y: float = _grid_to_pixel(col, to_row).y
+			settle_tween.tween_property(sprite, "position:y", base_y, 0.06).set_ease(Tween.EASE_IN)
+	await settle_tween.finished
+
 
 ## --- Helpers ---
 
@@ -272,6 +450,22 @@ func _group_center(cells: Array) -> Vector2:
 		var cell: Vector2i = cell_key as Vector2i
 		sum += _grid_to_pixel(cell.x, cell.y)
 	return sum / cells.size()
+
+
+func _build_pattern_text(group: Dictionary) -> String:
+	var shape: StringName = group["shape"] as StringName
+	var rule: StringName = group["match_rule"] as StringName
+	var cells: Array = group["cells"] as Array
+	var count: int = cells.size()
+
+	var rule_name: String = "FAMILY" if rule == &"family" else "NUMBER"
+	var shape_name: String = ""
+	if shape == &"square":
+		shape_name = "SQUARE"
+	else:
+		shape_name = "LINE x" + str(count)
+
+	return rule_name + " " + shape_name
 
 
 func _spawn_score_popup(pos: Vector2, text_value: String, color: Color) -> void:
