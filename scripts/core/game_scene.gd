@@ -1,0 +1,158 @@
+## Scene racine du jeu. Cable les managers et l'UI.
+## Les nodes UI sont dans le scene tree (game.tscn), editables dans l'editeur.
+class_name GameScene
+extends Node2D
+
+# --- UI (places dans la scene, references par @onready) ---
+@onready var grid_visual: GridVisual = $GridVisual
+@onready var stream_ui: StreamUI = $StreamUI
+@onready var message_display: MessageDisplay = $MessageDisplay
+@onready var input_handler: InputHandler = $InputHandler
+@onready var score_label: Label = $ScoreLabel
+@onready var target_label: Label = $TargetLabel
+@onready var zone_label: Label = $ZoneLabel
+
+# --- Managers (crees en code, pas de representation visuelle) ---
+var turn_controller: TurnController
+var grid_manager: GridManager
+var deck_manager: DeckManager
+var score_manager: ScoreManager
+var pattern_manager: PatternManager
+
+var _current_round: int = 1
+
+
+func _ready() -> void:
+	_create_managers()
+	_wire_references()
+	_wire_signals()
+	_start_new_run()
+
+
+func _create_managers() -> void:
+	grid_manager = GridManager.new()
+	grid_manager.name = "GridManager"
+	add_child(grid_manager)
+
+	deck_manager = DeckManager.new()
+	deck_manager.name = "DeckManager"
+	add_child(deck_manager)
+
+	score_manager = ScoreManager.new()
+	score_manager.name = "ScoreManager"
+	add_child(score_manager)
+
+	pattern_manager = PatternManager.new()
+	pattern_manager.name = "PatternManager"
+	add_child(pattern_manager)
+
+	turn_controller = TurnController.new()
+	turn_controller.name = "TurnController"
+	turn_controller.grid_manager = grid_manager
+	turn_controller.deck_manager = deck_manager
+	turn_controller.score_manager = score_manager
+	turn_controller.pattern_manager = pattern_manager
+	add_child(turn_controller)
+
+
+func _wire_references() -> void:
+	grid_visual.grid_manager = grid_manager
+	grid_visual.setup()
+	stream_ui.deck_manager = deck_manager
+	stream_ui.setup()
+	input_handler.grid_visual = grid_visual
+	input_handler.stream_ui = stream_ui
+	input_handler.turn_controller = turn_controller
+	input_handler.deck_manager = deck_manager
+	input_handler.grid_manager = grid_manager
+
+
+func _wire_signals() -> void:
+	score_manager.score_changed.connect(_on_score_changed)
+	turn_controller.turn_resolved.connect(_on_turn_resolved)
+	turn_controller.round_won.connect(_on_round_won)
+	turn_controller.round_lost.connect(_on_round_lost)
+	grid_manager.token_placed.connect(_on_token_placed)
+	grid_manager.special_landing.connect(_on_special_landing)
+	grid_manager.special_executed.connect(_on_special_executed)
+
+
+func _start_new_run() -> void:
+	_current_round = 1
+	message_display.clear_message()
+	turn_controller.start_round(_current_round)
+	_update_score_display()
+	grid_visual.refresh()
+	stream_ui.queue_redraw()
+
+
+func _update_score_display() -> void:
+	score_label.text = _format_number(score_manager.get_score())
+	target_label.text = "TARGET : " + _format_number(score_manager.get_target())
+
+
+func _on_score_changed(new_score: int, _delta: int) -> void:
+	score_label.text = _format_number(new_score)
+
+
+func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
+	if timeline.size() > 0:
+		await grid_visual.play_timeline(timeline)
+	grid_visual.refresh()
+
+
+func _on_round_won(final_score: int, target: int) -> void:
+	message_display.show_message(
+		"SCORE ATTEINT ! (" + _format_number(final_score) + "/" + _format_number(target) + ")",
+		&"win",
+	)
+
+
+func _on_round_lost(final_score: int, target: int) -> void:
+	message_display.show_message(
+		"GAME OVER - " + _format_number(final_score) + "/" + _format_number(target),
+		&"lose",
+	)
+
+
+## Jeton basique/rock : anime la chute puis notifie le controller.
+func _on_token_placed(col: int, row: int, token: TokenData) -> void:
+	await grid_visual.animate_drop(col, row, token)
+	turn_controller.notify_drop_complete()
+
+
+## Special : anime la chute vers la landing row puis notifie le controller.
+## L'effet logique n'est pas encore execute a ce stade.
+func _on_special_landing(col: int, row: int, token: TokenData) -> void:
+	await grid_visual.animate_drop(col, row, token)
+	# Supprimer le sprite du special (il ne reste pas sur la grille)
+	grid_visual.remove_sprite_at(Vector2i(col, row))
+	turn_controller.notify_drop_complete()
+
+
+## Apres que l'effet special ait ete execute (logique) : rebuild les sprites + petite pause.
+func _on_special_executed(special_type: TokenData.SpecialType, _col: int, _row: int, result: Dictionary) -> void:
+	if special_type == TokenData.SpecialType.BOMBE:
+		var bombe_score: int = result.get("score", 0) as int
+		if bombe_score > 0:
+			message_display.show_message("BOMBE +" + str(bombe_score), &"cascade")
+
+	# Rebuild les sprites pour montrer l'etat apres l'effet
+	grid_visual.rebuild_sprites()
+	# Petite pause pour que le joueur voie le resultat de l'impact
+	await get_tree().create_timer(0.3).timeout
+	turn_controller.notify_special_effect_done()
+
+
+static func _format_number(n: int) -> String:
+	var s: String = str(n)
+	if n < 1000:
+		return s
+	var result: String = ""
+	var count: int = 0
+	for i in range(s.length() - 1, -1, -1):
+		if count > 0 and count % 3 == 0:
+			result = "," + result
+		result = s[i] + result
+		count += 1
+	return result

@@ -10,9 +10,16 @@ config_version=5
 
 [application]
 
-config/name="New Game Project"
+config/name="Deep Rows"
+run/main_scene="res://scenes/game/game.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
-config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/mode=2
+window/stretch/mode="canvas_items"
 
 [physics]
 

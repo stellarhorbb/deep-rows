@@ -1,0 +1,97 @@
+[gd_scene format=3 uid="uid://ctjitndw30fke"]
+
+[ext_resource type="Script" uid="uid://bptq5t14mxq8a" path="res://scripts/core/game_scene.gd" id="1_game"]
+[ext_resource type="Script" uid="uid://c5dalmcwhvyxb" path="res://scripts/ui/grid_visual.gd" id="2_grid"]
+[ext_resource type="Script" uid="uid://d16e451w1avr6" path="res://scripts/ui/stream_ui.gd" id="3_stream"]
+[ext_resource type="Script" uid="uid://c3yrsprjl4std" path="res://scripts/ui/message_display.gd" id="4_message"]
+[ext_resource type="Script" uid="uid://hx2tnsunf5t6" path="res://scripts/ui/input_handler.gd" id="5_input"]
+[ext_resource type="FontFile" uid="uid://dryqbsw3ute3w" path="res://assets/fonts/LondrinaSolid-Black.ttf" id="6_font_black"]
+
+[node name="Game" type="Node2D" unique_id=1117591923]
+script = ExtResource("1_game")
+
+[node name="Background" type="ColorRect" parent="." unique_id=346991146]
+z_index = -10
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+color = Color(0.722, 0.8, 0.847, 1)
+
+[node name="TopBar" type="ColorRect" parent="." unique_id=957434044]
+offset_right = 1920.0
+offset_bottom = 10.0
+mouse_filter = 2
+color = Color(0.239, 0.239, 0.361, 1)
+
+[node name="ZoneLabel" type="Label" parent="." unique_id=677078140]
+offset_left = 30.0
+offset_top = 20.0
+offset_right = 250.0
+offset_bottom = 80.0
+theme_override_colors/font_color = Color(0.239, 0.239, 0.361, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 22
+text = "THE SURFACE
+0.1"
+
+[node name="TargetLabel" type="Label" parent="." unique_id=309833590]
+offset_left = 660.0
+offset_top = 20.0
+offset_right = 1260.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(0.239, 0.239, 0.361, 1)
+theme_override_font_sizes/font_size = 22
+text = "TARGET : 100"
+horizontal_alignment = 1
+
+[node name="ScoreLabel" type="Label" parent="." unique_id=1810586845]
+offset_left = 660.0
+offset_top = 48.0
+offset_right = 1260.0
+offset_bottom = 118.0
+theme_override_colors/font_color = Color(0.239, 0.239, 0.361, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 64
+text = "0"
+horizontal_alignment = 1
+
+[node name="SaltLabel" type="Label" parent="." unique_id=1820883671]
+offset_left = 1780.0
+offset_top = 20.0
+offset_right = 1900.0
+offset_bottom = 80.0
+theme_override_colors/font_color = Color(0.239, 0.239, 0.361, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 22
+text = "SALT
+0"
+horizontal_alignment = 2
+
+[node name="GridVisual" type="Node2D" parent="." unique_id=1596514991]
+position = Vector2(675, 130)
+script = ExtResource("2_grid")
+
+[node name="StreamUI" type="Control" parent="." unique_id=1024901384]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 1320.0
+offset_top = 160.0
+offset_right = 1420.0
+offset_bottom = 760.0
+mouse_filter = 2
+script = ExtResource("3_stream")
+
+[node name="MessageDisplay" type="Label" parent="." unique_id=753821877]
+visible = false
+offset_left = 480.0
+offset_top = 95.0
+offset_right = 1080.0
+offset_bottom = 135.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+script = ExtResource("4_message")
+
+[node name="InputHandler" type="Node2D" parent="." unique_id=1018510731]
+script = ExtResource("5_input")
