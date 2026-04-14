@@ -103,17 +103,58 @@ static func find_squares(grid: Array, cols: int, rows: int) -> Array[Dictionary]
 	return results
 
 
+## Trouve tous les diamonds de 4 rocks (forme losange autour d'une cellule centrale).
+## Le centre est ignore (peut etre n'importe quel jeton).
+## Retourne : [{ "cells": Array[Vector2i], "match_rule": &"rock", "shape": &"diamond" }]
+static func find_diamonds(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	var results: Array[Dictionary] = []
+
+	for c in range(1, cols - 1):
+		for r in range(1, rows - 1):
+			var top: TokenData = grid[c][r - 1] as TokenData
+			var bottom: TokenData = grid[c][r + 1] as TokenData
+			var left: TokenData = grid[c - 1][r] as TokenData
+			var right: TokenData = grid[c + 1][r] as TokenData
+			if top == null or bottom == null or left == null or right == null:
+				continue
+			if top.kind != TokenData.Kind.ROCK:
+				continue
+			if bottom.kind != TokenData.Kind.ROCK:
+				continue
+			if left.kind != TokenData.Kind.ROCK:
+				continue
+			if right.kind != TokenData.Kind.ROCK:
+				continue
+
+			var cells: Array[Vector2i] = [
+				Vector2i(c, r - 1),
+				Vector2i(c - 1, r),
+				Vector2i(c + 1, r),
+				Vector2i(c, r + 1),
+			]
+			results.append({
+				"cells": cells,
+				"center": Vector2i(c, r),
+				"match_rule": &"rock",
+				"shape": &"diamond",
+			})
+
+	return results
+
+
 ## Trouve tous les groupes et filtre par les Pattern Tags actifs.
 static func find_all(grid: Array, cols: int, rows: int, active_tags: Array[PatternData]) -> Array[Dictionary]:
 	var all_groups: Array[Dictionary] = []
 	all_groups.append_array(find_lines(grid, cols, rows))
 	all_groups.append_array(find_squares(grid, cols, rows))
+	all_groups.append_array(find_diamonds(grid, cols, rows))
 
-	# Filtrage par Tags equipes
+	# Filtrage par Tags equipes (shape + rule + min_size)
 	var filtered: Array[Dictionary] = []
 	for group in all_groups:
+		var cell_count: int = (group["cells"] as Array).size()
 		for tag in active_tags:
-			if tag.shape == group["shape"] and tag.rule == group["match_rule"]:
+			if tag.shape == group["shape"] and tag.rule == group["match_rule"] and cell_count >= tag.min_size:
 				filtered.append(group)
 				break
 

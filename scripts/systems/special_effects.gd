@@ -1,7 +1,7 @@
 class_name SpecialEffects
 
 ## Verifie si un jeton peut etre joue a la position donnee.
-static func can_play(grid: Array, token: TokenData, col: int, row: int, cols: int, rows: int) -> bool:
+static func can_play(grid: Array, token: TokenData, col: int, _row: int, cols: int, rows: int) -> bool:
 	if col < 0 or col >= cols:
 		return false
 
@@ -44,14 +44,13 @@ static func execute_fantome(grid: Array, col: int, rows: int) -> void:
 		grid[col][i + 1] = col_tokens[i]
 
 
-## Bombe : atterrit en haut de colonne, detruit 3x3 autour, score les base tokens.
+## Bombe : atterrit en haut de colonne, detruit 3x3 autour. Pas de score, juste deblayage.
 ## Retourne { "score": int, "destroyed": Array[Vector2i] }
 static func execute_bombe(grid: Array, col: int, cols: int, rows: int) -> Dictionary:
 	var landing_row: int = _column_height(grid, col, rows)
 	if landing_row >= rows:
 		return { "score": 0, "destroyed": [] as Array[Vector2i] }
 
-	var score_sum: int = 0
 	var destroyed: Array[Vector2i] = []
 
 	for dc in range(-1, 2):
@@ -60,16 +59,12 @@ static func execute_bombe(grid: Array, col: int, cols: int, rows: int) -> Dictio
 			var rr: int = landing_row + dr
 			if cc < 0 or cc >= cols or rr < 0 or rr >= rows:
 				continue
-			var token: TokenData = grid[cc][rr] as TokenData
-			if token == null:
+			if grid[cc][rr] == null:
 				continue
-			if token.is_scorable():
-				score_sum += token.value
 			destroyed.append(Vector2i(cc, rr))
 			grid[cc][rr] = null
 
-	var total_score: int = int(score_sum * GameRules.BOMBE_MULTIPLIER)
-	return { "score": total_score, "destroyed": destroyed }
+	return { "score": 0, "destroyed": destroyed }
 
 
 ## Maree : vague qui ecarte la ligne autour du point d'impact.

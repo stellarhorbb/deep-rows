@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PatternData" format=3 uid="uid://bjx3ppvr7q8kq"]
+
+[ext_resource type="Script" uid="uid://k37ydar6rjlo" path="res://scripts/data/pattern_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+tag_name = &"line_family_4"
+shape = &"line"
+rule = &"family"
+min_size = 4

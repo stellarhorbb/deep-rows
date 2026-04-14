@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://c3yrsprjl4std" path="res://scripts/ui/message_display.gd" id="4_message"]
 [ext_resource type="Script" uid="uid://hx2tnsunf5t6" path="res://scripts/ui/input_handler.gd" id="5_input"]
 [ext_resource type="FontFile" uid="uid://dryqbsw3ute3w" path="res://assets/fonts/LondrinaSolid-Black.ttf" id="6_font_black"]
+[ext_resource type="Script" uid="uid://dml5e5e5qgsdp" path="res://scripts/ui/tags_ui.gd" id="7_tags"]
 
 [node name="Game" type="Node2D" unique_id=1117591923]
 script = ExtResource("1_game")
@@ -92,6 +93,16 @@ theme_override_fonts/font = ExtResource("6_font_black")
 theme_override_font_sizes/font_size = 24
 horizontal_alignment = 1
 script = ExtResource("4_message")
+
+[node name="TagsUI" type="Control" parent="." unique_id=1844201001]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 30.0
+offset_top = 160.0
+offset_right = 300.0
+offset_bottom = 440.0
+mouse_filter = 2
+script = ExtResource("7_tags")
 
 [node name="InputHandler" type="Node2D" parent="." unique_id=1018510731]
 script = ExtResource("5_input")

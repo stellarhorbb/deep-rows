@@ -4,6 +4,7 @@ extends Control
 @export var cell_size: float = 80.0
 @export var preview_cell_size: float = 64.0
 @export var vertical_gap: float = 10.0
+@export var horizontal_gap: float = 16.0
 @export var label_font_size: int = 18
 @export var label_color: Color = Color("3d3d5c")
 @export var current_bg_color: Color = Color.WHITE
@@ -25,25 +26,24 @@ func setup() -> void:
 
 func _draw() -> void:
 	var y_offset: float = 0.0
+	var hold_x: float = cell_size + horizontal_gap
 
-	# --- CURRENT ---
-	_draw_label("CURRENT", y_offset)
+	# --- LABELS (CURRENT a gauche, HOLD a droite) ---
+	_draw_label("CURRENT", 0.0, y_offset)
+	_draw_label("HOLD", hold_x, y_offset)
 	y_offset += label_font_size + 6.0
 
-	_draw_slot_bg(y_offset, cell_size, current_bg_color)
+	# --- SLOTS (cote a cote) ---
+	_draw_slot_bg(0.0, y_offset, cell_size, current_bg_color)
 	var current: TokenData = deck_manager.get_current()
 	if current != null:
-		_draw_token_in_slot(current, y_offset, cell_size)
-	y_offset += cell_size + vertical_gap
+		_draw_token_in_slot(current, 0.0, y_offset, cell_size)
 
-	# --- HOLD ---
-	_draw_label("HOLD", y_offset)
-	y_offset += label_font_size + 6.0
-
-	_draw_slot_bg(y_offset, cell_size, hold_bg_color)
+	_draw_slot_bg(hold_x, y_offset, cell_size, hold_bg_color)
 	var hold: TokenData = deck_manager.get_hold()
 	if hold != null:
-		_draw_token_in_slot(hold, y_offset, cell_size)
+		_draw_token_in_slot(hold, hold_x, y_offset, cell_size)
+
 	y_offset += cell_size + vertical_gap * 2.0
 
 	# --- PREVIEW (next tokens, vertical, decreasing opacity) ---
@@ -78,12 +78,12 @@ func _draw() -> void:
 		)
 
 
-func _draw_label(text: String, y_pos: float) -> void:
+func _draw_label(text: String, x_pos: float, y_pos: float) -> void:
 	if _font == null:
 		return
 	draw_string(
 		_font,
-		Vector2(0.0, y_pos + label_font_size),
+		Vector2(x_pos, y_pos + label_font_size),
 		text,
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
@@ -92,16 +92,16 @@ func _draw_label(text: String, y_pos: float) -> void:
 	)
 
 
-func _draw_slot_bg(y_pos: float, slot_size: float, color: Color) -> void:
-	var rect: Rect2 = Rect2(Vector2(0.0, y_pos), Vector2(slot_size, slot_size))
+func _draw_slot_bg(x_pos: float, y_pos: float, slot_size: float, color: Color) -> void:
+	var rect: Rect2 = Rect2(Vector2(x_pos, y_pos), Vector2(slot_size, slot_size))
 	draw_rect(rect, color, true)
 
 
-func _draw_token_in_slot(token: TokenData, y_pos: float, slot_size: float) -> void:
+func _draw_token_in_slot(token: TokenData, x_pos: float, y_pos: float, slot_size: float) -> void:
 	var tex: Texture2D = TokenVisual.get_texture(token)
 	if tex == null:
 		return
-	var dest: Rect2 = Rect2(Vector2(0.0, y_pos), Vector2(slot_size, slot_size))
+	var dest: Rect2 = Rect2(Vector2(x_pos, y_pos), Vector2(slot_size, slot_size))
 	draw_texture_rect(tex, dest, false)
 
 
@@ -111,6 +111,7 @@ func _on_stream_updated(_current: TokenData, _hold: TokenData, _preview: Array[T
 
 ## Detecte si un clic est sur le hold slot. Retourne true si oui.
 func is_hold_click(local_pos: Vector2) -> bool:
-	var hold_y: float = label_font_size + 6.0 + cell_size + vertical_gap + label_font_size + 6.0
-	var hold_rect: Rect2 = Rect2(Vector2(0.0, hold_y), Vector2(cell_size, cell_size))
+	var hold_x: float = cell_size + horizontal_gap
+	var hold_y: float = label_font_size + 6.0
+	var hold_rect: Rect2 = Rect2(Vector2(hold_x, hold_y), Vector2(cell_size, cell_size))
 	return hold_rect.has_point(local_pos)

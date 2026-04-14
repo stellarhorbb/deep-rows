@@ -458,6 +458,9 @@ func _build_pattern_text(group: Dictionary) -> String:
 	var cells: Array = group["cells"] as Array
 	var count: int = cells.size()
 
+	if shape == &"diamond":
+		return "DIAMOND ROCK"
+
 	var rule_name: String = "FAMILY" if rule == &"family" else "NUMBER"
 	var shape_name: String = ""
 	if shape == &"square":

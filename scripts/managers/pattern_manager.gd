@@ -3,38 +3,24 @@ extends Node
 
 signal tags_loaded(tags: Array[PatternData])
 
+## Chemins des Tags equipes par defaut (proto). A terme : equipage via pack + shop.
+const PROTO_TAG_PATHS: Array[String] = [
+	"res://resources/patterns/line_number_3.tres",
+	"res://resources/patterns/line_family_4.tres",
+	"res://resources/patterns/square_family.tres",
+	"res://resources/patterns/diamond_rock.tres",
+]
+
 var _active_tags: Array[PatternData] = []
 
 
-## Pour le proto : cree les 4 tags toujours actifs (line/square × family/value).
+## Charge les Tags equipes depuis les .tres.
 func load_proto_tags() -> void:
 	_active_tags.clear()
-
-	var line_family: PatternData = PatternData.new()
-	line_family.tag_name = &"line_family"
-	line_family.shape = &"line"
-	line_family.rule = &"family"
-	line_family.min_size = 3
-
-	var line_value: PatternData = PatternData.new()
-	line_value.tag_name = &"line_value"
-	line_value.shape = &"line"
-	line_value.rule = &"value"
-	line_value.min_size = 3
-
-	var square_family: PatternData = PatternData.new()
-	square_family.tag_name = &"square_family"
-	square_family.shape = &"square"
-	square_family.rule = &"family"
-	square_family.min_size = 4
-
-	var square_value: PatternData = PatternData.new()
-	square_value.tag_name = &"square_value"
-	square_value.shape = &"square"
-	square_value.rule = &"value"
-	square_value.min_size = 4
-
-	_active_tags = [line_family, line_value, square_family, square_value]
+	for path in PROTO_TAG_PATHS:
+		var tag: PatternData = load(path) as PatternData
+		if tag != null:
+			_active_tags.append(tag)
 	tags_loaded.emit(_active_tags)
 
 

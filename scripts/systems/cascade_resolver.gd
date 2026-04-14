@@ -39,6 +39,9 @@ func resolve(grid: Array, cols: int, rows: int, active_tags: Array[PatternData])
 		for group in groups:
 			for cell in group["cells"]:
 				cells_to_remove[cell] = true
+			# Les diamonds detruisent aussi la cellule centrale
+			if group["shape"] == &"diamond":
+				cells_to_remove[group["center"]] = true
 		var removed_cells: Array[Vector2i] = []
 		for cell in cells_to_remove.keys():
 			removed_cells.append(cell as Vector2i)
@@ -86,6 +89,15 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int) -> int:
 		var token: TokenData = grid[cell.x][cell.y] as TokenData
 		if token != null and token.is_scorable():
 			value_sum += token.value
+
+	# Diamond de rocks : le centre est resolu avec un multiplicateur x4.
+	if group["shape"] == &"diamond":
+		var center: Vector2i = group["center"] as Vector2i
+		var center_token: TokenData = grid[center.x][center.y] as TokenData
+		if center_token == null or not center_token.is_scorable():
+			return 0
+		var diamond_cascade_mult: float = pow(GameRules.CASCADE_MULTIPLIER_BASE, cascade_level)
+		return int(center_token.value * GameRules.DIAMOND_MULTIPLIER * diamond_cascade_mult)
 
 	var shape_mult: float = 0.0
 	if group["shape"] == &"square":

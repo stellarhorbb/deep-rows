@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://k37ydar6rjlo" path="res://scripts/data/pattern_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+tag_name = &"square_family"
+shape = &"square"
+rule = &"family"
+min_size = 4

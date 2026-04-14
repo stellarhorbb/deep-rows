@@ -6,6 +6,7 @@ extends Node2D
 # --- UI (places dans la scene, references par @onready) ---
 @onready var grid_visual: GridVisual = $GridVisual
 @onready var stream_ui: StreamUI = $StreamUI
+@onready var tags_ui: TagsUI = $TagsUI
 @onready var message_display: MessageDisplay = $MessageDisplay
 @onready var input_handler: InputHandler = $InputHandler
 @onready var score_label: Label = $ScoreLabel
@@ -62,6 +63,8 @@ func _wire_references() -> void:
 	grid_visual.setup()
 	stream_ui.deck_manager = deck_manager
 	stream_ui.setup()
+	tags_ui.pattern_manager = pattern_manager
+	tags_ui.setup()
 	input_handler.grid_visual = grid_visual
 	input_handler.stream_ui = stream_ui
 	input_handler.turn_controller = turn_controller

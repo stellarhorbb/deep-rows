@@ -16,6 +16,9 @@ const LINE_MULT_6_PLUS: float = 5.0
 # Multiplicateur carre 2x2
 const SQUARE_MULTIPLIER: float = 3.0
 
+# Multiplicateur diamond (applique sur la valeur du jeton central)
+const DIAMOND_MULTIPLIER: float = 4.0
+
 # Cascade — x2 par niveau (pow(2, cascade_level))
 const CASCADE_MULTIPLIER_BASE: float = 2.0
 
@@ -32,9 +35,6 @@ const PREVIEW_SIZE: int = 3
 # Scoring
 const BASE_TARGET: int = 100
 const TARGET_INCREMENT: int = 30
-
-# Bombe
-const BOMBE_MULTIPLIER: float = 2.0
 
 # Valeurs des jetons de base
 const TOKEN_MIN_VALUE: int = 1
