@@ -20,7 +20,10 @@ var deck_manager: DeckManager
 var score_manager: ScoreManager
 var pattern_manager: PatternManager
 
+enum RunState { PLAYING, ROUND_WON, ROUND_LOST, RUN_WON }
+
 var _current_round: int = 1
+var _run_state: RunState = RunState.PLAYING
 var _displayed_score: int = 0
 var _score_tween: Tween = null
 
@@ -85,18 +88,55 @@ func _wire_signals() -> void:
 func _start_new_run() -> void:
 	_current_round = 1
 	_displayed_score = 0
+	_run_state = RunState.PLAYING
 	message_display.clear_message()
 	# Centrer le pivot du score label pour le scale bump
 	score_label.pivot_offset = score_label.size * 0.5
 	turn_controller.start_round(_current_round)
 	_update_score_display()
+	_update_zone_display()
 	grid_visual.refresh()
 	stream_ui.queue_redraw()
+
+
+func _advance_to_next_round() -> void:
+	_current_round += 1
+	_displayed_score = 0
+	_run_state = RunState.PLAYING
+	message_display.clear_message()
+	turn_controller.start_round(_current_round)
+	_update_score_display()
+	_update_zone_display()
+	grid_visual.refresh()
+	stream_ui.queue_redraw()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var key_event: InputEventKey = event as InputEventKey
+		if not key_event.pressed or key_event.echo:
+			return
+		if key_event.keycode == KEY_SPACE or key_event.keycode == KEY_ENTER:
+			match _run_state:
+				RunState.ROUND_WON:
+					_advance_to_next_round()
+					get_viewport().set_input_as_handled()
+				RunState.ROUND_LOST, RunState.RUN_WON:
+					_start_new_run()
+					get_viewport().set_input_as_handled()
+				_:
+					pass
 
 
 func _update_score_display() -> void:
 	score_label.text = _format_number(score_manager.get_score())
 	target_label.text = "TARGET : " + _format_number(score_manager.get_target())
+
+
+func _update_zone_display() -> void:
+	var zone: int = (_current_round - 1) / GameRules.ROUNDS_PER_ZONE + 1
+	var round_in_zone: int = (_current_round - 1) % GameRules.ROUNDS_PER_ZONE + 1
+	zone_label.text = "ZONE " + str(zone) + "\nMANCHE " + str(round_in_zone) + "/" + str(GameRules.ROUNDS_PER_ZONE)
 
 
 func _on_score_changed(new_score: int, _delta: int) -> void:
@@ -111,15 +151,26 @@ func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
 
 
 func _on_round_won(final_score: int, target: int) -> void:
+	var total_rounds: int = GameRules.ROUNDS_PER_ZONE * GameRules.ZONES_PER_RUN
+	if _current_round >= total_rounds:
+		_run_state = RunState.RUN_WON
+		message_display.show_message(
+			"RUN TERMINEE ! (" + _format_number(final_score) + "/" + _format_number(target) + ") — ESPACE POUR RECOMMENCER",
+			&"win",
+		)
+		return
+
+	_run_state = RunState.ROUND_WON
 	message_display.show_message(
-		"SCORE ATTEINT ! (" + _format_number(final_score) + "/" + _format_number(target) + ")",
+		"MANCHE GAGNEE ! (" + _format_number(final_score) + "/" + _format_number(target) + ") — ESPACE POUR CONTINUER",
 		&"win",
 	)
 
 
 func _on_round_lost(final_score: int, target: int) -> void:
+	_run_state = RunState.ROUND_LOST
 	message_display.show_message(
-		"GAME OVER - " + _format_number(final_score) + "/" + _format_number(target),
+		"GAME OVER — " + _format_number(final_score) + "/" + _format_number(target) + " — ESPACE POUR RECOMMENCER",
 		&"lose",
 	)
 

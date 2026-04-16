@@ -36,6 +36,10 @@ const PREVIEW_SIZE: int = 3
 const BASE_TARGET: int = 100
 const TARGET_INCREMENT: int = 30
 
+# Structure d'un run
+const ROUNDS_PER_ZONE: int = 3
+const ZONES_PER_RUN: int = 4
+
 # Valeurs des jetons de base
 const TOKEN_MIN_VALUE: int = 1
 const TOKEN_MAX_VALUE: int = 5
