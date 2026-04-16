@@ -150,6 +150,7 @@ func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
 	if timeline.size() > 0:
 		await grid_visual.play_timeline(timeline)
 	grid_visual.refresh()
+	turn_controller.notify_timeline_done()
 
 
 func _on_round_won(final_score: int, target: int) -> void:

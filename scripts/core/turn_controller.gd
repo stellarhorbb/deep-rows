@@ -6,6 +6,7 @@ signal awaiting_input()
 signal drop_animated()
 signal special_effect_done()
 signal last_breath_ready()
+signal timeline_done_ack()
 signal turn_resolved(timeline: Array[Dictionary])
 signal last_breath_started()
 signal round_won(score: int, target: int)
@@ -99,11 +100,14 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 	turn_resolved.emit(timeline)
 
 	if score_manager.is_target_reached():
+		if _state == State.LAST_BREATH:
+			await timeline_done_ack
 		_state = State.ROUND_OVER
 		round_won.emit(score_manager.get_score(), score_manager.get_target())
 		return
 
 	if _state == State.LAST_BREATH:
+		await timeline_done_ack
 		_state = State.ROUND_OVER
 		round_lost.emit(score_manager.get_score(), score_manager.get_target())
 		return
@@ -122,6 +126,10 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 
 func notify_last_breath_ready() -> void:
 	last_breath_ready.emit()
+
+
+func notify_timeline_done() -> void:
+	timeline_done_ack.emit()
 
 
 func _trigger_last_breath() -> void:
