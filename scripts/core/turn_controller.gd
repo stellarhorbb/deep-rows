@@ -5,11 +5,13 @@ signal turn_started()
 signal awaiting_input()
 signal drop_animated()
 signal special_effect_done()
+signal last_breath_ready()
 signal turn_resolved(timeline: Array[Dictionary])
+signal last_breath_started()
 signal round_won(score: int, target: int)
 signal round_lost(score: int, target: int)
 
-enum State { AWAITING_INPUT, DROPPING, RESOLVING, ROUND_OVER }
+enum State { AWAITING_INPUT, DROPPING, RESOLVING, LAST_BREATH, ROUND_OVER }
 
 var _state: State = State.AWAITING_INPUT
 
@@ -101,14 +103,30 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 		round_won.emit(score_manager.get_score(), score_manager.get_target())
 		return
 
+	if _state == State.LAST_BREATH:
+		_state = State.ROUND_OVER
+		round_lost.emit(score_manager.get_score(), score_manager.get_target())
+		return
+
 	deck_manager.advance_stream()
 
 	if deck_manager.is_exhausted():
-		_state = State.ROUND_OVER
-		round_lost.emit(score_manager.get_score(), score_manager.get_target())
+		_trigger_last_breath()
 		return
 
 	deck_manager.force_hold_to_current()
 
 	_state = State.AWAITING_INPUT
 	awaiting_input.emit()
+
+
+func notify_last_breath_ready() -> void:
+	last_breath_ready.emit()
+
+
+func _trigger_last_breath() -> void:
+	_state = State.LAST_BREATH
+	last_breath_started.emit()
+	grid_manager.explode_residues()
+	await last_breath_ready
+	grid_manager.resolve()

@@ -6,6 +6,7 @@ signal special_landing(col: int, row: int, token: TokenData)
 signal special_executed(special_type: TokenData.SpecialType, col: int, row: int, result: Dictionary)
 signal resolution_complete(timeline: Array[Dictionary], total_score: int)
 signal grid_reset()
+signal residues_exploded(positions: Array[Vector2i])
 
 var _grid: Array = []
 var _cols: int = GameRules.COLS
@@ -80,6 +81,16 @@ func get_cell(col: int, row: int) -> TokenData:
 	if col < 0 or col >= _cols or row < 0 or row >= _rows:
 		return null
 	return _grid[col][row] as TokenData
+
+
+func explode_residues() -> void:
+	var positions: Array[Vector2i] = []
+	for c in range(_cols):
+		for r in range(_rows):
+			if _grid[c][r] != null and (_grid[c][r] as TokenData).kind == TokenData.Kind.RESIDUE:
+				positions.append(Vector2i(c, r))
+				_grid[c][r] = null
+	residues_exploded.emit(positions)
 
 
 func get_grid() -> Array:

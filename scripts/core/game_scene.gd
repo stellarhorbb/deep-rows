@@ -78,11 +78,13 @@ func _wire_references() -> void:
 func _wire_signals() -> void:
 	score_manager.score_changed.connect(_on_score_changed)
 	turn_controller.turn_resolved.connect(_on_turn_resolved)
+	turn_controller.last_breath_started.connect(_on_last_breath_started)
 	turn_controller.round_won.connect(_on_round_won)
 	turn_controller.round_lost.connect(_on_round_lost)
 	grid_manager.token_placed.connect(_on_token_placed)
 	grid_manager.special_landing.connect(_on_special_landing)
 	grid_manager.special_executed.connect(_on_special_executed)
+	grid_manager.residues_exploded.connect(_on_residues_exploded)
 
 
 func _start_new_run() -> void:
@@ -165,6 +167,17 @@ func _on_round_won(final_score: int, target: int) -> void:
 		"MANCHE GAGNEE ! (" + _format_number(final_score) + "/" + _format_number(target) + ") — ESPACE POUR CONTINUER",
 		&"win",
 	)
+
+
+func _on_last_breath_started() -> void:
+	message_display.show_message("DERNIER SOUFFLE...", &"cascade")
+
+
+func _on_residues_exploded(positions: Array[Vector2i]) -> void:
+	if positions.size() > 0:
+		grid_visual.rebuild_sprites()
+		await get_tree().create_timer(0.4).timeout
+	turn_controller.notify_last_breath_ready()
 
 
 func _on_round_lost(final_score: int, target: int) -> void:
