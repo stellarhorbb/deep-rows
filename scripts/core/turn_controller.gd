@@ -32,6 +32,9 @@ func start_round(round_number: int) -> void:
 	score_manager.reset_round(round_number)
 	grid_manager.init_grid()
 
+	# Tire les modifiers de la manche avant de snapshot le contexte
+	run_manager.roll_round_modifiers(GameRules.COLS, GameRules.ROWS)
+
 	# Construit le contexte du run pour les systemes et propage aux managers
 	var context: RunContext = run_manager.build_context()
 	pattern_manager.set_active_tags(context.equipped_tags)

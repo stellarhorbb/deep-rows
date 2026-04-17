@@ -30,7 +30,7 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext) -> Dictiona
 		var scores: Array[int] = []
 		var earned: int = 0
 		for group in groups:
-			var group_score: int = _score_group(group, grid, cascade_level)
+			var group_score: int = _score_group(group, grid, cascade_level, context.grid_modifiers)
 			scores.append(group_score)
 			earned += group_score
 
@@ -85,7 +85,8 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext) -> Dictiona
 ## Calcule le score d'un groupe.
 ## Lines : multiplicateur = direction du match (v=x1, h=x1.5, d=x2).
 ## Autres formes : multiplicateur fixe defini sur le tag.
-func _score_group(group: Dictionary, grid: Array, cascade_level: int) -> int:
+## Cellules modifiees DOUBLE : chaque cellule concernee multiplie le total par 2.
+func _score_group(group: Dictionary, grid: Array, cascade_level: int, grid_modifiers: Dictionary) -> int:
 	var cascade_mult: float = pow(GameRules.CASCADE_MULTIPLIER_BASE, cascade_level)
 
 	# Diamond : seul le jeton central est score (multiplicateur fixe du tag).
@@ -95,7 +96,8 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int) -> int:
 		if center_token == null or not center_token.is_scorable():
 			return 0
 		var tag_mult: float = group.get("score_multiplier", 4.0) as float
-		return int(center_token.value * tag_mult * cascade_mult)
+		var diamond_mod_mult: float = _modifier_multiplier([center], grid_modifiers)
+		return int(center_token.value * tag_mult * cascade_mult * diamond_mod_mult)
 
 	var value_sum: int = 0
 	for cell in group["cells"]:
@@ -112,4 +114,17 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int) -> int:
 		# Carres et autres : multiplicateur fixe du tag
 		shape_mult = group.get("score_multiplier", 1.0) as float
 
-	return int(value_sum * shape_mult * cascade_mult)
+	var mod_mult: float = _modifier_multiplier(group["cells"], grid_modifiers)
+	return int(value_sum * shape_mult * cascade_mult * mod_mult)
+
+
+## Chaque cellule modifiee DOUBLE dans la liste multiplie le total par 2 (cumulatif).
+func _modifier_multiplier(cells: Array, grid_modifiers: Dictionary) -> float:
+	if grid_modifiers.is_empty():
+		return 1.0
+	var mult: float = 1.0
+	for cell in cells:
+		var key: Vector2i = cell as Vector2i
+		if grid_modifiers.get(key) == GameRules.MODIFIER_DOUBLE:
+			mult *= GameRules.MODIFIER_DOUBLE_MULT
+	return mult

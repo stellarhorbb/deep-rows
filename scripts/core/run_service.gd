@@ -10,6 +10,10 @@ var shop_manager: ShopManager
 var current_round: int = 1
 var game_flow: GameFlow = GameFlow.PLAYING
 
+# Resultat de la derniere manche, lu par l'end screen.
+var last_score: int = 0
+var last_target: int = 0
+
 var _run_initialized: bool = false
 
 

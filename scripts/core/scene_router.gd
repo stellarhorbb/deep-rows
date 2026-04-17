@@ -5,6 +5,7 @@ extends Node
 
 const GAME_SCENE_PATH: String = "res://scenes/game/game.tscn"
 const SHOP_SCENE_PATH: String = "res://scenes/shop/shop.tscn"
+const END_SCREEN_PATH: String = "res://scenes/end/end_screen.tscn"
 
 
 func go_to_game() -> void:
@@ -13,3 +14,7 @@ func go_to_game() -> void:
 
 func go_to_shop() -> void:
 	get_tree().change_scene_to_file(SHOP_SCENE_PATH)
+
+
+func go_to_end_screen() -> void:
+	get_tree().change_scene_to_file(END_SCREEN_PATH)

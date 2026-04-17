@@ -7,6 +7,7 @@ extends Node
 signal flies_changed(amount: int)
 signal tags_changed(equipped: Array[PatternData])
 signal deck_composition_changed()
+signal grid_modifiers_changed(modifiers: Dictionary)
 
 ## Chemins des tags du starter pack (valable pour le proto).
 ## Plus tard : vient du pack de base choisi par le joueur.
@@ -22,6 +23,7 @@ var _deck_composition: Dictionary = {
 	"fantome_count": 0,
 	"maree_count": 0,
 }
+var _grid_modifiers: Dictionary = {}  # Vector2i -> StringName
 
 
 ## Initialise un nouveau run : starter pack.
@@ -49,7 +51,22 @@ func init_run() -> void:
 func build_context() -> RunContext:
 	var ctx: RunContext = RunContext.new()
 	ctx.equipped_tags = _equipped_tags.duplicate()
+	ctx.grid_modifiers = _grid_modifiers.duplicate()
 	return ctx
+
+
+## Regenere les modifiers de la manche : 1 cellule aleatoire = DOUBLE.
+## Appele au debut de chaque manche par TurnController.
+func roll_round_modifiers(cols: int, rows: int) -> void:
+	_grid_modifiers.clear()
+	var col: int = randi() % cols
+	var row: int = randi() % rows
+	_grid_modifiers[Vector2i(col, row)] = GameRules.MODIFIER_DOUBLE
+	grid_modifiers_changed.emit(_grid_modifiers.duplicate())
+
+
+func get_grid_modifiers() -> Dictionary:
+	return _grid_modifiers.duplicate()
 
 
 # --- Mouches ---

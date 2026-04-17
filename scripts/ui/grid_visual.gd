@@ -5,6 +5,8 @@ extends Node2D
 @export var cell_gap: float = 6.0
 @export var empty_cell_color: Color = Color("e8e8e8")
 @export var residue_color: Color = Color("b8b3d6")
+@export var modifier_border_color: Color = Color("1a2b5c")
+@export var modifier_border_width: float = 6.0
 
 ## Timing des animations
 @export var drop_duration: float = 0.25
@@ -20,6 +22,7 @@ extends Node2D
 @export var grid_manager: GridManager
 
 var _token_sprites: Dictionary = {}  # Vector2i -> Sprite2D
+var _grid_modifiers: Dictionary = {}  # Vector2i -> StringName
 var _is_animating: bool = false
 var _popup_font: Font = null
 
@@ -44,6 +47,19 @@ func _draw() -> void:
 			var visual_row: int = GameRules.ROWS - 1 - r
 			var center: Vector2 = _cell_center(c, visual_row)
 			draw_circle(center, cell_size / 2.0, empty_cell_color)
+
+	# Contour des cellules modifiees (par dessus le fond, sous les sprites)
+	for cell_key in _grid_modifiers:
+		var cell: Vector2i = cell_key as Vector2i
+		var visual_row_m: int = GameRules.ROWS - 1 - cell.y
+		var c_center: Vector2 = _cell_center(cell.x, visual_row_m)
+		draw_arc(c_center, cell_size / 2.0, 0.0, TAU, 48, modifier_border_color, modifier_border_width)
+
+
+## Appele par game_scene quand RunManager emet grid_modifiers_changed.
+func set_grid_modifiers(modifiers: Dictionary) -> void:
+	_grid_modifiers = modifiers
+	queue_redraw()
 
 
 ## Synchronise les sprites avec l'etat logique de la grille.

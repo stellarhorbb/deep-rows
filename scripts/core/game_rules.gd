@@ -36,6 +36,15 @@ const MAX_PATTERN_SLOTS: int = 4
 # Recompense par manche gagnee (fixe pour l'instant)
 const FLIES_PER_ROUND_WON: int = 10
 
+# Delai avant transition en fin de manche (shop / victoire / defaite) pour
+# laisser le temps d'integrer le dernier coup.
+const ROUND_END_DELAY: float = 2.0
+
+# Modificateurs de cellules
+# Cle stockee dans le dict grid_modifiers : Vector2i -> StringName
+const MODIFIER_DOUBLE: StringName = &"double"
+const MODIFIER_DOUBLE_MULT: float = 2.0
+
 # Entity
 const ENTITY_DROP_INTERVAL: int = 6  # Un drop tous les N poses joueur
 

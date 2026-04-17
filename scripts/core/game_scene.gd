@@ -93,6 +93,7 @@ func _wire_signals() -> void:
 	grid_manager.special_executed.connect(_on_special_executed)
 	grid_manager.residues_exploded.connect(_on_residues_exploded)
 	RunService.run_manager.flies_changed.connect(_on_flies_changed)
+	RunService.run_manager.grid_modifiers_changed.connect(grid_visual.set_grid_modifiers)
 
 
 func _start_round() -> void:
@@ -108,21 +109,6 @@ func _start_round() -> void:
 	_on_flies_changed(RunService.run_manager.get_flies())
 	grid_visual.refresh()
 	stream_ui.queue_redraw()
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey:
-		var key_event: InputEventKey = event as InputEventKey
-		if not key_event.pressed or key_event.echo:
-			return
-		if key_event.keycode == KEY_SPACE or key_event.keycode == KEY_ENTER:
-			match RunService.game_flow:
-				RunService.GameFlow.ROUND_LOST, RunService.GameFlow.RUN_WON:
-					RunService.start_new_run()
-					SceneRouter.go_to_game()
-					get_viewport().set_input_as_handled()
-				_:
-					pass
 
 
 func _update_score_display() -> void:
@@ -169,15 +155,16 @@ func _on_round_won(final_score: int, target: int) -> void:
 	var total_rounds: int = GameRules.ROUNDS_PER_ZONE * GameRules.ZONES_PER_RUN
 	if RunService.current_round >= total_rounds:
 		RunService.game_flow = RunService.GameFlow.RUN_WON
-		message_display.show_message(
-			"RUN TERMINEE ! (" + _format_number(final_score) + "/" + _format_number(target) + ") — ESPACE POUR RECOMMENCER",
-			&"win",
-		)
+		RunService.last_score = final_score
+		RunService.last_target = target
+		await get_tree().create_timer(GameRules.ROUND_END_DELAY).timeout
+		SceneRouter.go_to_end_screen()
 		return
 
 	# Manche gagnee (hors derniere) : recompense + transition vers shop
 	RunService.run_manager.add_flies(GameRules.FLIES_PER_ROUND_WON)
 	RunService.game_flow = RunService.GameFlow.SHOPPING
+	await get_tree().create_timer(GameRules.ROUND_END_DELAY).timeout
 	SceneRouter.go_to_shop()
 
 
@@ -196,10 +183,10 @@ func _on_residues_exploded(positions: Array[Vector2i]) -> void:
 
 func _on_round_lost(final_score: int, target: int) -> void:
 	RunService.game_flow = RunService.GameFlow.ROUND_LOST
-	message_display.show_message(
-		"GAME OVER — " + _format_number(final_score) + "/" + _format_number(target) + " — ESPACE POUR RECOMMENCER",
-		&"lose",
-	)
+	RunService.last_score = final_score
+	RunService.last_target = target
+	await get_tree().create_timer(GameRules.ROUND_END_DELAY).timeout
+	SceneRouter.go_to_end_screen()
 
 
 ## Jeton basique/rock : anime la chute puis notifie le controller.
