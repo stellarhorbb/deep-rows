@@ -11,7 +11,7 @@ signal residues_exploded(positions: Array[Vector2i])
 var _grid: Array = []
 var _cols: int = GameRules.COLS
 var _rows: int = GameRules.ROWS
-var _active_tags: Array[PatternData] = []
+var _run_context: RunContext = null
 
 
 func init_grid() -> void:
@@ -25,8 +25,8 @@ func init_grid() -> void:
 	grid_reset.emit()
 
 
-func set_active_tags(tags: Array[PatternData]) -> void:
-	_active_tags = tags
+func set_run_context(context: RunContext) -> void:
+	_run_context = context
 
 
 func column_height(col: int) -> int:
@@ -70,10 +70,20 @@ func execute_special(token: TokenData, col: int) -> void:
 	special_executed.emit(token.special_type, col, 0, result)
 
 
+## Place un jeton entity directement dans la grille, sans pipeline de resolution ni signal.
+## Retourne la row de landing (-1 si colonne pleine).
+func place_entity_token(col: int, token: TokenData) -> int:
+	var row: int = column_height(col)
+	if row >= _rows:
+		return -1
+	_grid[col][row] = token
+	return row
+
+
 ## Lance la resolution des cascades.
 func resolve() -> void:
 	var resolver: CascadeResolver = CascadeResolver.new()
-	var resolve_result: Dictionary = resolver.resolve(_grid, _cols, _rows, _active_tags)
+	var resolve_result: Dictionary = resolver.resolve(_grid, _cols, _rows, _run_context)
 	resolution_complete.emit(resolve_result["timeline"], resolve_result["total_score"])
 
 
@@ -83,11 +93,16 @@ func get_cell(col: int, row: int) -> TokenData:
 	return _grid[col][row] as TokenData
 
 
+## Dernier Souffle : supprime les residus ET les rocks, laisse les jetons de base en place.
+## Les entity tokens survivent (ils restent obstacles).
 func explode_residues() -> void:
 	var positions: Array[Vector2i] = []
 	for c in range(_cols):
 		for r in range(_rows):
-			if _grid[c][r] != null and (_grid[c][r] as TokenData).kind == TokenData.Kind.RESIDUE:
+			if _grid[c][r] == null:
+				continue
+			var kind: TokenData.Kind = (_grid[c][r] as TokenData).kind
+			if kind == TokenData.Kind.RESIDUE or kind == TokenData.Kind.ROCK:
 				positions.append(Vector2i(c, r))
 				_grid[c][r] = null
 	residues_exploded.emit(positions)

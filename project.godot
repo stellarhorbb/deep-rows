@@ -14,6 +14,11 @@ config/name="Deep Rows"
 run/main_scene="res://scenes/game/game.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
+[autoload]
+
+RunService="*res://scripts/core/run_service.gd"
+SceneRouter="*res://scripts/core/scene_router.gd"
+
 [display]
 
 window/size/viewport_width=1920

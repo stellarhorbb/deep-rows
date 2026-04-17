@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ShopItem" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/shop_item.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+item_type = 1
+label = "MAREE"
+price = 10
+tag_data = null
+special_type = 3

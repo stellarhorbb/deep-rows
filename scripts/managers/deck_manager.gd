@@ -9,7 +9,7 @@ var _current: TokenData = null
 var _hold: TokenData = null
 
 
-func build_deck() -> void:
+func build_deck(composition: Dictionary) -> void:
 	_deck.clear()
 	_current = null
 	_hold = null
@@ -24,12 +24,16 @@ func build_deck() -> void:
 	for i in range(GameRules.DECK_ROCK_COUNT):
 		_deck.append(TokenData.make_rock())
 
-	# Speciaux
-	for i in range(GameRules.DECK_FANTOME_COUNT):
-		_deck.append(TokenData.make_special(TokenData.SpecialType.FANTOME))
-	for i in range(GameRules.DECK_BOMBE_COUNT):
+	# Speciaux issus de la composition du run
+	var bombe_count: int = composition.get("bombe_count", 0) as int
+	var fantome_count: int = composition.get("fantome_count", 0) as int
+	var maree_count: int = composition.get("maree_count", 0) as int
+
+	for i in range(bombe_count):
 		_deck.append(TokenData.make_special(TokenData.SpecialType.BOMBE))
-	for i in range(GameRules.DECK_MAREE_COUNT):
+	for i in range(fantome_count):
+		_deck.append(TokenData.make_special(TokenData.SpecialType.FANTOME))
+	for i in range(maree_count):
 		_deck.append(TokenData.make_special(TokenData.SpecialType.MAREE))
 
 	# Shuffle (Fisher-Yates)

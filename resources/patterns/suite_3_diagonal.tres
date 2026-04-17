@@ -4,9 +4,9 @@
 
 [resource]
 script = ExtResource("1_script")
-tag_name = &"line_number_3"
+tag_name = &"suite_3_diagonal"
 shape = &"line"
-rule = &"value"
+rule = &"suite"
 min_size = 3
 direction = &"any"
-score_multiplier = 1.0
+score_multiplier = 2.0

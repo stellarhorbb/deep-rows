@@ -1,8 +1,8 @@
 class_name TokenData
 extends RefCounted
 
-enum Kind { BASE, ROCK, RESIDUE, SPECIAL }
-enum Family { CORAL, SHELL, INK, RUST }
+enum Kind { BASE, ROCK, RESIDUE, SPECIAL, ENTITY }
+enum Family { CORAL, SHELL, RUST }
 enum SpecialType { NONE, FANTOME, BOMBE, MAREE }
 
 var kind: Kind = Kind.BASE
@@ -35,6 +35,12 @@ static func make_special(p_type: SpecialType) -> TokenData:
 	var token: TokenData = TokenData.new()
 	token.kind = Kind.SPECIAL
 	token.special_type = p_type
+	return token
+
+
+static func make_entity() -> TokenData:
+	var token: TokenData = TokenData.new()
+	token.kind = Kind.ENTITY
 	return token
 
 

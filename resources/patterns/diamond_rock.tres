@@ -8,3 +8,5 @@ tag_name = &"diamond_rock"
 shape = &"diamond"
 rule = &"rock"
 min_size = 4
+direction = &"any"
+score_multiplier = 4.0

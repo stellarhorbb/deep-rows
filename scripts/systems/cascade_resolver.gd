@@ -7,7 +7,7 @@ enum EventType { GRAVITY, MATCH, REMOVE }
 
 ## Resout toutes les cascades sur la grille.
 ## Retourne une timeline d'evenements pour le visuel + le score total gagne.
-func resolve(grid: Array, cols: int, rows: int, active_tags: Array[PatternData]) -> Dictionary:
+func resolve(grid: Array, cols: int, rows: int, context: RunContext) -> Dictionary:
 	var timeline: Array[Dictionary] = []
 	var total_score: int = 0
 
@@ -22,7 +22,7 @@ func resolve(grid: Array, cols: int, rows: int, active_tags: Array[PatternData])
 	var cascade_level: int = 0
 
 	while true:
-		var groups: Array[Dictionary] = PatternMatcher.find_all(grid, cols, rows, active_tags)
+		var groups: Array[Dictionary] = PatternMatcher.find_all(grid, cols, rows, context)
 		if groups.size() == 0:
 			break
 
@@ -82,29 +82,34 @@ func resolve(grid: Array, cols: int, rows: int, active_tags: Array[PatternData])
 	}
 
 
-## Calcule le score d'un groupe : somme des valeurs × multiplicateur forme × multiplicateur cascade.
+## Calcule le score d'un groupe.
+## Lines : multiplicateur = direction du match (v=x1, h=x1.5, d=x2).
+## Autres formes : multiplicateur fixe defini sur le tag.
 func _score_group(group: Dictionary, grid: Array, cascade_level: int) -> int:
+	var cascade_mult: float = pow(GameRules.CASCADE_MULTIPLIER_BASE, cascade_level)
+
+	# Diamond : seul le jeton central est score (multiplicateur fixe du tag).
+	if group["shape"] == &"diamond":
+		var center: Vector2i = group["center"] as Vector2i
+		var center_token: TokenData = grid[center.x][center.y] as TokenData
+		if center_token == null or not center_token.is_scorable():
+			return 0
+		var tag_mult: float = group.get("score_multiplier", 4.0) as float
+		return int(center_token.value * tag_mult * cascade_mult)
+
 	var value_sum: int = 0
 	for cell in group["cells"]:
 		var token: TokenData = grid[cell.x][cell.y] as TokenData
 		if token != null and token.is_scorable():
 			value_sum += token.value
 
-	# Diamond de rocks : le centre est resolu avec un multiplicateur x4.
-	if group["shape"] == &"diamond":
-		var center: Vector2i = group["center"] as Vector2i
-		var center_token: TokenData = grid[center.x][center.y] as TokenData
-		if center_token == null or not center_token.is_scorable():
-			return 0
-		var diamond_cascade_mult: float = pow(GameRules.CASCADE_MULTIPLIER_BASE, cascade_level)
-		return int(center_token.value * GameRules.DIAMOND_MULTIPLIER * diamond_cascade_mult)
-
-	var shape_mult: float = 0.0
-	if group["shape"] == &"square":
-		shape_mult = GameRules.SQUARE_MULTIPLIER
+	var shape_mult: float
+	if group["shape"] == &"line":
+		# Les lignes sont recompensees selon leur direction de resolution
+		var dir: StringName = group.get("direction", &"vertical") as StringName
+		shape_mult = GameRules.get_direction_multiplier(dir)
 	else:
-		shape_mult = GameRules.get_line_multiplier(group["cells"].size())
-
-	var cascade_mult: float = pow(GameRules.CASCADE_MULTIPLIER_BASE, cascade_level)
+		# Carres et autres : multiplicateur fixe du tag
+		shape_mult = group.get("score_multiplier", 1.0) as float
 
 	return int(value_sum * shape_mult * cascade_mult)

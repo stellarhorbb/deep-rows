@@ -8,3 +8,5 @@ tag_name = &"square_family"
 shape = &"square"
 rule = &"family"
 min_size = 4
+direction = &"any"
+score_multiplier = 2.0

@@ -26,7 +26,7 @@ func _ready() -> void:
 
 func setup() -> void:
 	if pattern_manager != null:
-		pattern_manager.tags_loaded.connect(_on_tags_loaded)
+		pattern_manager.tags_changed.connect(_on_tags_changed)
 
 
 func _draw() -> void:
@@ -44,6 +44,19 @@ func _draw() -> void:
 			label_color,
 		)
 	y_offset += header_font_size + header_gap
+
+	# Legende direction (pour les lignes)
+	if _font != null:
+		draw_string(
+			_font,
+			Vector2(0.0, y_offset + 14),
+			"LIGNE : v x1  h x1.5  d x2",
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			14,
+			Color(label_color, 0.55),
+		)
+	y_offset += 14 + header_gap + 2.0
 
 	# Slots
 	var tags: Array[PatternData] = []
@@ -76,12 +89,34 @@ func _draw_slot_bg(y_pos: float, color: Color) -> void:
 
 
 func _format_tag_label(tag: PatternData) -> String:
-	if tag.shape == &"diamond" and tag.rule == &"rock":
-		return "DIAMOND ROCK"
 	var shape_str: String = "LINE" if tag.shape == &"line" else "SQUARE"
-	var rule_str: String = "FAMILY" if tag.rule == &"family" else "NUMBER"
-	return shape_str + " " + rule_str + " " + str(tag.min_size)
+	var rule_str: String
+	match tag.rule:
+		&"family": rule_str = "FAMILY"
+		&"suite":  rule_str = "SUITE"
+		&"rock":   rule_str = "ROCK"
+		_:         rule_str = "NUMBER"
+
+	# Lines : pas de multiplicateur fixe affiche (varie selon la direction)
+	if tag.shape == &"line":
+		return shape_str + " " + rule_str + " " + str(tag.min_size)
+
+	# Autres formes : multiplicateur fixe visible
+	if tag.shape == &"diamond":
+		var raw: String = _format_multiplier(tag.score_multiplier)
+		return "DIAMOND ROCK" + ("  " + raw if raw != "" else "")
+
+	var raw_mult: String = _format_multiplier(tag.score_multiplier)
+	return shape_str + " " + rule_str + ("  " + raw_mult if raw_mult != "" else "")
 
 
-func _on_tags_loaded(_tags: Array[PatternData]) -> void:
+func _format_multiplier(mult: float) -> String:
+	if mult <= 1.0:
+		return ""
+	if mult == float(int(mult)):
+		return "x" + str(int(mult))
+	return "x%.1f" % mult
+
+
+func _on_tags_changed(_tags: Array[PatternData]) -> void:
 	queue_redraw()

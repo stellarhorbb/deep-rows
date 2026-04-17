@@ -8,3 +8,5 @@ tag_name = &"line_family_4"
 shape = &"line"
 rule = &"family"
 min_size = 4
+direction = &"any"
+score_multiplier = 1.0

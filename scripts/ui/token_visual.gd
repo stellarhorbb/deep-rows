@@ -4,7 +4,6 @@ class_name TokenVisual
 const FAMILY_SPRITES: Dictionary = {
 	TokenData.Family.CORAL: "res://assets/tokens/coral_",
 	TokenData.Family.SHELL: "res://assets/tokens/shell_",
-	TokenData.Family.INK: "res://assets/tokens/ink_",
 	TokenData.Family.RUST: "res://assets/tokens/rust_",
 }
 

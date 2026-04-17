@@ -415,6 +415,13 @@ func _create_sprite(cell: Vector2i, token: TokenData) -> Sprite2D:
 			var target_scale: float = cell_size / tex_size
 			sprite.scale = Vector2(target_scale, target_scale)
 			sprite.modulate.a = 0.5
+	elif token.kind == TokenData.Kind.ENTITY:
+		var tex: Texture2D = load("res://assets/tokens/entity-skull.png") as Texture2D
+		if tex != null:
+			sprite.texture = tex
+			var tex_size: float = maxf(tex.get_width(), tex.get_height())
+			var target_scale: float = cell_size / tex_size
+			sprite.scale = Vector2(target_scale, target_scale)
 	else:
 		var tex: Texture2D = TokenVisual.get_texture(token)
 		if tex != null:
@@ -457,18 +464,41 @@ func _build_pattern_text(group: Dictionary) -> String:
 	var rule: StringName = group["match_rule"] as StringName
 	var cells: Array = group["cells"] as Array
 	var count: int = cells.size()
+	var mult: float = group.get("score_multiplier", 1.0) as float
+	var raw_mult: String = _format_multiplier(mult)
+	var mult_str: String = " " + raw_mult if raw_mult != "" else ""
 
 	if shape == &"diamond":
-		return "DIAMOND ROCK"
+		return "DIAMOND ROCK" + mult_str
 
-	var rule_name: String = "FAMILY" if rule == &"family" else "NUMBER"
-	var shape_name: String = ""
+	var rule_name: String
+	match rule:
+		&"family": rule_name = "FAMILY"
+		&"suite":  rule_name = "SUITE"
+		_:         rule_name = "NUMBER"
+
 	if shape == &"square":
-		shape_name = "SQUARE"
-	else:
-		shape_name = "LINE x" + str(count)
+		return rule_name + " SQUARE" + mult_str
 
-	return rule_name + " " + shape_name
+	# Lignes : affiche la direction + le multiplicateur reel
+	var dir: StringName = group.get("direction", &"vertical") as StringName
+	var dir_label: String
+	match dir:
+		&"horizontal": dir_label = "H"
+		&"diagonal":   dir_label = "D"
+		_:             dir_label = "V"
+	var dir_mult: float = GameRules.get_direction_multiplier(dir)
+	var dir_mult_str: String = _format_multiplier(dir_mult)
+	var dir_suffix: String = " " + dir_label + ("  " + dir_mult_str if dir_mult_str != "" else "")
+	return rule_name + " LINE x" + str(count) + dir_suffix
+
+
+func _format_multiplier(mult: float) -> String:
+	if mult <= 1.0:
+		return ""
+	if mult == float(int(mult)):
+		return "x" + str(int(mult))
+	return "x%.1f" % mult
 
 
 func _spawn_score_popup(pos: Vector2, text_value: String, color: Color) -> void:

@@ -9,7 +9,7 @@ extends Node2D
 
 
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	if grid_visual.is_animating():
 		grid_visual.clear_hover()
 		return

@@ -20,6 +20,7 @@ var _state: State = State.AWAITING_INPUT
 @export var deck_manager: DeckManager
 @export var score_manager: ScoreManager
 @export var pattern_manager: PatternManager
+@export var run_manager: RunManager
 
 
 func _ready() -> void:
@@ -30,9 +31,13 @@ func _ready() -> void:
 func start_round(round_number: int) -> void:
 	score_manager.reset_round(round_number)
 	grid_manager.init_grid()
-	pattern_manager.load_proto_tags()
-	grid_manager.set_active_tags(pattern_manager.get_active_tags())
-	deck_manager.build_deck()
+
+	# Construit le contexte du run pour les systemes et propage aux managers
+	var context: RunContext = run_manager.build_context()
+	pattern_manager.set_active_tags(context.equipped_tags)
+	grid_manager.set_run_context(context)
+
+	deck_manager.build_deck(run_manager.get_deck_composition())
 	deck_manager.advance_stream()
 	_state = State.AWAITING_INPUT
 	turn_started.emit()

@@ -1,5 +1,7 @@
-## Scene racine du jeu. Cable les managers et l'UI.
-## Les nodes UI sont dans le scene tree (game.tscn), editables dans l'editeur.
+## Scene racine du jeu. Cable les managers et l'UI pour une manche.
+## RunManager et ShopManager vivent dans l'autoload RunService (persistent
+## entre changements de scene). GameScene lit RunService.current_round au
+## demarrage et appelle SceneRouter pour les transitions.
 class_name GameScene
 extends Node2D
 
@@ -12,27 +14,26 @@ extends Node2D
 @onready var score_label: Label = $ScoreLabel
 @onready var target_label: Label = $TargetLabel
 @onready var zone_label: Label = $ZoneLabel
+@onready var flies_label: Label = $SaltLabel
 
-# --- Managers (crees en code, pas de representation visuelle) ---
+# --- Managers locaux a la manche (grid, deck, score, pattern, turn, entity) ---
 var turn_controller: TurnController
 var grid_manager: GridManager
 var deck_manager: DeckManager
 var score_manager: ScoreManager
 var pattern_manager: PatternManager
+var entity_manager: EntityManager
 
-enum RunState { PLAYING, ROUND_WON, ROUND_LOST, RUN_WON }
-
-var _current_round: int = 1
-var _run_state: RunState = RunState.PLAYING
 var _displayed_score: int = 0
 var _score_tween: Tween = null
 
 
 func _ready() -> void:
+	RunService.ensure_run_started()
 	_create_managers()
 	_wire_references()
 	_wire_signals()
-	_start_new_run()
+	_start_round()
 
 
 func _create_managers() -> void:
@@ -58,7 +59,12 @@ func _create_managers() -> void:
 	turn_controller.deck_manager = deck_manager
 	turn_controller.score_manager = score_manager
 	turn_controller.pattern_manager = pattern_manager
+	turn_controller.run_manager = RunService.run_manager
 	add_child(turn_controller)
+
+	entity_manager = EntityManager.new()
+	entity_manager.name = "EntityManager"
+	add_child(entity_manager)
 
 
 func _wire_references() -> void:
@@ -73,6 +79,7 @@ func _wire_references() -> void:
 	input_handler.turn_controller = turn_controller
 	input_handler.deck_manager = deck_manager
 	input_handler.grid_manager = grid_manager
+	entity_manager.grid_manager = grid_manager
 
 
 func _wire_signals() -> void:
@@ -85,30 +92,20 @@ func _wire_signals() -> void:
 	grid_manager.special_landing.connect(_on_special_landing)
 	grid_manager.special_executed.connect(_on_special_executed)
 	grid_manager.residues_exploded.connect(_on_residues_exploded)
+	RunService.run_manager.flies_changed.connect(_on_flies_changed)
 
 
-func _start_new_run() -> void:
-	_current_round = 1
+func _start_round() -> void:
 	_displayed_score = 0
-	_run_state = RunState.PLAYING
+	entity_manager.reset()
+	RunService.game_flow = RunService.GameFlow.PLAYING
 	message_display.clear_message()
 	# Centrer le pivot du score label pour le scale bump
 	score_label.pivot_offset = score_label.size * 0.5
-	turn_controller.start_round(_current_round)
+	turn_controller.start_round(RunService.current_round)
 	_update_score_display()
 	_update_zone_display()
-	grid_visual.refresh()
-	stream_ui.queue_redraw()
-
-
-func _advance_to_next_round() -> void:
-	_current_round += 1
-	_displayed_score = 0
-	_run_state = RunState.PLAYING
-	message_display.clear_message()
-	turn_controller.start_round(_current_round)
-	_update_score_display()
-	_update_zone_display()
+	_on_flies_changed(RunService.run_manager.get_flies())
 	grid_visual.refresh()
 	stream_ui.queue_redraw()
 
@@ -119,12 +116,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		if not key_event.pressed or key_event.echo:
 			return
 		if key_event.keycode == KEY_SPACE or key_event.keycode == KEY_ENTER:
-			match _run_state:
-				RunState.ROUND_WON:
-					_advance_to_next_round()
-					get_viewport().set_input_as_handled()
-				RunState.ROUND_LOST, RunState.RUN_WON:
-					_start_new_run()
+			match RunService.game_flow:
+				RunService.GameFlow.ROUND_LOST, RunService.GameFlow.RUN_WON:
+					RunService.start_new_run()
+					SceneRouter.go_to_game()
 					get_viewport().set_input_as_handled()
 				_:
 					pass
@@ -136,9 +131,13 @@ func _update_score_display() -> void:
 
 
 func _update_zone_display() -> void:
-	var zone: int = (_current_round - 1) / GameRules.ROUNDS_PER_ZONE + 1
-	var round_in_zone: int = (_current_round - 1) % GameRules.ROUNDS_PER_ZONE + 1
+	var zone: int = (RunService.current_round - 1) / GameRules.ROUNDS_PER_ZONE + 1
+	var round_in_zone: int = (RunService.current_round - 1) % GameRules.ROUNDS_PER_ZONE + 1
 	zone_label.text = "ZONE " + str(zone) + "\nMANCHE " + str(round_in_zone) + "/" + str(GameRules.ROUNDS_PER_ZONE)
+
+
+func _on_flies_changed(amount: int) -> void:
+	flies_label.text = "MOUCHES\n" + str(amount)
 
 
 func _on_score_changed(new_score: int, _delta: int) -> void:
@@ -150,24 +149,36 @@ func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
 	if timeline.size() > 0:
 		await grid_visual.play_timeline(timeline)
 	grid_visual.refresh()
+
+	# Entity : drop un jeton skull tous les ENTITY_DROP_INTERVAL tours
+	var entity_col: int = entity_manager.on_turn_resolved()
+	if entity_col >= 0:
+		var entity_token: TokenData = TokenData.make_entity()
+		var entity_row: int = grid_manager.place_entity_token(entity_col, entity_token)
+		if entity_row >= 0:
+			await grid_visual.animate_drop(entity_col, entity_row, entity_token)
+			grid_visual.refresh()
+
+	# Ceder au moins une frame pour eviter le race si le controller
+	# n'a pas encore arme son await timeline_done_ack (timeline vide).
+	await get_tree().process_frame
 	turn_controller.notify_timeline_done()
 
 
 func _on_round_won(final_score: int, target: int) -> void:
 	var total_rounds: int = GameRules.ROUNDS_PER_ZONE * GameRules.ZONES_PER_RUN
-	if _current_round >= total_rounds:
-		_run_state = RunState.RUN_WON
+	if RunService.current_round >= total_rounds:
+		RunService.game_flow = RunService.GameFlow.RUN_WON
 		message_display.show_message(
 			"RUN TERMINEE ! (" + _format_number(final_score) + "/" + _format_number(target) + ") — ESPACE POUR RECOMMENCER",
 			&"win",
 		)
 		return
 
-	_run_state = RunState.ROUND_WON
-	message_display.show_message(
-		"MANCHE GAGNEE ! (" + _format_number(final_score) + "/" + _format_number(target) + ") — ESPACE POUR CONTINUER",
-		&"win",
-	)
+	# Manche gagnee (hors derniere) : recompense + transition vers shop
+	RunService.run_manager.add_flies(GameRules.FLIES_PER_ROUND_WON)
+	RunService.game_flow = RunService.GameFlow.SHOPPING
+	SceneRouter.go_to_shop()
 
 
 func _on_last_breath_started() -> void:
@@ -175,6 +186,8 @@ func _on_last_breath_started() -> void:
 
 
 func _on_residues_exploded(positions: Array[Vector2i]) -> void:
+	# Ceder une frame pour laisser le controller armer son await avant notify
+	await get_tree().process_frame
 	if positions.size() > 0:
 		grid_visual.rebuild_sprites()
 		await get_tree().create_timer(0.4).timeout
@@ -182,7 +195,7 @@ func _on_residues_exploded(positions: Array[Vector2i]) -> void:
 
 
 func _on_round_lost(final_score: int, target: int) -> void:
-	_run_state = RunState.ROUND_LOST
+	RunService.game_flow = RunService.GameFlow.ROUND_LOST
 	message_display.show_message(
 		"GAME OVER — " + _format_number(final_score) + "/" + _format_number(target) + " — ESPACE POUR RECOMMENCER",
 		&"lose",
