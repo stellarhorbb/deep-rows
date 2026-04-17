@@ -10,3 +10,5 @@ rule = &"value"
 min_size = 4
 direction = &"any"
 score_multiplier = 2.5
+label = "NUMBER SQUARE"
+price = 10

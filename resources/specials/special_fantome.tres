@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ShopItem" format=3 uid="uid://4wemhpp56hu5"]
+
+[ext_resource type="Script" uid="uid://cnotxoaeku51" path="res://scripts/data/shop_item.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+item_type = 1
+label = "FANTOME"
+price = 2
+special_type = 1

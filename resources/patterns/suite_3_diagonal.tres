@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="PatternData" format=3 uid="uid://bnftdi0liay22"]
 
 [ext_resource type="Script" uid="uid://k37ydar6rjlo" path="res://scripts/data/pattern_data.gd" id="1_script"]
 
@@ -7,6 +7,6 @@ script = ExtResource("1_script")
 tag_name = &"suite_3_diagonal"
 shape = &"line"
 rule = &"suite"
-min_size = 3
-direction = &"any"
 score_multiplier = 2.0
+label = "SUITE 3 DIAGONAL"
+price = 14

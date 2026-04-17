@@ -31,15 +31,11 @@ func _rebuild_items() -> void:
 
 	for item in _shop_manager.get_catalog():
 		var btn: Button = Button.new()
-		btn.text = _format_item(item)
+		btn.text = "%s — %d mouches" % [ShopManager.get_label(item), ShopManager.get_price(item)]
 		btn.disabled = not _shop_manager.can_purchase(item, _run_manager)
 		btn.pressed.connect(_on_item_pressed.bind(item))
 		items_container.add_child(btn)
 		_item_buttons.append(btn)
-
-
-func _format_item(item: ShopItem) -> String:
-	return "%s — %d mouches" % [item.label, item.price]
 
 
 func _refresh_flies() -> void:
@@ -47,16 +43,16 @@ func _refresh_flies() -> void:
 
 
 func _refresh_buttons_state() -> void:
-	var catalog: Array[ShopItem] = _shop_manager.get_catalog()
+	var catalog: Array[Resource] = _shop_manager.get_catalog()
 	for i in range(min(_item_buttons.size(), catalog.size())):
 		_item_buttons[i].disabled = not _shop_manager.can_purchase(catalog[i], _run_manager)
 
 
-func _on_item_pressed(item: ShopItem) -> void:
+func _on_item_pressed(item: Resource) -> void:
 	_shop_manager.purchase(item, _run_manager)
 
 
-func _on_purchased(_item: ShopItem) -> void:
+func _on_purchased(_item: Resource) -> void:
 	_refresh_buttons_state()
 
 

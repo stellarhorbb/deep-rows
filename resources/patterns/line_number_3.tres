@@ -10,3 +10,4 @@ rule = &"value"
 min_size = 3
 direction = &"any"
 score_multiplier = 1.0
+label = "NUMBER LINE 3"

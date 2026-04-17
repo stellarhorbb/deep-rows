@@ -10,3 +10,5 @@ rule = &"family"
 min_size = 3
 direction = &"any"
 score_multiplier = 1.5
+label = "FAMILY LINE 3"
+price = 6

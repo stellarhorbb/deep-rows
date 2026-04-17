@@ -10,3 +10,5 @@ rule = &"family"
 min_size = 4
 direction = &"any"
 score_multiplier = 2.0
+label = "SQUARE FAMILY 4"
+price = 8

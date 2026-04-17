@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="PatternData" format=3 uid="uid://cvt3kg7i3pshi"]
 
 [ext_resource type="Script" uid="uid://k37ydar6rjlo" path="res://scripts/data/pattern_data.gd" id="1_script"]
 
@@ -8,5 +8,6 @@ tag_name = &"diamond_rock"
 shape = &"diamond"
 rule = &"rock"
 min_size = 4
-direction = &"any"
 score_multiplier = 4.0
+label = "DIAMOND ROCK"
+price = 12

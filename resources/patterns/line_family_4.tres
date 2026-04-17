@@ -10,3 +10,4 @@ rule = &"family"
 min_size = 4
 direction = &"any"
 score_multiplier = 1.0
+label = "FAMILY LINE 4"

@@ -10,3 +10,5 @@ rule = &"value"
 min_size = 4
 direction = &"any"
 score_multiplier = 1.5
+label = "NUMBER LINE 4"
+price = 8
