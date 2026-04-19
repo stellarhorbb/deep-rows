@@ -30,7 +30,7 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext) -> Dictiona
 		var scores: Array[int] = []
 		var earned: int = 0
 		for group in groups:
-			var group_score: int = _score_group(group, grid, cascade_level, context.grid_modifiers)
+			var group_score: int = _score_group(group, grid, cascade_level, context)
 			scores.append(group_score)
 			earned += group_score
 
@@ -85,9 +85,14 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext) -> Dictiona
 ## Calcule le score d'un groupe.
 ## Lines : multiplicateur = direction du match (v=x1, h=x1.5, d=x2).
 ## Autres formes : multiplicateur fixe defini sur le tag.
-## Cellules modifiees DOUBLE : chaque cellule concernee multiplie le total par 2.
-func _score_group(group: Dictionary, grid: Array, cascade_level: int, grid_modifiers: Dictionary) -> int:
+## Cellules modifiees : chaque cellule concernee multiplie le total par son coef (HALF/BOOST/DOUBLE/TRIPLE).
+## rule_multipliers : multiplicateur applique selon la rule du pattern (ex: "family" x2 via echo).
+func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: RunContext) -> int:
+	var grid_modifiers: Dictionary = context.grid_modifiers
+	var rule_multipliers: Dictionary = context.rule_multipliers
 	var cascade_mult: float = pow(GameRules.CASCADE_MULTIPLIER_BASE, cascade_level)
+	var rule: StringName = group.get("match_rule", &"") as StringName
+	var rule_mult: float = rule_multipliers.get(rule, 1.0) as float
 
 	# Diamond : seul le jeton central est score (multiplicateur fixe du tag).
 	if group["shape"] == &"diamond":
@@ -97,7 +102,7 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, grid_modif
 			return 0
 		var tag_mult: float = group.get("score_multiplier", 4.0) as float
 		var diamond_mod_mult: float = _modifier_multiplier([center], grid_modifiers)
-		return int(center_token.value * tag_mult * cascade_mult * diamond_mod_mult)
+		return int(center_token.value * tag_mult * cascade_mult * diamond_mod_mult * rule_mult)
 
 	var value_sum: int = 0
 	for cell in group["cells"]:
@@ -115,16 +120,17 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, grid_modif
 		shape_mult = group.get("score_multiplier", 1.0) as float
 
 	var mod_mult: float = _modifier_multiplier(group["cells"], grid_modifiers)
-	return int(value_sum * shape_mult * cascade_mult * mod_mult)
+	return int(value_sum * shape_mult * cascade_mult * mod_mult * rule_mult)
 
 
-## Chaque cellule modifiee DOUBLE dans la liste multiplie le total par 2 (cumulatif).
+## Chaque cellule modifiee dans la liste multiplie le total par son coefficient (cumulatif).
 func _modifier_multiplier(cells: Array, grid_modifiers: Dictionary) -> float:
 	if grid_modifiers.is_empty():
 		return 1.0
 	var mult: float = 1.0
 	for cell in cells:
 		var key: Vector2i = cell as Vector2i
-		if grid_modifiers.get(key) == GameRules.MODIFIER_DOUBLE:
-			mult *= GameRules.MODIFIER_DOUBLE_MULT
+		var type: StringName = grid_modifiers.get(key, &"") as StringName
+		if type != &"":
+			mult *= GameRules.get_modifier_multiplier(type)
 	return mult

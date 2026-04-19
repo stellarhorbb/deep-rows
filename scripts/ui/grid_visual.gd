@@ -5,8 +5,13 @@ extends Node2D
 @export var cell_gap: float = 6.0
 @export var empty_cell_color: Color = Color("e8e8e8")
 @export var residue_color: Color = Color("b8b3d6")
-@export var modifier_border_color: Color = Color("1a2b5c")
 @export var modifier_border_width: float = 6.0
+
+## Couleurs par type de modifier (StringName -> Color)
+@export var modifier_color_half: Color = Color("b33d3d")    # rouge (×0.5)
+@export var modifier_color_boost: Color = Color("3d8b5a")   # vert (×1.5)
+@export var modifier_color_double: Color = Color("1a2b5c")  # bleu fonce (×2)
+@export var modifier_color_triple: Color = Color("6b1a99")  # violet (×3)
 
 ## Timing des animations
 @export var drop_duration: float = 0.25
@@ -51,9 +56,19 @@ func _draw() -> void:
 	# Contour des cellules modifiees (par dessus le fond, sous les sprites)
 	for cell_key in _grid_modifiers:
 		var cell: Vector2i = cell_key as Vector2i
+		var type: StringName = _grid_modifiers[cell_key] as StringName
 		var visual_row_m: int = GameRules.ROWS - 1 - cell.y
 		var c_center: Vector2 = _cell_center(cell.x, visual_row_m)
-		draw_arc(c_center, cell_size / 2.0, 0.0, TAU, 48, modifier_border_color, modifier_border_width)
+		draw_arc(c_center, cell_size / 2.0, 0.0, TAU, 48, _modifier_color(type), modifier_border_width)
+
+
+func _modifier_color(type: StringName) -> Color:
+	match type:
+		GameRules.MODIFIER_HALF:   return modifier_color_half
+		GameRules.MODIFIER_BOOST:  return modifier_color_boost
+		GameRules.MODIFIER_DOUBLE: return modifier_color_double
+		GameRules.MODIFIER_TRIPLE: return modifier_color_triple
+	return modifier_color_double
 
 
 ## Appele par game_scene quand RunManager emet grid_modifiers_changed.

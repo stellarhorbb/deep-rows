@@ -7,6 +7,7 @@ enum GameFlow { PLAYING, ROUND_WON, ROUND_LOST, RUN_WON, SHOPPING }
 
 var run_manager: RunManager
 var shop_manager: ShopManager
+var echo_manager: EchoManager
 var current_round: int = 1
 var game_flow: GameFlow = GameFlow.PLAYING
 
@@ -26,6 +27,11 @@ func _ready() -> void:
 	shop_manager = ShopManager.new()
 	shop_manager.name = "ShopManager"
 	add_child(shop_manager)
+
+	echo_manager = EchoManager.new()
+	echo_manager.name = "EchoManager"
+	echo_manager.run_manager = run_manager
+	add_child(echo_manager)
 
 
 ## Appele par la game scene au premier demarrage. Init si pas deja fait.

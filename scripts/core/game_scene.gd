@@ -9,6 +9,7 @@ extends Node2D
 @onready var grid_visual: GridVisual = $GridVisual
 @onready var stream_ui: StreamUI = $StreamUI
 @onready var tags_ui: TagsUI = $TagsUI
+@onready var echoes_ui: EchoesUI = $EchoesUI
 @onready var message_display: MessageDisplay = $MessageDisplay
 @onready var input_handler: InputHandler = $InputHandler
 @onready var score_label: Label = $ScoreLabel
@@ -66,6 +67,9 @@ func _create_managers() -> void:
 	entity_manager.name = "EntityManager"
 	add_child(entity_manager)
 
+	# Branche les echoes sur les hooks de la manche.
+	RunService.echo_manager.bind_round(turn_controller)
+
 
 func _wire_references() -> void:
 	grid_visual.grid_manager = grid_manager
@@ -74,6 +78,8 @@ func _wire_references() -> void:
 	stream_ui.setup()
 	tags_ui.pattern_manager = pattern_manager
 	tags_ui.setup()
+	echoes_ui.run_manager = RunService.run_manager
+	echoes_ui.setup()
 	input_handler.grid_visual = grid_visual
 	input_handler.stream_ui = stream_ui
 	input_handler.turn_controller = turn_controller

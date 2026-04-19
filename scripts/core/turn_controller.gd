@@ -12,6 +12,11 @@ signal last_breath_started()
 signal round_won(score: int, target: int)
 signal round_lost(score: int, target: int)
 
+## Hooks consommes par EchoManager (dispatch vers les EchoEffect equipes).
+signal round_started()
+signal token_dropped(token: TokenData, col: int, row: int)
+signal cascade_step_resolved(level: int, earned: int)
+
 enum State { AWAITING_INPUT, DROPPING, RESOLVING, LAST_BREATH, ROUND_OVER }
 
 var _state: State = State.AWAITING_INPUT
@@ -32,10 +37,14 @@ func start_round(round_number: int) -> void:
 	score_manager.reset_round(round_number)
 	grid_manager.init_grid()
 
-	# Tire les modifiers de la manche avant de snapshot le contexte
-	run_manager.roll_round_modifiers(GameRules.COLS, GameRules.ROWS)
+	# 1. Reset de la couche modifiers de manche.
+	run_manager.reset_round_modifiers()
 
-	# Construit le contexte du run pour les systemes et propage aux managers
+	# 2. Les echoes on_round_start peuplent grid_modifiers et rule_multipliers.
+	round_started.emit()
+
+	# 3. Publie le dict final pour l'UI et snapshot le contexte.
+	run_manager.notify_grid_modifiers_ready()
 	var context: RunContext = run_manager.build_context()
 	pattern_manager.set_active_tags(context.equipped_tags)
 	grid_manager.set_run_context(context)
@@ -62,6 +71,7 @@ func play_current_to(col: int, row: int) -> void:
 
 	# Place le jeton (logique + signals)
 	grid_manager.place_token(token, col, row)
+	token_dropped.emit(token, col, row)
 
 	# Attendre l'animation de chute
 	await drop_animated
@@ -104,6 +114,11 @@ func _on_special_executed(special_type: TokenData.SpecialType, _col: int, _row: 
 func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> void:
 	if total_score > 0:
 		score_manager.add_score(total_score)
+
+	# Emet un hook par MATCH event pour les echoes on_cascade_step.
+	for event in timeline:
+		if event["type"] == CascadeResolver.EventType.MATCH:
+			cascade_step_resolved.emit(event["cascade_level"] as int, event["total_earned"] as int)
 
 	turn_resolved.emit(timeline)
 
