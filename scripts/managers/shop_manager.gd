@@ -16,13 +16,13 @@ const TAG_PATHS: Array[String] = [
 	"res://resources/patterns/suite_3_diagonal.tres",
 ]
 
-## Speciaux achetables (ShopItem).
+## Speciaux achetables (SpecialItem).
 const SPECIAL_PATHS: Array[String] = [
 	"res://resources/specials/special_fantome.tres",
 	"res://resources/specials/special_maree.tres",
 ]
 
-## Catalogue unifie : contient des PatternData et des ShopItem.
+## Catalogue unifie : contient des PatternData (tags) et des SpecialItem.
 var _catalog: Array[Resource] = []
 
 
@@ -37,7 +37,7 @@ func _load_catalog() -> void:
 		if tag != null:
 			_catalog.append(tag)
 	for path in SPECIAL_PATHS:
-		var item: ShopItem = load(path) as ShopItem
+		var item: SpecialItem = load(path) as SpecialItem
 		if item != null:
 			_catalog.append(item)
 
@@ -46,21 +46,21 @@ func get_catalog() -> Array[Resource]:
 	return _catalog
 
 
-## Retourne le label d'un item (PatternData ou ShopItem).
+## Retourne le label d'un item (PatternData ou SpecialItem).
 static func get_label(item: Resource) -> String:
 	if item is PatternData:
 		return (item as PatternData).label
-	if item is ShopItem:
-		return (item as ShopItem).label
+	if item is SpecialItem:
+		return (item as SpecialItem).label
 	return ""
 
 
-## Retourne le prix d'un item (PatternData ou ShopItem).
+## Retourne le prix d'un item (PatternData ou SpecialItem).
 static func get_price(item: Resource) -> int:
 	if item is PatternData:
 		return (item as PatternData).price
-	if item is ShopItem:
-		return (item as ShopItem).price
+	if item is SpecialItem:
+		return (item as SpecialItem).price
 	return 0
 
 
@@ -89,8 +89,8 @@ func purchase(item: Resource, run_manager: RunManager) -> bool:
 
 	if item is PatternData:
 		run_manager.equip_tag(item as PatternData)
-	elif item is ShopItem:
-		run_manager.add_special((item as ShopItem).special_type)
+	elif item is SpecialItem:
+		run_manager.add_special((item as SpecialItem).special_type)
 
 	purchased.emit(item)
 	return true

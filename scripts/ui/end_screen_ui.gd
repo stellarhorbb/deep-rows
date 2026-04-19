@@ -16,30 +16,14 @@ func _ready() -> void:
 func _populate() -> void:
 	var score: int = RunService.last_score
 	var target: int = RunService.last_target
-	match RunService.game_flow:
-		RunService.GameFlow.RUN_WON:
-			title_label.text = "VICTOIRE"
-			result_label.text = "%s / %s" % [_format(score), _format(target)]
-		RunService.GameFlow.ROUND_LOST:
-			title_label.text = "GAME OVER"
-			result_label.text = "%s / %s" % [_format(score), _format(target)]
-		_:
-			title_label.text = "FIN"
-			result_label.text = "%s / %s" % [_format(score), _format(target)]
+	var result_text: String = "%s / %s" % [NumberFormat.with_spaces(score), NumberFormat.with_spaces(target)]
+	if RunService.game_flow == RunService.GameFlow.RUN_WON:
+		title_label.text = "VICTOIRE"
+	else:
+		title_label.text = "GAME OVER"
+	result_label.text = result_text
 
 
 func _on_restart_pressed() -> void:
 	RunService.start_new_run()
 	SceneRouter.go_to_game()
-
-
-func _format(n: int) -> String:
-	var s: String = str(n)
-	var result: String = ""
-	var count: int = 0
-	for i in range(s.length() - 1, -1, -1):
-		result = s[i] + result
-		count += 1
-		if count % 3 == 0 and i > 0:
-			result = " " + result
-	return result

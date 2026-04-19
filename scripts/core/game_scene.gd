@@ -112,11 +112,12 @@ func _start_round() -> void:
 
 
 func _update_score_display() -> void:
-	score_label.text = _format_number(score_manager.get_score())
-	target_label.text = "TARGET : " + _format_number(score_manager.get_target())
+	score_label.text = NumberFormat.with_spaces(score_manager.get_score())
+	target_label.text = "TARGET : " + NumberFormat.with_spaces(score_manager.get_target())
 
 
 func _update_zone_display() -> void:
+	@warning_ignore("integer_division")
 	var zone: int = (RunService.current_round - 1) / GameRules.ROUNDS_PER_ZONE + 1
 	var round_in_zone: int = (RunService.current_round - 1) % GameRules.ROUNDS_PER_ZONE + 1
 	zone_label.text = "ZONE " + str(zone) + "\nMANCHE " + str(round_in_zone) + "/" + str(GameRules.ROUNDS_PER_ZONE)
@@ -227,23 +228,9 @@ func _animate_score_to(target: int) -> void:
 
 	_score_tween = create_tween()
 	_score_tween.tween_method(func(val: float) -> void:
-		score_label.text = _format_number(int(val))
+		score_label.text = NumberFormat.with_spaces(int(val))
 	, float(from), float(target), 0.4).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 
 	# Scale bump
 	_score_tween.tween_property(score_label, "scale", Vector2(1.12, 1.12), 0.08).set_ease(Tween.EASE_OUT)
 	_score_tween.tween_property(score_label, "scale", Vector2.ONE, 0.15).set_ease(Tween.EASE_IN_OUT)
-
-
-static func _format_number(n: int) -> String:
-	var s: String = str(n)
-	if n < 1000:
-		return s
-	var result: String = ""
-	var count: int = 0
-	for i in range(s.length() - 1, -1, -1):
-		if count > 0 and count % 3 == 0:
-			result = "," + result
-		result = s[i] + result
-		count += 1
-	return result
