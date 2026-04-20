@@ -159,6 +159,9 @@ func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
 
 
 func _on_round_won(final_score: int, target: int) -> void:
+	# Specials one-shot : on consomme ceux de la manche (qu'ils aient ete joues ou non).
+	RunService.run_manager.reset_specials_counts()
+
 	var total_rounds: int = GameRules.ROUNDS_PER_ZONE * GameRules.ZONES_PER_RUN
 	if RunService.current_round >= total_rounds:
 		RunService.game_flow = RunService.GameFlow.RUN_WON

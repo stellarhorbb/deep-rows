@@ -48,10 +48,11 @@ func init_run() -> void:
 			_equipped_echoes.append(echo)
 
 	_deck_composition = {
-		"bombe_count": 1,
+		"bombe_count": 0,
 		"fantome_count": 0,
 		"maree_count": 0,
 	}
+	_apply_debug_specials_to_deck()
 
 	flies_changed.emit(_flies)
 	tags_changed.emit(_equipped_tags)
@@ -158,6 +159,30 @@ func get_deck_composition() -> Dictionary:
 
 
 func add_special(type: TokenData.SpecialType) -> void:
+	_increment_special_count(type)
+	deck_composition_changed.emit()
+
+
+## One-shot : les specials sont consommes a chaque manche, les compteurs sont
+## remis a zero apres le round. Les specials avec debug_always_in_deck == true
+## sont re-ajoutes pour le round suivant.
+func reset_specials_counts() -> void:
+	for key in _deck_composition.keys():
+		_deck_composition[key] = 0
+	_apply_debug_specials_to_deck()
+	deck_composition_changed.emit()
+
+
+## Parcourt tous les SpecialItem connus du ShopManager et ajoute au deck ceux
+## dont le flag debug_always_in_deck est actif.
+func _apply_debug_specials_to_deck() -> void:
+	for path in ShopManager.SPECIAL_PATHS:
+		var item: SpecialItem = load(path) as SpecialItem
+		if item != null and item.debug_always_in_deck:
+			_increment_special_count(item.special_type)
+
+
+func _increment_special_count(type: TokenData.SpecialType) -> void:
 	match type:
 		TokenData.SpecialType.BOMBE:
 			_deck_composition["bombe_count"] += 1
@@ -165,6 +190,3 @@ func add_special(type: TokenData.SpecialType) -> void:
 			_deck_composition["fantome_count"] += 1
 		TokenData.SpecialType.MAREE:
 			_deck_composition["maree_count"] += 1
-		_:
-			return
-	deck_composition_changed.emit()

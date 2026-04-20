@@ -18,6 +18,7 @@ const TAG_PATHS: Array[String] = [
 
 ## Speciaux achetables (SpecialItem).
 const SPECIAL_PATHS: Array[String] = [
+	"res://resources/specials/special_bombe.tres",
 	"res://resources/specials/special_fantome.tres",
 	"res://resources/specials/special_maree.tres",
 ]

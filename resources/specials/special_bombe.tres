@@ -1,10 +1,10 @@
-[gd_resource type="Resource" script_class="SpecialItem" format=3 uid="uid://4wemhpp56hu5"]
+[gd_resource type="Resource" script_class="SpecialItem" format=3 uid="uid://dspecbombe01"]
 
 [ext_resource type="Script" uid="uid://cnotxoaeku51" path="res://scripts/data/special_item.gd" id="1_script"]
 
 [resource]
 script = ExtResource("1_script")
-label = "FANTOME"
+label = "BOMBE"
 price = 2
-special_type = 1
+special_type = 2
 debug_always_in_deck = true
