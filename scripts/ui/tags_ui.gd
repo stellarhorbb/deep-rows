@@ -14,8 +14,10 @@ const MAX_SLOTS: int = 4
 @export var label_color: Color = Color("3d3d5c")
 @export var slot_bg_color: Color = Color(1, 1, 1, 0.85)
 @export var empty_bg_color: Color = Color(1, 1, 1, 0.35)
+@export var progress_fill_color: Color = Color("f0e6c8")  # tres legerement different du fond, pour la barre de niveau
 
 var pattern_manager: PatternManager = null
+var run_manager: RunManager = null
 
 var _font: Font = null
 
@@ -27,6 +29,9 @@ func _ready() -> void:
 func setup() -> void:
 	if pattern_manager != null:
 		pattern_manager.tags_changed.connect(_on_tags_changed)
+	if run_manager != null:
+		run_manager.tag_leveled_up.connect(_on_tag_leveled_up)
+		run_manager.tag_progress_changed.connect(_on_tag_progress_changed)
 
 
 func _draw() -> void:
@@ -65,11 +70,13 @@ func _draw() -> void:
 
 	for i in range(MAX_SLOTS):
 		var is_filled: bool = i < tags.size()
-		var bg: Color = slot_bg_color if is_filled else empty_bg_color
-		_draw_slot_bg(y_offset, bg)
+		if is_filled:
+			_draw_slot_progress_bg(y_offset, tags[i])
+		else:
+			_draw_slot_bg(y_offset, empty_bg_color)
 
 		if is_filled and _font != null:
-			var label: String = _format_tag_label(tags[i])
+			var label: String = _level_prefix(tags[i]) + _format_tag_label(tags[i])
 			draw_string(
 				_font,
 				Vector2(12.0, y_offset + slot_height * 0.5 + tag_font_size * 0.35),
@@ -86,6 +93,39 @@ func _draw() -> void:
 func _draw_slot_bg(y_pos: float, color: Color) -> void:
 	var rect: Rect2 = Rect2(Vector2(0.0, y_pos), Vector2(slot_width, slot_height))
 	draw_rect(rect, color, true)
+
+
+## Fond de slot = barre de progression vers le prochain niveau. Le fond plein
+## reste slot_bg_color, une bande progress_fill_color avance par dessus a gauche.
+func _draw_slot_progress_bg(y_pos: float, tag: PatternData) -> void:
+	_draw_slot_bg(y_pos, slot_bg_color)
+
+	var progress: float = _level_progress(tag)
+	if progress <= 0.0:
+		return
+
+	var fill_rect: Rect2 = Rect2(Vector2(0.0, y_pos), Vector2(slot_width * progress, slot_height))
+	draw_rect(fill_rect, progress_fill_color, true)
+
+
+## Fraction (0-1) du chemin parcouru entre le seuil du niveau actuel et celui
+## du niveau suivant. 1.0 si niveau max (barre pleine).
+func _level_progress(tag: PatternData) -> float:
+	if run_manager == null:
+		return 0.0
+
+	var level: int = run_manager.get_tag_level(tag.tag_name)
+	var next_threshold: int = GameRules.get_next_pattern_threshold(level)
+	if next_threshold < 0:
+		return 1.0
+
+	var prev_threshold: int = GameRules.get_previous_pattern_threshold(level)
+	var span: int = next_threshold - prev_threshold
+	if span <= 0:
+		return 1.0
+
+	var cumulative: int = run_manager.get_tag_cumulative_score(tag.tag_name)
+	return clampf(float(cumulative - prev_threshold) / float(span), 0.0, 1.0)
 
 
 func _format_tag_label(tag: PatternData) -> String:
@@ -118,5 +158,61 @@ func _format_multiplier(mult: float) -> String:
 	return "x%.1f" % mult
 
 
+## "Lv.2 — " devant le nom de la Partition. Vide tant que run_manager n'est pas cable.
+func _level_prefix(tag: PatternData) -> String:
+	if run_manager == null:
+		return ""
+	return "Lv." + str(run_manager.get_tag_level(tag.tag_name)) + " — "
+
+
 func _on_tags_changed(_tags: Array[PatternData]) -> void:
 	queue_redraw()
+
+
+func _on_tag_leveled_up(_tag_name: StringName, _new_level: int) -> void:
+	queue_redraw()
+
+
+func _on_tag_progress_changed(_tag_name: StringName) -> void:
+	queue_redraw()
+
+
+## Hover simple : recalcule le tooltip a chaque mouvement de souris selon
+## le slot survole. Reutilise le meme calcul d'offset que _draw().
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		tooltip_text = _tooltip_for_position(event.position)
+
+
+func _tooltip_for_position(pos: Vector2) -> String:
+	if pattern_manager == null:
+		return ""
+	var tags: Array[PatternData] = pattern_manager.get_active_tags()
+
+	var y_offset: float = header_font_size + header_gap
+	y_offset += 14 + header_gap + 2.0
+
+	for i in range(MAX_SLOTS):
+		if pos.x >= 0.0 and pos.x <= slot_width and pos.y >= y_offset and pos.y < y_offset + slot_height:
+			if i < tags.size():
+				return tags[i].describe() + _level_tooltip(tags[i])
+			return ""
+		y_offset += slot_height + vertical_gap
+
+	return ""
+
+
+func _level_tooltip(tag: PatternData) -> String:
+	if run_manager == null:
+		return ""
+	var level: int = run_manager.get_tag_level(tag.tag_name)
+	var cumulative: int = run_manager.get_tag_cumulative_score(tag.tag_name)
+	var level_name: String = GameRules.get_pattern_level_name(level)
+	var next_threshold: int = GameRules.get_next_pattern_threshold(level)
+
+	var text: String = "\nNiveau %d — %s (x%.2f)" % [level, level_name, GameRules.get_pattern_level_multiplier(level)]
+	if next_threshold >= 0:
+		text += "\n%d / %d pts vers le niveau suivant" % [cumulative, next_threshold]
+	else:
+		text += "\nNiveau maximum atteint"
+	return text

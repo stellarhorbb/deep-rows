@@ -71,3 +71,36 @@ func _draw() -> void:
 
 func _on_echoes_changed(_echoes: Array[EchoData]) -> void:
 	queue_redraw()
+
+
+## Hover simple : recalcule le tooltip a chaque mouvement de souris selon
+## le slot survole. Reutilise le meme calcul de layout que _draw().
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		tooltip_text = _tooltip_for_position(event.position)
+
+
+func _tooltip_for_position(pos: Vector2) -> String:
+	if run_manager == null:
+		return ""
+	var echoes: Array[EchoData] = run_manager.get_equipped_echoes()
+
+	var y_offset: float = header_font_size + header_gap
+	if pos.y < y_offset or pos.y > y_offset + slot_height:
+		return ""
+
+	var max_slots: int = GameRules.MAX_ECHO_SLOTS
+	var total_width: float = max_slots * slot_width + (max_slots - 1) * horizontal_gap
+	var start_x: float = (size.x - total_width) * 0.5
+
+	for i in range(max_slots):
+		var x: float = start_x + i * (slot_width + horizontal_gap)
+		if pos.x >= x and pos.x < x + slot_width:
+			if i < echoes.size():
+				var text: String = echoes[i].label
+				if echoes[i].description != "":
+					text += "\n" + echoes[i].description
+				return text
+			return ""
+
+	return ""

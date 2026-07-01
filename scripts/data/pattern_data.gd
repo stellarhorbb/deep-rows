@@ -11,3 +11,33 @@ extends Resource
 ## Shop
 @export var label: String = ""
 @export var price: int = 0
+
+
+## Texte de hover en langage clair, reutilise en jeu (TagsUI) et au shop.
+func describe() -> String:
+	var shape_desc: String
+	match shape:
+		&"line":    shape_desc = "Ligne de %d+ jetons" % min_size
+		&"square":  shape_desc = "Carré 2x2"
+		&"diamond": shape_desc = "Losange autour d'un centre"
+		_:          shape_desc = "Figure"
+
+	var rule_desc: String
+	match rule:
+		&"family": rule_desc = "même famille"
+		&"value":  rule_desc = "même valeur"
+		&"suite":  rule_desc = "valeurs consécutives"
+		&"rock":   rule_desc = "autour d'un Rock"
+		_:         rule_desc = ""
+
+	var text: String = label
+	text += "\n" + shape_desc
+	if rule_desc != "":
+		text += ", " + rule_desc
+
+	if shape == &"line":
+		text += "\nMulti direction : v x1 / h x1.5 / d x2"
+	elif score_multiplier > 1.0:
+		text += "\nMultiplicateur fixe x%.1f" % score_multiplier
+
+	return text

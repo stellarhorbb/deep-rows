@@ -35,19 +35,99 @@ horizontal_alignment = 1
 
 [node name="Panel" type="PanelContainer" parent="." unique_id=1433656584]
 layout_mode = 0
-offset_left = 660.0
-offset_top = 240.0
-offset_right = 1260.0
-offset_bottom = 840.0
+offset_left = 160.0
+offset_top = 220.0
+offset_right = 1760.0
+offset_bottom = 950.0
 
 [node name="VBox" type="VBoxContainer" parent="Panel" unique_id=1199512045]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="ItemsContainer" type="VBoxContainer" parent="Panel/VBox" unique_id=1532394345]
+[node name="Columns" type="HBoxContainer" parent="Panel/VBox" unique_id=1000000001]
+layout_mode = 2
+theme_override_constants/separation = 32
+
+[node name="ColumnA" type="VBoxContainer" parent="Panel/VBox/Columns" unique_id=1000000002]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="ColumnATitle" type="Label" parent="Panel/VBox/Columns/ColumnA" unique_id=1000000003]
+layout_mode = 2
+text = "PARTITIONS & ECHOES"
+
+[node name="TagEchoContainer" type="VBoxContainer" parent="Panel/VBox/Columns/ColumnA" unique_id=1000000004]
 layout_mode = 2
 theme_override_constants/separation = 8
+
+[node name="ColumnB" type="VBoxContainer" parent="Panel/VBox/Columns" unique_id=1000000005]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="ButtonsTitle" type="Label" parent="Panel/VBox/Columns/ColumnB" unique_id=1000000006]
+layout_mode = 2
+text = "BOUTONS"
+
+[node name="ButtonOfferContainer" type="VBoxContainer" parent="Panel/VBox/Columns/ColumnB" unique_id=1000000007]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SpecialsTitle" type="Label" parent="Panel/VBox/Columns/ColumnB" unique_id=1000000008]
+layout_mode = 2
+text = "SPÉCIAUX"
+
+[node name="SpecialOfferContainer" type="VBoxContainer" parent="Panel/VBox/Columns/ColumnB" unique_id=1000000009]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FusionButton" type="Button" parent="Panel/VBox/Columns/ColumnB" unique_id=1000000010]
+layout_mode = 2
+text = "FUSIONNER MES BOUTONS"
 
 [node name="ContinueButton" type="Button" parent="Panel/VBox" unique_id=1820314853]
 layout_mode = 2
 text = "CONTINUER"
+
+[node name="FusionPanel" type="Control" parent="." unique_id=1000000011]
+visible = false
+anchors_preset = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+
+[node name="Dim" type="ColorRect" parent="FusionPanel" unique_id=1000000012]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+color = Color(0, 0, 0, 0.55)
+
+[node name="Box" type="PanelContainer" parent="FusionPanel" unique_id=1000000013]
+layout_mode = 0
+offset_left = 360.0
+offset_top = 200.0
+offset_right = 1560.0
+offset_bottom = 880.0
+
+[node name="VBox" type="VBoxContainer" parent="FusionPanel/Box" unique_id=1000000014]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="FusionPanel/Box/VBox" unique_id=1000000015]
+layout_mode = 2
+text = "FUSION DE BOUTONS — choisis 2 boutons"
+horizontal_alignment = 1
+
+[node name="CandidatesContainer" type="GridContainer" parent="FusionPanel/Box/VBox" unique_id=1000000016]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 5
+
+[node name="ConfirmButton" type="Button" parent="FusionPanel/Box/VBox" unique_id=1000000017]
+layout_mode = 2
+text = "FUSIONNER"
+
+[node name="CloseButton" type="Button" parent="FusionPanel/Box/VBox" unique_id=1000000018]
+layout_mode = 2
+text = "FERMER"

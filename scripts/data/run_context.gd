@@ -14,6 +14,10 @@ extends Resource
 # Lu par CascadeResolver._score_group.
 @export var rule_multipliers: Dictionary = {}
 
-# Extensions futures (ne pas implementer avant d'en avoir besoin) :
-# @export var tag_levels: Dictionary = {}        # PatternData -> int
+# Multiplicateur de score par Partition (tag_name -> float), selon son niveau
+# (score cumule sur le run). Snapshot au debut de la manche — un level up en
+# cours de manche ne s'applique qu'a la manche suivante, comme rule_multipliers.
+@export var tag_level_multipliers: Dictionary = {}
+
+# Extension future (ne pas implementer avant d'en avoir besoin) :
 # @export var button_states: Dictionary = {}     # Vector2i -> Array[StateData]

@@ -213,6 +213,8 @@ func update_hover(col: int, token: TokenData) -> void:
 	_hover_sprite.scale = Vector2(target_scale, target_scale)
 	_hover_sprite.modulate = Color(1.0, 1.0, 1.0, 0.35)
 	_hover_sprite.position = _grid_to_pixel(col, landing_row)
+	if token.kind == TokenData.Kind.BASE:
+		_add_value_label(_hover_sprite, token.value, tex.get_size())
 	add_child(_hover_sprite)
 
 
@@ -461,10 +463,32 @@ func _create_sprite(cell: Vector2i, token: TokenData) -> Sprite2D:
 			var tex_size: float = maxf(tex.get_width(), tex.get_height())
 			var target_scale: float = cell_size / tex_size
 			sprite.scale = Vector2(target_scale, target_scale)
+			if token.kind == TokenData.Kind.BASE:
+				_add_value_label(sprite, token.value, tex.get_size())
 
 	add_child(sprite)
 	_token_sprites[cell] = sprite
 	return sprite
+
+
+## Ajoute la valeur en texte blanc par dessus un bouton "nude". Dimensionne
+## dans l'espace local de la texture (pas dans l'espace cellule) pour que le
+## texte soit downscale avec le sprite plutot qu'upscale depuis une petite
+## police — evite le flou.
+func _add_value_label(sprite: Sprite2D, value: int, tex_size: Vector2) -> void:
+	var label: Label = Label.new()
+	label.text = str(value)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.size = tex_size
+	label.pivot_offset = tex_size / 2.0
+	label.position = -label.pivot_offset
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", Color.WHITE)
+	if _popup_font != null:
+		label.add_theme_font_override("font", _popup_font)
+	label.add_theme_font_size_override("font_size", int(tex_size.y * 0.4))
+	sprite.add_child(label)
 
 
 func _grid_to_pixel(col: int, row: int) -> Vector2:

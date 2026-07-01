@@ -46,3 +46,19 @@ static func make_entity() -> TokenData:
 
 func is_scorable() -> bool:
 	return kind == Kind.BASE
+
+
+static func family_label(f: Family) -> String:
+	match f:
+		Family.CORAL: return "CORAL"
+		Family.SHELL: return "SHELL"
+		Family.RUST:  return "RUST"
+		_:            return "?"
+
+
+static func special_type_label(t: SpecialType) -> String:
+	match t:
+		SpecialType.FANTOME: return "FANTOME"
+		SpecialType.BOMBE:   return "BOMBE"
+		SpecialType.MAREE:   return "MAREE"
+		_:                   return "?"

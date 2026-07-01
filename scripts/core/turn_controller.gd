@@ -49,7 +49,7 @@ func start_round(round_number: int) -> void:
 	pattern_manager.set_active_tags(context.equipped_tags)
 	grid_manager.set_run_context(context)
 
-	deck_manager.build_deck(run_manager.get_deck_composition())
+	deck_manager.build_deck(run_manager.get_deck_composition(), run_manager.get_button_pool())
 	deck_manager.advance_stream()
 	_state = State.AWAITING_INPUT
 	turn_started.emit()
@@ -115,9 +115,16 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 	if total_score > 0:
 		score_manager.add_score(total_score)
 
-	# Emet un hook par MATCH event pour les echoes on_cascade_step.
+	# Emet un hook par MATCH event pour les echoes on_cascade_step, et
+	# remonte le score de chaque groupe a sa Partition pour le level up.
 	for event in timeline:
 		if event["type"] == CascadeResolver.EventType.MATCH:
+			var groups: Array = event["groups"] as Array
+			var scores: Array = event["scores"] as Array
+			for i in range(groups.size()):
+				var group: Dictionary = groups[i] as Dictionary
+				var tag_name: StringName = group.get("tag_name", &"") as StringName
+				run_manager.add_tag_score(tag_name, scores[i] as int)
 			cascade_step_resolved.emit(event["cascade_level"] as int, event["total_earned"] as int)
 
 	turn_resolved.emit(timeline)

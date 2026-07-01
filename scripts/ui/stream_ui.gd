@@ -62,6 +62,8 @@ func _draw() -> void:
 				Vector2(preview_cell_size, preview_cell_size),
 			)
 			draw_texture_rect(tex, dest, false, Color(1, 1, 1, alpha))
+			if preview[i].kind == TokenData.Kind.BASE and _font != null:
+				_draw_value(preview[i].value, x_offset, token_pos, preview_cell_size, Color(1, 1, 1, alpha))
 
 	# --- DECK COUNT ---
 	var deck_count_y: float = y_offset + preview.size() * (preview_cell_size + vertical_gap) + 10.0
@@ -103,6 +105,22 @@ func _draw_token_in_slot(token: TokenData, x_pos: float, y_pos: float, slot_size
 		return
 	var dest: Rect2 = Rect2(Vector2(x_pos, y_pos), Vector2(slot_size, slot_size))
 	draw_texture_rect(tex, dest, false)
+	if token.kind == TokenData.Kind.BASE and _font != null:
+		_draw_value(token.value, x_pos, y_pos, slot_size, Color.WHITE)
+
+
+## Valeur en Londrina Solid blanc, centree dans un slot carre.
+func _draw_value(value: int, x_pos: float, y_pos: float, slot_size: float, color: Color) -> void:
+	var value_font_size: int = int(slot_size * 0.45)
+	draw_string(
+		_font,
+		Vector2(x_pos, y_pos + slot_size * 0.5 + value_font_size * 0.35),
+		str(value),
+		HORIZONTAL_ALIGNMENT_CENTER,
+		slot_size,
+		value_font_size,
+		color,
+	)
 
 
 func _on_stream_updated(_current: TokenData, _hold: TokenData, _preview: Array[TokenData]) -> void:

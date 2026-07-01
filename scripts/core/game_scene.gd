@@ -12,6 +12,8 @@ extends Node2D
 @onready var echoes_ui: EchoesUI = $EchoesUI
 @onready var message_display: MessageDisplay = $MessageDisplay
 @onready var input_handler: InputHandler = $InputHandler
+@onready var deck_button: Button = $DeckButton
+@onready var deck_inspector_ui: DeckInspectorUI = $DeckInspectorUI
 @onready var score_label: Label = $ScoreLabel
 @onready var target_label: Label = $TargetLabel
 @onready var zone_label: Label = $ZoneLabel
@@ -77,6 +79,7 @@ func _wire_references() -> void:
 	stream_ui.deck_manager = deck_manager
 	stream_ui.setup()
 	tags_ui.pattern_manager = pattern_manager
+	tags_ui.run_manager = RunService.run_manager
 	tags_ui.setup()
 	echoes_ui.run_manager = RunService.run_manager
 	echoes_ui.setup()
@@ -86,6 +89,7 @@ func _wire_references() -> void:
 	input_handler.deck_manager = deck_manager
 	input_handler.grid_manager = grid_manager
 	entity_manager.grid_manager = grid_manager
+	deck_inspector_ui.deck_manager = deck_manager
 
 
 func _wire_signals() -> void:
@@ -100,6 +104,13 @@ func _wire_signals() -> void:
 	grid_manager.residues_exploded.connect(_on_residues_exploded)
 	RunService.run_manager.flies_changed.connect(_on_flies_changed)
 	RunService.run_manager.grid_modifiers_changed.connect(grid_visual.set_grid_modifiers)
+	deck_button.pressed.connect(deck_inspector_ui.toggle)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and (event as InputEventKey).keycode == KEY_TAB:
+		deck_inspector_ui.toggle()
+		get_viewport().set_input_as_handled()
 
 
 func _start_round() -> void:

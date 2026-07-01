@@ -9,6 +9,9 @@ signal tags_changed(equipped: Array[PatternData])
 signal echoes_changed(equipped: Array[EchoData])
 signal deck_composition_changed()
 signal grid_modifiers_changed(modifiers: Dictionary)
+signal button_pool_changed()
+signal tag_leveled_up(tag_name: StringName, new_level: int)
+signal tag_progress_changed(tag_name: StringName)
 
 ## Chemins des tags du starter pack (valable pour le proto).
 ## Plus tard : vient du pack de base choisi par le joueur.
@@ -20,6 +23,7 @@ const STARTER_TAG_PATHS: Array[String] = [
 var _flies: int = 0
 var _equipped_tags: Array[PatternData] = []
 var _equipped_echoes: Array[EchoData] = []
+var _button_pool: Array[TokenData] = []
 var _deck_composition: Dictionary = {
 	"bombe_count": 0,
 	"fantome_count": 0,
@@ -27,6 +31,7 @@ var _deck_composition: Dictionary = {
 }
 var _grid_modifiers: Dictionary = {}    # Vector2i -> StringName
 var _rule_multipliers: Dictionary = {}  # StringName -> float
+var _tag_progress: Dictionary = {}      # StringName (tag_name) -> {"cumulative": int, "level": int}
 
 
 ## Initialise un nouveau run : starter pack.
@@ -47,6 +52,9 @@ func init_run() -> void:
 		if echo != null and echo.debug_start_equipped:
 			_equipped_echoes.append(echo)
 
+	_button_pool = _generate_starter_buttons()
+	_tag_progress.clear()
+
 	_deck_composition = {
 		"bombe_count": 0,
 		"fantome_count": 0,
@@ -60,13 +68,71 @@ func init_run() -> void:
 	deck_composition_changed.emit()
 
 
+## Genere le pool de boutons de depart (famille + valeur aleatoires).
+## Ce pool persiste ensuite pour toute la run, seul le shop pourra le muter
+## (achat, fusion — a venir).
+func _generate_starter_buttons() -> Array[TokenData]:
+	var buttons: Array[TokenData] = []
+	for i in range(GameRules.DECK_BASE_COUNT):
+		var family: int = randi() % GameRules.FAMILY_COUNT
+		var value: int = randi() % GameRules.TOKEN_MAX_VALUE + GameRules.TOKEN_MIN_VALUE
+		buttons.append(TokenData.make_base(family as TokenData.Family, value))
+	return buttons
+
+
 ## Construit un snapshot lu par les systemes.
 func build_context() -> RunContext:
 	var ctx: RunContext = RunContext.new()
 	ctx.equipped_tags = _equipped_tags.duplicate()
 	ctx.grid_modifiers = _grid_modifiers.duplicate()
 	ctx.rule_multipliers = _rule_multipliers.duplicate()
+	ctx.tag_level_multipliers = _build_tag_level_multipliers()
 	return ctx
+
+
+func _build_tag_level_multipliers() -> Dictionary:
+	var result: Dictionary = {}
+	for tag in _equipped_tags:
+		result[tag.tag_name] = GameRules.get_pattern_level_multiplier(get_tag_level(tag.tag_name))
+	return result
+
+
+# --- Level up des Partitions ---
+
+## Ajoute du score cumule a une Partition (par tag_name) et met a jour son
+## niveau. Appele par TurnController a chaque groupe resolu. Le multiplicateur
+## resultant n'est lu par le scoring qu'a la prochaine manche (snapshot dans
+## build_context, comme rule_multipliers).
+func add_tag_score(tag_name: StringName, amount: int) -> void:
+	if amount <= 0 or tag_name == &"":
+		return
+	if not _tag_progress.has(tag_name):
+		_tag_progress[tag_name] = {"cumulative": 0, "level": 1}
+
+	var progress: Dictionary = _tag_progress[tag_name]
+	var cumulative: int = (progress["cumulative"] as int) + amount
+	var old_level: int = progress["level"] as int
+	var new_level: int = GameRules.compute_pattern_level(cumulative)
+
+	progress["cumulative"] = cumulative
+	progress["level"] = new_level
+	_tag_progress[tag_name] = progress
+
+	tag_progress_changed.emit(tag_name)
+	if new_level != old_level:
+		tag_leveled_up.emit(tag_name, new_level)
+
+
+func get_tag_level(tag_name: StringName) -> int:
+	if not _tag_progress.has(tag_name):
+		return 1
+	return (_tag_progress[tag_name] as Dictionary)["level"] as int
+
+
+func get_tag_cumulative_score(tag_name: StringName) -> int:
+	if not _tag_progress.has(tag_name):
+		return 0
+	return (_tag_progress[tag_name] as Dictionary)["cumulative"] as int
 
 
 ## Reset la couche "modifiers de manche" : grid modifiers + rule multipliers.
@@ -153,6 +219,59 @@ func equip_echo(echo: EchoData) -> bool:
 
 
 # --- Deck composition ---
+
+## Pool de boutons possedes, persistant pour toute la run. Le DeckManager
+## en tire une copie fraiche a chaque manche (build_deck), pour ne pas muter
+## les instances possedees en les consommant sur la grille.
+func get_button_pool() -> Array[TokenData]:
+	return _button_pool.duplicate()
+
+
+## Ajoute un bouton possede au pool (achat unitaire au shop).
+func add_button(family: TokenData.Family, value: int) -> void:
+	_button_pool.append(TokenData.make_base(family, value))
+	button_pool_changed.emit()
+
+
+## Tire n candidats au hasard dans le pool pour la fusion, avec leur index
+## d'origine (necessaire pour fuse_buttons ensuite). Ne mute rien.
+func get_fusion_candidates(n: int) -> Array[Dictionary]:
+	var indices: Array[int] = []
+	for i in range(_button_pool.size()):
+		indices.append(i)
+	indices.shuffle()
+
+	var picked: Array[Dictionary] = []
+	for i in range(min(n, indices.size())):
+		var idx: int = indices[i]
+		picked.append({"index": idx, "token": _button_pool[idx]})
+	return picked
+
+
+## Fusionne 2 boutons possedes (index dans le pool, cf. get_fusion_candidates).
+## Valeur = somme des deux. Famille = tiree au hasard entre les deux entrees
+## (donc deterministe si les deux boutons sont deja de la meme famille).
+func fuse_buttons(index_a: int, index_b: int) -> bool:
+	if index_a == index_b:
+		return false
+	if index_a < 0 or index_a >= _button_pool.size():
+		return false
+	if index_b < 0 or index_b >= _button_pool.size():
+		return false
+
+	var token_a: TokenData = _button_pool[index_a]
+	var token_b: TokenData = _button_pool[index_b]
+	var result_family: TokenData.Family = token_a.family if randi() % 2 == 0 else token_b.family
+	var result_value: int = token_a.value + token_b.value
+
+	# Retirer le plus grand index d'abord pour ne pas decaler l'autre.
+	_button_pool.remove_at(max(index_a, index_b))
+	_button_pool.remove_at(min(index_a, index_b))
+	_button_pool.append(TokenData.make_base(result_family, result_value))
+
+	button_pool_changed.emit()
+	return true
+
 
 func get_deck_composition() -> Dictionary:
 	return _deck_composition.duplicate()

@@ -1,10 +1,10 @@
 class_name TokenVisual
 
-## Mapping famille -> sprite path
+## Mapping famille -> sprite "nude" (sans points ; la valeur est affichee en texte par-dessus).
 const FAMILY_SPRITES: Dictionary = {
-	TokenData.Family.CORAL: "res://assets/tokens/coral_",
-	TokenData.Family.SHELL: "res://assets/tokens/shell_",
-	TokenData.Family.RUST: "res://assets/tokens/rust_",
+	TokenData.Family.CORAL: "res://assets/tokens/coral-nude.png",
+	TokenData.Family.SHELL: "res://assets/tokens/shell-nude.png",
+	TokenData.Family.RUST: "res://assets/tokens/rust-nude.png",
 }
 
 const ROCK_SPRITE_PATH: String = "res://assets/tokens/rock.png"
@@ -36,10 +36,7 @@ static func get_texture(token: TokenData) -> Texture2D:
 static func _get_path(token: TokenData) -> String:
 	match token.kind:
 		TokenData.Kind.BASE:
-			var prefix: String = FAMILY_SPRITES.get(token.family, "") as String
-			if prefix.is_empty():
-				return ""
-			return prefix + str(token.value) + ".png"
+			return FAMILY_SPRITES.get(token.family, "") as String
 		TokenData.Kind.ROCK:
 			return ROCK_SPRITE_PATH
 		TokenData.Kind.SPECIAL:

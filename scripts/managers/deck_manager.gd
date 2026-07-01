@@ -9,16 +9,17 @@ var _current: TokenData = null
 var _hold: TokenData = null
 
 
-func build_deck(composition: Dictionary) -> void:
+## button_pool : pool persistant du RunManager (possede pour toute la run).
+## On en cree des copies fraiches ici — consommer le deck de la manche ne doit
+## jamais muter les instances possedees.
+func build_deck(composition: Dictionary, button_pool: Array[TokenData]) -> void:
 	_deck.clear()
 	_current = null
 	_hold = null
 
-	# Jetons de base : famille aleatoire, valeur 1-5
-	for i in range(GameRules.DECK_BASE_COUNT):
-		var family: int = randi() % GameRules.FAMILY_COUNT
-		var value: int = randi() % GameRules.TOKEN_MAX_VALUE + GameRules.TOKEN_MIN_VALUE
-		_deck.append(TokenData.make_base(family as TokenData.Family, value))
+	# Jetons de base : copies fraiches du pool possede (persistant pour la run)
+	for source_token in button_pool:
+		_deck.append(TokenData.make_base(source_token.family, source_token.value))
 
 	# Rocks
 	for i in range(GameRules.DECK_ROCK_COUNT):
@@ -88,6 +89,12 @@ func get_preview() -> Array[TokenData]:
 
 func get_remaining() -> int:
 	return _deck.size()
+
+
+## Jetons pas encore tires (hors current/hold, deja reveles). Pour l'inspecteur
+## de deck : comptes agreges uniquement, jamais l'ordre de tirage.
+func get_remaining_tokens() -> Array[TokenData]:
+	return _deck.duplicate()
 
 
 func is_exhausted() -> bool:

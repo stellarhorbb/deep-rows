@@ -8,6 +8,7 @@
 [ext_resource type="FontFile" uid="uid://dryqbsw3ute3w" path="res://assets/fonts/LondrinaSolid-Black.ttf" id="6_font_black"]
 [ext_resource type="Script" uid="uid://dml5e5e5qgsdp" path="res://scripts/ui/tags_ui.gd" id="7_tags"]
 [ext_resource type="Script" uid="uid://d2v6eujd02dg1" path="res://scripts/ui/echoes_ui.gd" id="8_echoes"]
+[ext_resource type="Script" path="res://scripts/ui/deck_inspector_ui.gd" id="9_deck_inspector"]
 
 [node name="Game" type="Node2D" unique_id=1117591923]
 script = ExtResource("1_game")
@@ -102,7 +103,7 @@ offset_left = 30.0
 offset_top = 160.0
 offset_right = 300.0
 offset_bottom = 440.0
-mouse_filter = 2
+mouse_filter = 1
 script = ExtResource("7_tags")
 
 [node name="EchoesUI" type="Control" parent="." unique_id=2034567890]
@@ -112,8 +113,47 @@ offset_left = 30.0
 offset_top = 900.0
 offset_right = 1890.0
 offset_bottom = 1060.0
-mouse_filter = 2
+mouse_filter = 1
 script = ExtResource("8_echoes")
 
 [node name="InputHandler" type="Node2D" parent="." unique_id=1018510731]
 script = ExtResource("5_input")
+
+[node name="DeckButton" type="Button" parent="." unique_id=1000000101]
+layout_mode = 0
+offset_left = 1780.0
+offset_top = 990.0
+offset_right = 1890.0
+offset_bottom = 1050.0
+text = "DECK"
+
+[node name="DeckInspectorUI" type="Control" parent="." unique_id=1000000102]
+visible = false
+offset_right = 1920.0
+offset_bottom = 1080.0
+script = ExtResource("9_deck_inspector")
+
+[node name="Dim" type="ColorRect" parent="DeckInspectorUI" unique_id=1000000103]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+color = Color(0, 0, 0, 0.55)
+
+[node name="Box" type="PanelContainer" parent="DeckInspectorUI" unique_id=1000000104]
+layout_mode = 0
+offset_left = 660.0
+offset_top = 200.0
+offset_right = 1260.0
+offset_bottom = 880.0
+
+[node name="VBox" type="VBoxContainer" parent="DeckInspectorUI/Box" unique_id=1000000105]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ContentLabel" type="Label" parent="DeckInspectorUI/Box/VBox" unique_id=1000000106]
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="CloseButton" type="Button" parent="DeckInspectorUI/Box/VBox" unique_id=1000000107]
+layout_mode = 2
+text = "FERMER"

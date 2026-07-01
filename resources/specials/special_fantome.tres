@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 label = "FANTOME"
+description = "Pousse la colonne vers le haut et laisse un résidu en bas."
 price = 2
 special_type = 1
 debug_always_in_deck = true

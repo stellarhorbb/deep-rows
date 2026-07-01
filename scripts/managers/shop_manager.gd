@@ -5,6 +5,7 @@ extends Node
 
 signal purchased(item: Resource)
 signal purchase_failed(item: Resource)
+signal button_purchased(token: TokenData)
 
 ## Tags achetables (PatternData avec label + price).
 const TAG_PATHS: Array[String] = [
@@ -31,32 +32,80 @@ const ECHO_PATHS: Array[String] = [
 	"res://resources/echoes/echo_family_unie.tres",
 ]
 
-## Catalogue unifie : contient des PatternData (tags), des SpecialItem et des EchoData.
-var _catalog: Array[Resource] = []
+## Pools complets, charges une fois. L'offre visible est une curation
+## regeneree a chaque visite (regenerate_offer).
+var _all_tags: Array[PatternData] = []
+var _all_specials: Array[SpecialItem] = []
+var _all_echoes: Array[EchoData] = []
+
+## Offre curatee de la visite en cours (colonne A / colonne B).
+var _tag_echo_offer: Array[Resource] = []
+var _special_offer: Array[SpecialItem] = []
+var _button_offer: Array[TokenData] = []
 
 
 func _ready() -> void:
-	_load_catalog()
+	_load_pools()
 
 
-func _load_catalog() -> void:
-	_catalog.clear()
+func _load_pools() -> void:
+	_all_tags.clear()
 	for path in TAG_PATHS:
 		var tag: PatternData = load(path) as PatternData
 		if tag != null:
-			_catalog.append(tag)
+			_all_tags.append(tag)
+
+	_all_specials.clear()
 	for path in SPECIAL_PATHS:
 		var item: SpecialItem = load(path) as SpecialItem
 		if item != null:
-			_catalog.append(item)
+			_all_specials.append(item)
+
+	_all_echoes.clear()
 	for path in ECHO_PATHS:
 		var echo: EchoData = load(path) as EchoData
 		if echo != null:
-			_catalog.append(echo)
+			_all_echoes.append(echo)
 
 
-func get_catalog() -> Array[Resource]:
-	return _catalog
+## A appeler a chaque ouverture du shop (une nouvelle visite = une nouvelle offre).
+## Colonne A : Partitions + Echoes melanges, hors items deja possedes.
+## Colonne B : boutons unitaires + speciaux, tires au hasard dans le pool complet.
+func regenerate_offer(run_manager: RunManager) -> void:
+	var equipped_tags: Array[PatternData] = run_manager.get_equipped_tags()
+	var equipped_echoes: Array[EchoData] = run_manager.get_equipped_echoes()
+
+	var tag_echo_pool: Array[Resource] = []
+	for tag in _all_tags:
+		if not equipped_tags.has(tag):
+			tag_echo_pool.append(tag)
+	for echo in _all_echoes:
+		if not equipped_echoes.has(echo):
+			tag_echo_pool.append(echo)
+	tag_echo_pool.shuffle()
+	_tag_echo_offer = tag_echo_pool.slice(0, min(GameRules.SHOP_TAG_ECHO_OFFER_COUNT, tag_echo_pool.size()))
+
+	var specials_pool: Array[SpecialItem] = _all_specials.duplicate()
+	specials_pool.shuffle()
+	_special_offer = specials_pool.slice(0, min(GameRules.SHOP_SPECIAL_OFFER_COUNT, specials_pool.size()))
+
+	_button_offer.clear()
+	for i in range(GameRules.SHOP_BUTTON_OFFER_COUNT):
+		var family: int = randi() % GameRules.FAMILY_COUNT
+		var value: int = randi() % GameRules.TOKEN_MAX_VALUE + GameRules.TOKEN_MIN_VALUE
+		_button_offer.append(TokenData.make_base(family as TokenData.Family, value))
+
+
+func get_tag_echo_offer() -> Array[Resource]:
+	return _tag_echo_offer
+
+
+func get_special_offer() -> Array[SpecialItem]:
+	return _special_offer
+
+
+func get_button_offer() -> Array[TokenData]:
+	return _button_offer
 
 
 ## Retourne le label d'un item (PatternData, SpecialItem ou EchoData).
@@ -67,6 +116,17 @@ static func get_label(item: Resource) -> String:
 		return (item as SpecialItem).label
 	if item is EchoData:
 		return (item as EchoData).label
+	return ""
+
+
+## Retourne le texte de hover d'un item (PatternData, SpecialItem ou EchoData).
+static func get_description(item: Resource) -> String:
+	if item is PatternData:
+		return (item as PatternData).describe()
+	if item is SpecialItem:
+		return (item as SpecialItem).description
+	if item is EchoData:
+		return (item as EchoData).description
 	return ""
 
 
@@ -118,4 +178,19 @@ func purchase(item: Resource, run_manager: RunManager) -> bool:
 		run_manager.equip_echo(item as EchoData)
 
 	purchased.emit(item)
+	return true
+
+
+## Achat d'un bouton unitaire (TokenData n'est pas une Resource, circuit separe).
+func can_purchase_button(run_manager: RunManager) -> bool:
+	return run_manager.get_flies() >= GameRules.BUTTON_UNIT_PRICE
+
+
+func purchase_button(token: TokenData, run_manager: RunManager) -> bool:
+	if not can_purchase_button(run_manager):
+		return false
+	if not run_manager.spend_flies(GameRules.BUTTON_UNIT_PRICE):
+		return false
+	run_manager.add_button(token.family, token.value)
+	button_purchased.emit(token)
 	return true

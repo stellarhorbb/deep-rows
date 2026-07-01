@@ -87,12 +87,16 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext) -> Dictiona
 ## Autres formes : multiplicateur fixe defini sur le tag.
 ## Cellules modifiees : chaque cellule concernee multiplie le total par son coef (HALF/BOOST/DOUBLE/TRIPLE).
 ## rule_multipliers : multiplicateur applique selon la rule du pattern (ex: "family" x2 via echo).
+## tag_level_multipliers : multiplicateur selon le niveau de la Partition qui a matche (level up).
 func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: RunContext) -> int:
 	var grid_modifiers: Dictionary = context.grid_modifiers
 	var rule_multipliers: Dictionary = context.rule_multipliers
+	var tag_level_multipliers: Dictionary = context.tag_level_multipliers
 	var cascade_mult: float = pow(GameRules.CASCADE_MULTIPLIER_BASE, cascade_level)
 	var rule: StringName = group.get("match_rule", &"") as StringName
 	var rule_mult: float = rule_multipliers.get(rule, 1.0) as float
+	var tag_name: StringName = group.get("tag_name", &"") as StringName
+	var level_mult: float = tag_level_multipliers.get(tag_name, 1.0) as float
 
 	# Diamond : seul le jeton central est score (multiplicateur fixe du tag).
 	if group["shape"] == &"diamond":
@@ -102,7 +106,7 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 			return 0
 		var tag_mult: float = group.get("score_multiplier", 4.0) as float
 		var diamond_mod_mult: float = _modifier_multiplier([center], grid_modifiers)
-		return int(center_token.value * tag_mult * cascade_mult * diamond_mod_mult * rule_mult)
+		return int(center_token.value * tag_mult * cascade_mult * diamond_mod_mult * rule_mult * level_mult)
 
 	var value_sum: int = 0
 	for cell in group["cells"]:
@@ -120,7 +124,7 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		shape_mult = group.get("score_multiplier", 1.0) as float
 
 	var mod_mult: float = _modifier_multiplier(group["cells"], grid_modifiers)
-	return int(value_sum * shape_mult * cascade_mult * mod_mult * rule_mult)
+	return int(value_sum * shape_mult * cascade_mult * mod_mult * rule_mult * level_mult)
 
 
 ## Chaque cellule modifiee dans la liste multiplie le total par son coefficient (cumulatif).
