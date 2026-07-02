@@ -1,6 +1,6 @@
-## Base class pour les effets d'echoes. Chaque echo a son propre script derive.
-## Instancie et appele par EchoManager quand le trigger correspondant se declenche.
-class_name EchoEffect
+## Base class pour les effets de badges. Chaque badge a son propre script derive.
+## Instancie et appele par BadgeManager quand le trigger correspondant se declenche.
+class_name BadgeEffect
 extends RefCounted
 
 

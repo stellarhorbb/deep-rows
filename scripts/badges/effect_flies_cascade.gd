@@ -1,6 +1,6 @@
-## Echo "Mouches en cascade" : +3 mouches par cascade secondaire (cascade_level >= 1).
+## Badge "Mouches en cascade" : +3 mouches par cascade secondaire (cascade_level >= 1).
 ## Trigger : on_cascade_step
-extends EchoEffect
+extends BadgeEffect
 
 const FLIES_PER_CASCADE: int = 3
 

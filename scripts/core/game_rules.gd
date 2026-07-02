@@ -33,8 +33,14 @@ const ZONES_PER_RUN: int = 4
 # Pattern tags
 const MAX_PATTERN_SLOTS: int = 4
 
-# Echoes
-const MAX_ECHO_SLOTS: int = 5
+# Selection de Partition de depart
+const STARTER_PARTITION_DRAFT_SIZE: int = 3
+
+# Vente de Partitions/Badges — pourcentage du prix d'achat rembourse
+const SELL_REFUND_RATIO: float = 0.5
+
+# Badges
+const MAX_BADGE_SLOTS: int = 5
 
 # Recompense par manche gagnee (fixe pour l'instant)
 const FLIES_PER_ROUND_WON: int = 10
@@ -63,7 +69,7 @@ const TOKEN_MAX_VALUE: int = 5
 const FAMILY_COUNT: int = 3
 
 # Shop — offre curatee par visite
-const SHOP_TAG_ECHO_OFFER_COUNT: int = 3
+const SHOP_TAG_BADGE_OFFER_COUNT: int = 3
 const SHOP_BUTTON_OFFER_COUNT: int = 2
 const SHOP_SPECIAL_OFFER_COUNT: int = 2
 

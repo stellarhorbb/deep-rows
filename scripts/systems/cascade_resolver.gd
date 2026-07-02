@@ -86,7 +86,7 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext) -> Dictiona
 ## Lines : multiplicateur = direction du match (v=x1, h=x1.5, d=x2).
 ## Autres formes : multiplicateur fixe defini sur le tag.
 ## Cellules modifiees : chaque cellule concernee multiplie le total par son coef (HALF/BOOST/DOUBLE/TRIPLE).
-## rule_multipliers : multiplicateur applique selon la rule du pattern (ex: "family" x2 via echo).
+## rule_multipliers : multiplicateur applique selon la rule du pattern (ex: "family" x2 via badge).
 ## tag_level_multipliers : multiplicateur selon le niveau de la Partition qui a matche (level up).
 func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: RunContext) -> int:
 	var grid_modifiers: Dictionary = context.grid_modifiers

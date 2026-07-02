@@ -15,11 +15,13 @@ const MAX_SLOTS: int = 4
 @export var slot_bg_color: Color = Color(1, 1, 1, 0.85)
 @export var empty_bg_color: Color = Color(1, 1, 1, 0.35)
 @export var progress_fill_color: Color = Color("f0e6c8")  # tres legerement different du fond, pour la barre de niveau
+@export var sell_button_size: Vector2 = Vector2(64.0, 32.0)
 
 var pattern_manager: PatternManager = null
 var run_manager: RunManager = null
 
 var _font: Font = null
+var _sell_buttons: Array[Button] = []
 
 
 func _ready() -> void:
@@ -32,6 +34,29 @@ func setup() -> void:
 	if run_manager != null:
 		run_manager.tag_leveled_up.connect(_on_tag_leveled_up)
 		run_manager.tag_progress_changed.connect(_on_tag_progress_changed)
+	_create_sell_buttons()
+
+
+## Un bouton "VENDRE" par slot, cree une seule fois. Visible/positionne a
+## chaque _draw() selon l'etat du slot correspondant — evite tout clic
+## accidentel sur le reste de la carte (cf. retour user post-implementation).
+func _create_sell_buttons() -> void:
+	for i in range(MAX_SLOTS):
+		var btn: Button = Button.new()
+		btn.text = "VENDRE"
+		btn.visible = false
+		btn.pressed.connect(_on_sell_pressed.bind(i))
+		add_child(btn)
+		_sell_buttons.append(btn)
+
+
+func _on_sell_pressed(i: int) -> void:
+	if pattern_manager == null or run_manager == null:
+		return
+	var tags: Array[PatternData] = pattern_manager.get_active_tags()
+	if i >= tags.size():
+		return
+	run_manager.sell_tag(tags[i])
 
 
 func _draw() -> void:
@@ -87,7 +112,20 @@ func _draw() -> void:
 				label_color,
 			)
 
+		_update_sell_button(i, y_offset, is_filled, tags)
+
 		y_offset += slot_height + vertical_gap
+
+
+## Positionne/affiche le bouton VENDRE du slot i en coin haut-droit de la carte.
+func _update_sell_button(i: int, y_pos: float, is_filled: bool, tags: Array[PatternData]) -> void:
+	var btn: Button = _sell_buttons[i]
+	btn.visible = is_filled
+	if not is_filled:
+		return
+	btn.size = sell_button_size
+	btn.position = Vector2(slot_width - sell_button_size.x - 6.0, y_pos + 6.0)
+	btn.tooltip_text = "+%d mouches" % int(tags[i].price * GameRules.SELL_REFUND_RATIO)
 
 
 func _draw_slot_bg(y_pos: float, color: Color) -> void:
@@ -178,15 +216,24 @@ func _on_tag_progress_changed(_tag_name: StringName) -> void:
 
 
 ## Hover simple : recalcule le tooltip a chaque mouvement de souris selon
-## le slot survole. Reutilise le meme calcul d'offset que _draw().
+## le slot survole. Reutilise le meme calcul d'offset que _draw(). La vente
+## passe desormais par le bouton VENDRE dedie (voir _create_sell_buttons),
+## plus par un clic sur la carte — trop facile a declencher par erreur.
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		tooltip_text = _tooltip_for_position(event.position)
 
 
 func _tooltip_for_position(pos: Vector2) -> String:
-	if pattern_manager == null:
+	var tag: PatternData = _tag_at_position(pos)
+	if tag == null:
 		return ""
+	return tag.describe() + _level_tooltip(tag)
+
+
+func _tag_at_position(pos: Vector2) -> PatternData:
+	if pattern_manager == null:
+		return null
 	var tags: Array[PatternData] = pattern_manager.get_active_tags()
 
 	var y_offset: float = header_font_size + header_gap
@@ -195,11 +242,11 @@ func _tooltip_for_position(pos: Vector2) -> String:
 	for i in range(MAX_SLOTS):
 		if pos.x >= 0.0 and pos.x <= slot_width and pos.y >= y_offset and pos.y < y_offset + slot_height:
 			if i < tags.size():
-				return tags[i].describe() + _level_tooltip(tags[i])
-			return ""
+				return tags[i]
+			return null
 		y_offset += slot_height + vertical_gap
 
-	return ""
+	return null
 
 
 func _level_tooltip(tag: PatternData) -> String:

@@ -1,6 +1,6 @@
-## Echo "Tranchee" : les 2 colonnes centrales x1.5, les 2 colonnes exterieures x0.5.
+## Badge "Tranchee" : les 2 colonnes centrales x1.5, les 2 colonnes exterieures x0.5.
 ## Trigger : on_round_start
-extends EchoEffect
+extends BadgeEffect
 
 
 func apply(_event: Dictionary, run_manager: RunManager) -> void:

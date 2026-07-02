@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BadgeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/badge_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/badges/effect_pourboire.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"pourboire"
+label = "POURBOIRE"
+description = "+5 mouches en début de manche"
+price = 3
+rarity = 0
+effect_script = ExtResource("2_effect")

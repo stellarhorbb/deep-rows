@@ -12,7 +12,7 @@ signal last_breath_started()
 signal round_won(score: int, target: int)
 signal round_lost(score: int, target: int)
 
-## Hooks consommes par EchoManager (dispatch vers les EchoEffect equipes).
+## Hooks consommes par BadgeManager (dispatch vers les BadgeEffect equipes).
 signal round_started()
 signal token_dropped(token: TokenData, col: int, row: int)
 signal cascade_step_resolved(level: int, earned: int)
@@ -40,7 +40,7 @@ func start_round(round_number: int) -> void:
 	# 1. Reset de la couche modifiers de manche.
 	run_manager.reset_round_modifiers()
 
-	# 2. Les echoes on_round_start peuplent grid_modifiers et rule_multipliers.
+	# 2. Les badges on_round_start peuplent grid_modifiers et rule_multipliers.
 	round_started.emit()
 
 	# 3. Publie le dict final pour l'UI et snapshot le contexte.
@@ -115,7 +115,7 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 	if total_score > 0:
 		score_manager.add_score(total_score)
 
-	# Emet un hook par MATCH event pour les echoes on_cascade_step, et
+	# Emet un hook par MATCH event pour les badges on_cascade_step, et
 	# remonte le score de chaque groupe a sa Partition pour le level up.
 	for event in timeline:
 		if event["type"] == CascadeResolver.EventType.MATCH:

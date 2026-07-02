@@ -1,7 +1,7 @@
-## Dispatch les triggers d'echoes vers les effets des echoes equipes.
+## Dispatch les triggers de badges vers les effets des badges equipes.
 ## Vit dans RunService (persistant entre manches). Se branche sur les signaux
 ## de TurnController a chaque manche via bind_round().
-class_name EchoManager
+class_name BadgeManager
 extends Node
 
 var run_manager: RunManager
@@ -40,9 +40,9 @@ func _on_last_breath() -> void:
 func _dispatch(trigger: StringName, event: Dictionary) -> void:
 	if run_manager == null:
 		return
-	for echo in run_manager.get_equipped_echoes():
-		if echo.trigger != trigger:
+	for badge in run_manager.get_equipped_badges():
+		if badge.trigger != trigger:
 			continue
-		var effect: EchoEffect = echo.make_effect()
+		var effect: BadgeEffect = badge.make_effect()
 		if effect != null:
 			effect.apply(event, run_manager)

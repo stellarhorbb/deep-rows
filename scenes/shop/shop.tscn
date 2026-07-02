@@ -55,9 +55,9 @@ theme_override_constants/separation = 8
 
 [node name="ColumnATitle" type="Label" parent="Panel/VBox/Columns/ColumnA" unique_id=1000000003]
 layout_mode = 2
-text = "PARTITIONS & ECHOES"
+text = "PARTITIONS & BADGES"
 
-[node name="TagEchoContainer" type="VBoxContainer" parent="Panel/VBox/Columns/ColumnA" unique_id=1000000004]
+[node name="TagBadgeContainer" type="VBoxContainer" parent="Panel/VBox/Columns/ColumnA" unique_id=1000000004]
 layout_mode = 2
 theme_override_constants/separation = 8
 

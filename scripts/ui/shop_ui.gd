@@ -1,10 +1,10 @@
 ## Scene autonome du shop. Lit les managers via l'autoload RunService.
-## Deux colonnes : Partitions+Echoes (A) / Boutons+Speciaux+Fusion (B).
+## Deux colonnes : Partitions+Badges (A) / Boutons+Speciaux+Fusion (B).
 ## Quand le joueur clique "CONTINUER", avance le run et retourne au game.
 class_name ShopUI
 extends Control
 
-@onready var tag_echo_container: VBoxContainer = $Panel/VBox/Columns/ColumnA/TagEchoContainer
+@onready var tag_badge_container: VBoxContainer = $Panel/VBox/Columns/ColumnA/TagBadgeContainer
 @onready var button_offer_container: VBoxContainer = $Panel/VBox/Columns/ColumnB/ButtonOfferContainer
 @onready var special_offer_container: VBoxContainer = $Panel/VBox/Columns/ColumnB/SpecialOfferContainer
 @onready var fusion_button: Button = $Panel/VBox/Columns/ColumnB/FusionButton
@@ -42,16 +42,16 @@ func _ready() -> void:
 	_rebuild_offer()
 
 
-# --- Colonne A : Partitions + Echoes ---
+# --- Colonne A : Partitions + Badges ---
 
 func _rebuild_offer() -> void:
 	for btn in _resource_buttons:
 		btn.queue_free()
 	_resource_buttons.clear()
 
-	for item in _shop_manager.get_tag_echo_offer():
+	for item in _shop_manager.get_tag_badge_offer():
 		var btn: Button = _make_resource_button(item)
-		tag_echo_container.add_child(btn)
+		tag_badge_container.add_child(btn)
 		_resource_buttons.append(btn)
 
 	for btn in _button_offer_buttons:
@@ -86,7 +86,7 @@ func _refresh_flies() -> void:
 	flies_label.text = "MOUCHES : %d" % _run_manager.get_flies()
 
 
-## Les items Tags/Echoes/Speciaux achetes restent affiches mais se desactivent
+## Les items Tags/Badges/Speciaux achetes restent affiches mais se desactivent
 ## via can_purchase (deja equipe, plus assez de mouches) — pas de reroll ici,
 ## une seule visite = une seule offre tiree.
 func _refresh_buttons_state() -> void:

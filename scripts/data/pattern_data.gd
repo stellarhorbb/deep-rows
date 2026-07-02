@@ -1,6 +1,8 @@
 class_name PatternData
 extends Resource
 
+enum Rarity { COMMON, UNCOMMON, RARE, EPIC }
+
 @export var tag_name: StringName = &""
 @export var shape: StringName = &""       # &"line" | &"square" | &"diamond"
 @export var rule: StringName = &""        # &"family" | &"value" | &"suite" | &"rock"
@@ -11,6 +13,7 @@ extends Resource
 ## Shop
 @export var label: String = ""
 @export var price: int = 0
+@export var rarity: Rarity = Rarity.COMMON
 
 
 ## Texte de hover en langage clair, reutilise en jeu (TagsUI) et au shop.

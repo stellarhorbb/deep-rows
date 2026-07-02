@@ -1,6 +1,6 @@
-## Echo "Cellule triple" : ajoute une cellule TRIPLE aleatoire au debut de chaque manche.
+## Badge "Cellule triple" : ajoute une cellule TRIPLE aleatoire au debut de chaque manche.
 ## Trigger : on_round_start
-extends EchoEffect
+extends BadgeEffect
 
 
 func apply(_event: Dictionary, run_manager: RunManager) -> void:

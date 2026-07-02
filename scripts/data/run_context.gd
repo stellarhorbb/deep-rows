@@ -10,7 +10,7 @@ extends Resource
 @export var grid_modifiers: Dictionary = {}
 
 # Multiplicateurs de score par rule de pattern : StringName -> float.
-# Alimente par les echoes au start_round (ex: "family" -> 2.0 pour "Famille unie").
+# Alimente par les badges au start_round (ex: "family" -> 2.0 pour "Famille unie").
 # Lu par CascadeResolver._score_group.
 @export var rule_multipliers: Dictionary = {}
 

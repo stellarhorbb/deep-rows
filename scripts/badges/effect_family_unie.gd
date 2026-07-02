@@ -1,6 +1,6 @@
-## Echo "Famille unie" : les patterns de rule "family" doublent leur score.
+## Badge "Famille unie" : les patterns de rule "family" doublent leur score.
 ## Trigger : on_round_start
-extends EchoEffect
+extends BadgeEffect
 
 
 func apply(_event: Dictionary, run_manager: RunManager) -> void:

@@ -1,28 +1,21 @@
 ## Porte les donnees qui evoluent au cours d'un run (tags equipes, deck,
-## mouches, plus tard echoes/states/niveaux). Mute uniquement par l'orchestration
+## mouches, plus tard badges/states/niveaux). Mute uniquement par l'orchestration
 ## (TurnController, ShopManager a venir). Les autres lisent via build_context().
 class_name RunManager
 extends Node
 
 signal flies_changed(amount: int)
 signal tags_changed(equipped: Array[PatternData])
-signal echoes_changed(equipped: Array[EchoData])
+signal badges_changed(equipped: Array[BadgeData])
 signal deck_composition_changed()
 signal grid_modifiers_changed(modifiers: Dictionary)
 signal button_pool_changed()
 signal tag_leveled_up(tag_name: StringName, new_level: int)
 signal tag_progress_changed(tag_name: StringName)
 
-## Chemins des tags du starter pack (valable pour le proto).
-## Plus tard : vient du pack de base choisi par le joueur.
-const STARTER_TAG_PATHS: Array[String] = [
-	"res://resources/patterns/line_family_4.tres",
-	"res://resources/patterns/line_number_3.tres",
-]
-
 var _flies: int = 0
 var _equipped_tags: Array[PatternData] = []
-var _equipped_echoes: Array[EchoData] = []
+var _equipped_badges: Array[BadgeData] = []
 var _button_pool: Array[TokenData] = []
 var _deck_composition: Dictionary = {
 	"bombe_count": 0,
@@ -34,23 +27,21 @@ var _rule_multipliers: Dictionary = {}  # StringName -> float
 var _tag_progress: Dictionary = {}      # StringName (tag_name) -> {"cumulative": int, "level": int}
 
 
-## Initialise un nouveau run : starter pack.
+## Initialise un nouveau run. Les Partitions de depart ne sont plus auto-equipees
+## ici : c'est l'ecran de selection de Partition (draft_starter_partitions) qui
+## appelle equip_tag() avec le choix du joueur avant le debut de la manche 1.
 func init_run() -> void:
 	_flies = 0
 
 	_equipped_tags.clear()
-	for path in STARTER_TAG_PATHS:
-		var tag: PatternData = load(path) as PatternData
-		if tag != null:
-			_equipped_tags.append(tag)
 
-	_equipped_echoes.clear()
-	# DEBUG : equipe au demarrage les echoes dont debug_start_equipped == true.
+	_equipped_badges.clear()
+	# DEBUG : equipe au demarrage les badges dont debug_start_equipped == true.
 	# Flag a activer dans chaque .tres via l'editeur Godot.
-	for path in ShopManager.ECHO_PATHS:
-		var echo: EchoData = load(path) as EchoData
-		if echo != null and echo.debug_start_equipped:
-			_equipped_echoes.append(echo)
+	for path in ShopManager.BADGE_PATHS:
+		var badge: BadgeData = load(path) as BadgeData
+		if badge != null and badge.debug_start_equipped:
+			_equipped_badges.append(badge)
 
 	_button_pool = _generate_starter_buttons()
 	_tag_progress.clear()
@@ -64,7 +55,7 @@ func init_run() -> void:
 
 	flies_changed.emit(_flies)
 	tags_changed.emit(_equipped_tags)
-	echoes_changed.emit(_equipped_echoes)
+	badges_changed.emit(_equipped_badges)
 	deck_composition_changed.emit()
 
 
@@ -78,6 +69,18 @@ func _generate_starter_buttons() -> Array[TokenData]:
 		var value: int = randi() % GameRules.TOKEN_MAX_VALUE + GameRules.TOKEN_MIN_VALUE
 		buttons.append(TokenData.make_base(family as TokenData.Family, value))
 	return buttons
+
+
+## Tire des Partitions au hasard dans tout le catalogue (ShopManager.TAG_PATHS),
+## pour l'ecran de selection de Partition de depart. Ne mute rien.
+func draft_starter_partitions(n: int = GameRules.STARTER_PARTITION_DRAFT_SIZE) -> Array[PatternData]:
+	var pool: Array[PatternData] = []
+	for path in ShopManager.TAG_PATHS:
+		var tag: PatternData = load(path) as PatternData
+		if tag != null:
+			pool.append(tag)
+	pool.shuffle()
+	return pool.slice(0, min(n, pool.size()))
 
 
 ## Construit un snapshot lu par les systemes.
@@ -136,23 +139,23 @@ func get_tag_cumulative_score(tag_name: StringName) -> int:
 
 
 ## Reset la couche "modifiers de manche" : grid modifiers + rule multipliers.
-## Appele au start_round avant que les echoes on_round_start ne peuplent.
+## Appele au start_round avant que les badges on_round_start ne peuplent.
 func reset_round_modifiers() -> void:
 	_grid_modifiers.clear()
 	_rule_multipliers.clear()
 
 
-## Ajoute un modifier sur une cellule. Appele par les echoes.
+## Ajoute un modifier sur une cellule. Appele par les badges.
 func add_grid_modifier(cell: Vector2i, type: StringName) -> void:
 	_grid_modifiers[cell] = type
 
 
-## Emis une fois tous les modifiers de manche peuples (base + echoes).
+## Emis une fois tous les modifiers de manche peuples (base + badges).
 func notify_grid_modifiers_ready() -> void:
 	grid_modifiers_changed.emit(_grid_modifiers.duplicate())
 
 
-## Pose un multiplicateur de score par rule (ex: &"family" -> 2.0). Appele par les echoes.
+## Pose un multiplicateur de score par rule (ex: &"family" -> 2.0). Appele par les badges.
 func set_rule_multiplier(rule: StringName, mult: float) -> void:
 	_rule_multipliers[rule] = mult
 
@@ -202,19 +205,60 @@ func equip_tag(tag: PatternData) -> bool:
 	return true
 
 
-# --- Echoes ---
-
-func get_equipped_echoes() -> Array[EchoData]:
-	return _equipped_echoes
-
-
-func equip_echo(echo: EchoData) -> bool:
-	if _equipped_echoes.size() >= GameRules.MAX_ECHO_SLOTS:
+## Retire une Partition equipee (vente). Retourne false si elle n'etait pas
+## equipee. N'affecte pas la resolution de la manche en cours (deja snapshotee
+## dans PatternManager au round_start) — prend effet a la manche suivante,
+## comme le level up des Partitions.
+func unequip_tag(tag: PatternData) -> bool:
+	if not _equipped_tags.has(tag):
 		return false
-	if _equipped_echoes.has(echo):
+	_equipped_tags.erase(tag)
+	tags_changed.emit(_equipped_tags)
+	return true
+
+
+## Vend une Partition equipee contre GameRules.SELL_REFUND_RATIO de son prix
+## d'achat, en mouches. Aucun plancher : vendable jusqu'a 0 Partition equipee.
+func sell_tag(tag: PatternData) -> bool:
+	if not unequip_tag(tag):
 		return false
-	_equipped_echoes.append(echo)
-	echoes_changed.emit(_equipped_echoes)
+	add_flies(int(tag.price * GameRules.SELL_REFUND_RATIO))
+	return true
+
+
+# --- Badges ---
+
+func get_equipped_badges() -> Array[BadgeData]:
+	return _equipped_badges
+
+
+func equip_badge(badge: BadgeData) -> bool:
+	if _equipped_badges.size() >= GameRules.MAX_BADGE_SLOTS:
+		return false
+	if _equipped_badges.has(badge):
+		return false
+	_equipped_badges.append(badge)
+	badges_changed.emit(_equipped_badges)
+	return true
+
+
+## Retire un Badge equipe (vente). Retourne false s'il n'etait pas equipe.
+## Contrairement aux Partitions, prend effet immediatement : BadgeManager lit
+## la liste equipee en direct a chaque dispatch, pas de snapshot de manche.
+func unequip_badge(badge: BadgeData) -> bool:
+	if not _equipped_badges.has(badge):
+		return false
+	_equipped_badges.erase(badge)
+	badges_changed.emit(_equipped_badges)
+	return true
+
+
+## Vend un Badge equipe contre GameRules.SELL_REFUND_RATIO de son prix d'achat,
+## en mouches. Aucun plancher.
+func sell_badge(badge: BadgeData) -> bool:
+	if not unequip_badge(badge):
+		return false
+	add_flies(int(badge.price * GameRules.SELL_REFUND_RATIO))
 	return true
 
 

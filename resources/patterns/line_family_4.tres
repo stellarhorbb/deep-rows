@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PatternData" format=3 uid="uid://bjx3ppvr7q8kq"]
 
-[ext_resource type="Script" uid="uid://k37ydar6rjlo" path="res://scripts/data/pattern_data.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/data/pattern_data.gd" id="1_script"]
 
 [resource]
 script = ExtResource("1_script")
@@ -11,3 +11,4 @@ min_size = 4
 direction = &"any"
 score_multiplier = 1.0
 label = "FAMILY LINE 4"
+price = 6
