@@ -1,6 +1,7 @@
-[gd_scene format=3 uid="uid://lg2c4skgpmrr"]
+[gd_scene format=3 load_steps=3]
 
-[ext_resource type="Script" uid="uid://byilyrqrldpxk" path="res://scripts/ui/shop_ui.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/ui/shop_ui.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/ui/pack_panel_ui.gd" id="2_pack_panel"]
 
 [node name="Shop" type="Control" unique_id=1148645018]
 layout_mode = 3
@@ -33,62 +34,87 @@ offset_bottom = 200.0
 text = "MOUCHES : 0"
 horizontal_alignment = 1
 
+[node name="RerollButton" type="Button" parent="." unique_id=1000000020]
+layout_mode = 0
+offset_left = 1650.0
+offset_top = 150.0
+offset_right = 1860.0
+offset_bottom = 200.0
+text = "REROLL — 5 mouches"
+
 [node name="Panel" type="PanelContainer" parent="." unique_id=1433656584]
 layout_mode = 0
-offset_left = 160.0
+offset_left = 60.0
 offset_top = 220.0
-offset_right = 1760.0
+offset_right = 1860.0
 offset_bottom = 950.0
 
 [node name="VBox" type="VBoxContainer" parent="Panel" unique_id=1199512045]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="Columns" type="HBoxContainer" parent="Panel/VBox" unique_id=1000000001]
+[node name="PacksTitle" type="Label" parent="Panel/VBox" unique_id=1000000022]
 layout_mode = 2
-theme_override_constants/separation = 32
+text = "PACKS"
+horizontal_alignment = 1
 
-[node name="ColumnA" type="VBoxContainer" parent="Panel/VBox/Columns" unique_id=1000000002]
+[node name="PacksContainer" type="HBoxContainer" parent="Panel/VBox" unique_id=1000000021]
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 8
+alignment = 1
+theme_override_constants/separation = 16
 
-[node name="ColumnATitle" type="Label" parent="Panel/VBox/Columns/ColumnA" unique_id=1000000003]
+[node name="UnitairesTitle" type="Label" parent="Panel/VBox" unique_id=1000000023]
 layout_mode = 2
-text = "PARTITIONS & BADGES"
+text = "EN VITRINE"
+horizontal_alignment = 1
 
-[node name="TagBadgeContainer" type="VBoxContainer" parent="Panel/VBox/Columns/ColumnA" unique_id=1000000004]
+[node name="UnitairesContainer" type="HBoxContainer" parent="Panel/VBox" unique_id=1000000024]
 layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="ColumnB" type="VBoxContainer" parent="Panel/VBox/Columns" unique_id=1000000005]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 8
-
-[node name="ButtonsTitle" type="Label" parent="Panel/VBox/Columns/ColumnB" unique_id=1000000006]
-layout_mode = 2
-text = "BOUTONS"
-
-[node name="ButtonOfferContainer" type="VBoxContainer" parent="Panel/VBox/Columns/ColumnB" unique_id=1000000007]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="SpecialsTitle" type="Label" parent="Panel/VBox/Columns/ColumnB" unique_id=1000000008]
-layout_mode = 2
-text = "SPÉCIAUX"
-
-[node name="SpecialOfferContainer" type="VBoxContainer" parent="Panel/VBox/Columns/ColumnB" unique_id=1000000009]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="FusionButton" type="Button" parent="Panel/VBox/Columns/ColumnB" unique_id=1000000010]
-layout_mode = 2
-text = "FUSIONNER MES BOUTONS"
+alignment = 1
+theme_override_constants/separation = 16
 
 [node name="ContinueButton" type="Button" parent="Panel/VBox" unique_id=1820314853]
 layout_mode = 2
 text = "CONTINUER"
+
+[node name="PackPanel" type="Control" parent="." unique_id=1000000030]
+visible = false
+anchors_preset = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+script = ExtResource("2_pack_panel")
+
+[node name="Dim" type="ColorRect" parent="PackPanel" unique_id=1000000031]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+color = Color(0, 0, 0, 0.55)
+
+[node name="Box" type="PanelContainer" parent="PackPanel" unique_id=1000000032]
+layout_mode = 0
+offset_left = 360.0
+offset_top = 200.0
+offset_right = 1560.0
+offset_bottom = 880.0
+
+[node name="VBox" type="VBoxContainer" parent="PackPanel/Box" unique_id=1000000033]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="PackPanel/Box/VBox" unique_id=1000000034]
+layout_mode = 2
+text = "PACK — choisis 1"
+horizontal_alignment = 1
+
+[node name="CandidatesContainer" type="GridContainer" parent="PackPanel/Box/VBox" unique_id=1000000035]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 3
+
+[node name="CloseButton" type="Button" parent="PackPanel/Box/VBox" unique_id=1000000036]
+layout_mode = 2
+text = "FERMER"
 
 [node name="FusionPanel" type="Control" parent="." unique_id=1000000011]
 visible = false

@@ -102,6 +102,7 @@ func _wire_signals() -> void:
 	grid_manager.special_landing.connect(_on_special_landing)
 	grid_manager.special_executed.connect(_on_special_executed)
 	grid_manager.residues_exploded.connect(_on_residues_exploded)
+	grid_manager.holes_changed.connect(grid_visual.set_holes)
 	RunService.run_manager.flies_changed.connect(_on_flies_changed)
 	RunService.run_manager.grid_modifiers_changed.connect(grid_visual.set_grid_modifiers)
 	deck_button.pressed.connect(deck_inspector_ui.toggle)
@@ -158,7 +159,7 @@ func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
 	var entity_col: int = entity_manager.on_turn_resolved()
 	if entity_col >= 0:
 		var entity_token: TokenData = TokenData.make_entity()
-		var entity_row: int = grid_manager.place_entity_token(entity_col, entity_token)
+		var entity_row: int = grid_manager.place_token_direct(entity_col, entity_token)
 		if entity_row >= 0:
 			await grid_visual.animate_drop(entity_col, entity_row, entity_token)
 			grid_visual.refresh()

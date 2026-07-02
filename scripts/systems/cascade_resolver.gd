@@ -5,14 +5,17 @@ extends RefCounted
 enum EventType { GRAVITY, MATCH, REMOVE }
 
 
-## Resout toutes les cascades sur la grille.
+## Resout toutes les cascades sur la grille. `holes` (Vector2i -> true) sont
+## les trous de la "grille cabossee" — transparents a la gravite, jamais
+## occupables (a ne pas confondre avec les trous laisses par les specials,
+## qui sont juste des cases devenues null).
 ## Retourne une timeline d'evenements pour le visuel + le score total gagne.
-func resolve(grid: Array, cols: int, rows: int, context: RunContext) -> Dictionary:
+func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dictionary = {}) -> Dictionary:
 	var timeline: Array[Dictionary] = []
 	var total_score: int = 0
 
-	# Passe de gravite initiale (trous laisses par les specials)
-	var initial_movements: Array[Dictionary] = GravitySystem.apply(grid, cols, rows)
+	# Passe de gravite initiale (cases videes laissees par les specials)
+	var initial_movements: Array[Dictionary] = GravitySystem.apply(grid, cols, rows, holes)
 	if initial_movements.size() > 0:
 		timeline.append({
 			"type": EventType.GRAVITY,
@@ -67,7 +70,7 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext) -> Dictiona
 		total_score += earned
 
 		# Gravite post-removal
-		var movements: Array[Dictionary] = GravitySystem.apply(grid, cols, rows)
+		var movements: Array[Dictionary] = GravitySystem.apply(grid, cols, rows, holes)
 		if movements.size() > 0:
 			timeline.append({
 				"type": EventType.GRAVITY,
@@ -98,15 +101,34 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	var tag_name: StringName = group.get("tag_name", &"") as StringName
 	var level_mult: float = tag_level_multipliers.get(tag_name, 1.0) as float
 
-	# Diamond : seul le jeton central est score (multiplicateur fixe du tag).
+	# Diamond : le centre n'entre jamais dans la condition de match (voir
+	# PatternMatcher.find_diamonds), mais son role dans le SCORE depend de la
+	# rule. Rock : les 4 jetons du losange sont des rocks, sans valeur — c'est
+	# le centre qui est "recolte", il doit donc etre scorable. Family (et
+	# futures rules) : les 4 jetons du losange sont deja garantis scorables
+	# par le match, le centre est vraiment ignore — on somme les 4 jetons,
+	# comme une ligne ou un carre.
 	if group["shape"] == &"diamond":
-		var center: Vector2i = group["center"] as Vector2i
-		var center_token: TokenData = grid[center.x][center.y] as TokenData
-		if center_token == null or not center_token.is_scorable():
-			return 0
 		var tag_mult: float = group.get("score_multiplier", 4.0) as float
-		var diamond_mod_mult: float = _modifier_multiplier([center], grid_modifiers)
-		return int(center_token.value * tag_mult * cascade_mult * diamond_mod_mult * rule_mult * level_mult)
+		var base_value: int = 0
+		var scored_cells: Array = []
+
+		if rule == &"rock":
+			var center: Vector2i = group["center"] as Vector2i
+			var center_token: TokenData = grid[center.x][center.y] as TokenData
+			if center_token == null or not center_token.is_scorable():
+				return 0
+			base_value = center_token.value
+			scored_cells = [center]
+		else:
+			for cell in group["cells"]:
+				var token: TokenData = grid[cell.x][cell.y] as TokenData
+				if token != null and token.is_scorable():
+					base_value += token.value
+			scored_cells = group["cells"]
+
+		var diamond_mod_mult: float = _modifier_multiplier(scored_cells, grid_modifiers)
+		return int(base_value * tag_mult * cascade_mult * diamond_mod_mult * rule_mult * level_mult)
 
 	var value_sum: int = 0
 	for cell in group["cells"]:

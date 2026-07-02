@@ -306,7 +306,7 @@ func fuse_buttons(index_a: int, index_b: int) -> bool:
 	var token_a: TokenData = _button_pool[index_a]
 	var token_b: TokenData = _button_pool[index_b]
 	var result_family: TokenData.Family = token_a.family if randi() % 2 == 0 else token_b.family
-	var result_value: int = token_a.value + token_b.value
+	var result_value: int = min(token_a.value + token_b.value, GameRules.MAX_BUTTON_VALUE)
 
 	# Retirer le plus grand index d'abord pour ne pas decaler l'autre.
 	_button_pool.remove_at(max(index_a, index_b))

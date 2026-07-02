@@ -4,6 +4,7 @@ extends Node2D
 @export var cell_size: float = 90.0
 @export var cell_gap: float = 6.0
 @export var empty_cell_color: Color = Color("e8e8e8")
+@export var hole_color: Color = Color("2a2a38")
 @export var residue_color: Color = Color("b8b3d6")
 @export var modifier_border_width: float = 6.0
 
@@ -28,6 +29,7 @@ extends Node2D
 
 var _token_sprites: Dictionary = {}  # Vector2i -> Sprite2D
 var _grid_modifiers: Dictionary = {}  # Vector2i -> StringName
+var _holes: Dictionary = {}  # Vector2i -> true
 var _is_animating: bool = false
 var _popup_font: Font = null
 
@@ -51,7 +53,8 @@ func _draw() -> void:
 		for r in range(GameRules.ROWS):
 			var visual_row: int = GameRules.ROWS - 1 - r
 			var center: Vector2 = _cell_center(c, visual_row)
-			draw_circle(center, cell_size / 2.0, empty_cell_color)
+			var is_hole: bool = _holes.has(Vector2i(c, r))
+			draw_circle(center, cell_size / 2.0, hole_color if is_hole else empty_cell_color)
 
 	# Contour des cellules modifiees (par dessus le fond, sous les sprites)
 	for cell_key in _grid_modifiers:
@@ -74,6 +77,12 @@ func _modifier_color(type: StringName) -> Color:
 ## Appele par game_scene quand RunManager emet grid_modifiers_changed.
 func set_grid_modifiers(modifiers: Dictionary) -> void:
 	_grid_modifiers = modifiers
+	queue_redraw()
+
+
+## Appele par game_scene quand GridManager emet holes_changed.
+func set_holes(holes: Dictionary) -> void:
+	_holes = holes
 	queue_redraw()
 
 
@@ -476,6 +485,8 @@ func _create_sprite(cell: Vector2i, token: TokenData) -> Sprite2D:
 ## texte soit downscale avec le sprite plutot qu'upscale depuis une petite
 ## police — evite le flou.
 func _add_value_label(sprite: Sprite2D, value: int, tex_size: Vector2) -> void:
+	if not GameRules.DEBUG_SHOW_TOKEN_VALUE:
+		return
 	var label: Label = Label.new()
 	label.text = str(value)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE

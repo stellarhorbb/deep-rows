@@ -167,7 +167,7 @@ func _level_progress(tag: PatternData) -> float:
 
 
 func _format_tag_label(tag: PatternData) -> String:
-	var shape_str: String = "LINE" if tag.shape == &"line" else "SQUARE"
+	var shape_str: String = _shape_label(tag.shape)
 	var rule_str: String
 	match tag.rule:
 		&"family": rule_str = "FAMILY"
@@ -179,13 +179,17 @@ func _format_tag_label(tag: PatternData) -> String:
 	if tag.shape == &"line":
 		return shape_str + " " + rule_str + " " + str(tag.min_size)
 
-	# Autres formes : multiplicateur fixe visible
-	if tag.shape == &"diamond":
-		var raw: String = _format_multiplier(tag.score_multiplier)
-		return "DIAMOND ROCK" + ("  " + raw if raw != "" else "")
-
+	# Autres formes (square, diamond) : multiplicateur fixe visible
 	var raw_mult: String = _format_multiplier(tag.score_multiplier)
 	return shape_str + " " + rule_str + ("  " + raw_mult if raw_mult != "" else "")
+
+
+func _shape_label(shape: StringName) -> String:
+	match shape:
+		&"line":    return "LINE"
+		&"square":  return "SQUARE"
+		&"diamond": return "DIAMOND"
+	return "SHAPE"
 
 
 func _format_multiplier(mult: float) -> String:

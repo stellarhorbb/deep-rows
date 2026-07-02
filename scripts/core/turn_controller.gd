@@ -37,6 +37,11 @@ func start_round(round_number: int) -> void:
 	score_manager.reset_round(round_number)
 	grid_manager.init_grid()
 
+	# 0. Grille cabossee : trous aleatoires deja en place avant le premier drop,
+	# differents a chaque manche.
+	var hole_count: int = randi_range(GameRules.ROUND_START_HOLES_MIN, GameRules.ROUND_START_HOLES_MAX)
+	grid_manager.generate_random_holes(hole_count)
+
 	# 1. Reset de la couche modifiers de manche.
 	run_manager.reset_round_modifiers()
 

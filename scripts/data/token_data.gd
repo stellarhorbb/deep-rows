@@ -2,7 +2,7 @@ class_name TokenData
 extends RefCounted
 
 enum Kind { BASE, ROCK, RESIDUE, SPECIAL, ENTITY }
-enum Family { CORAL, SHELL, RUST }
+enum Family { CORAL, SHELL, RUST, INK }
 enum SpecialType { NONE, FANTOME, BOMBE, MAREE }
 
 var kind: Kind = Kind.BASE
@@ -53,6 +53,7 @@ static func family_label(f: Family) -> String:
 		Family.CORAL: return "CORAL"
 		Family.SHELL: return "SHELL"
 		Family.RUST:  return "RUST"
+		Family.INK:   return "INK"
 		_:            return "?"
 
 

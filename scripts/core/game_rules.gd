@@ -1,8 +1,8 @@
 class_name GameRules
 
 # Grille
-const COLS: int = 6
-const ROWS: int = 8
+const COLS: int = 7
+const ROWS: int = 7
 
 # Patterns — taille minimum
 const MIN_MATCH_SIZE: int = 3
@@ -18,6 +18,12 @@ const CASCADE_MULTIPLIER_BASE: float = 2.0
 # Deck
 const DECK_BASE_COUNT: int = 30
 const DECK_ROCK_COUNT: int = 4
+
+# "Grille cabossee" — trous generes au debut de chaque manche (jamais en row 0,
+# le sol reste toujours garanti). Un jeton qui tombe les traverse sans pouvoir
+# s'y arreter — different d'un Rock, qui bloque et sert d'appui.
+const ROUND_START_HOLES_MIN: int = 5
+const ROUND_START_HOLES_MAX: int = 8
 
 # Stream
 const PREVIEW_SIZE: int = 3
@@ -66,17 +72,51 @@ const ENTITY_DROP_INTERVAL: int = 6  # Un drop tous les N poses joueur
 # Valeurs des jetons de base
 const TOKEN_MIN_VALUE: int = 1
 const TOKEN_MAX_VALUE: int = 5
-const FAMILY_COUNT: int = 3
+const FAMILY_COUNT: int = 4
 
-# Shop — offre curatee par visite
-const SHOP_TAG_BADGE_OFFER_COUNT: int = 3
-const SHOP_BUTTON_OFFER_COUNT: int = 2
-const SHOP_SPECIAL_OFFER_COUNT: int = 2
+## Plafond de valeur apres fusion (voir RunManager.fuse_buttons) — la valeur
+## ne sert plus a resoudre des patterns (seule la famille compte pour ca),
+## juste a amplifier le score une fois un match resolu. Sans plafond elle
+## scale sans limite au fil des fusions.
+const MAX_BUTTON_VALUE: int = 10
 
-# Shop — boutons et fusion (prix plats, fourchette accessible)
+## Valeur affichee sur les jetons (grille + stream) — redevient pertinente
+## maintenant qu'elle sert de levier de score, pas juste de bruit visuel.
+const DEBUG_SHOW_TOKEN_VALUE: bool = true
+
+# Shop — offre curatee par visite (v2). Deux rangees separees, a la Balatro :
+# - Packs : nombre fixe, categorie aleatoire, JAMAIS regeneres par le reroll
+#   (fixes pour toute la visite).
+# - Unitaires : nombre fixe, categorie aleatoire (incluant Des a coudre),
+#   regeneres a chaque reroll.
+const SHOP_PACK_SLOT_COUNT: int = 2
+const SHOP_UNITAIRE_SLOT_COUNT: int = 2
+
+# Taille des packs a l'ouverture (candidats reveles, le joueur en garde 1).
+# Exception boutons (5) deja actee dans le GDD : plus nombreux, individuellement
+# moins determinants qu'une Partition ou un Badge.
+const PACK_SIZE_DEFAULT: int = 3
+const PACK_SIZE_BUTTON: int = 5
+
+# Prix des packs par categorie — plus cher qu'un unitaire equivalent mais
+# meilleur ratio par item (voir docs/gdd/shop/economie.md). Premiers jets.
+const PACK_PRICE_TAG: int = 14
+const PACK_PRICE_BADGE: int = 8
+const PACK_PRICE_SPECIAL: int = 4
+const PACK_PRICE_BUTTON: int = 10
+
+# Shop — boutons a l'unite
 const BUTTON_UNIT_PRICE: int = 3
-const FUSION_PRICE: int = 3
+
+# Fusion — desormais gatee derriere l'achat d'un "Des a coudre" (slot au meme
+# titre que les autres categories), une seule fusion autorisee par achat.
+# Remplace l'ancien FUSION_PRICE (bouton permanent, spammable).
+const DES_A_COUDRE_PRICE: int = 6
 const FUSION_DRAW_SIZE: int = 10
+
+# Shop — reroll (prix croissant, reset a chaque nouvelle visite)
+const REROLL_BASE_PRICE: int = 5
+const REROLL_INCREMENT: int = 1
 
 # Level up des Partitions — regles generiques, identiques pour toutes.
 # Seuils de score cumule pour passer au niveau suivant (1->2, 2->3, 3->4, 4->5).

@@ -7,11 +7,13 @@ signal special_executed(special_type: TokenData.SpecialType, col: int, row: int,
 signal resolution_complete(timeline: Array[Dictionary], total_score: int)
 signal grid_reset()
 signal residues_exploded(positions: Array[Vector2i])
+signal holes_changed(holes: Dictionary)
 
 var _grid: Array = []
 var _cols: int = GameRules.COLS
 var _rows: int = GameRules.ROWS
 var _run_context: RunContext = null
+var _holes: Dictionary = {}  # Vector2i -> true
 
 
 func init_grid() -> void:
@@ -22,6 +24,7 @@ func init_grid() -> void:
 		for r in range(_rows):
 			column[r] = null
 		_grid.append(column)
+	_holes.clear()
 	grid_reset.emit()
 
 
@@ -29,15 +32,20 @@ func set_run_context(context: RunContext) -> void:
 	_run_context = context
 
 
+## Row la plus basse disponible dans la colonne, en ignorant les trous
+## (traverses par la gravite, jamais occupables). Retourne _rows si la
+## colonne n'a plus aucune case non-trouee de libre.
 func column_height(col: int) -> int:
-	for r in range(_rows - 1, -1, -1):
-		if _grid[col][r] != null:
-			return r + 1
-	return 0
+	for r in range(_rows):
+		if _holes.has(Vector2i(col, r)):
+			continue
+		if _grid[col][r] == null:
+			return r
+	return _rows
 
 
 func can_play_token(token: TokenData, col: int, row: int) -> bool:
-	return SpecialEffects.can_play(_grid, token, col, row, _cols, _rows)
+	return SpecialEffects.can_play(_grid, token, col, row, _cols, _rows, _holes)
 
 
 ## Place un jeton basique ou rock sur la grille.
@@ -61,18 +69,20 @@ func execute_special(token: TokenData, col: int) -> void:
 	var result: Dictionary = {}
 	match token.special_type:
 		TokenData.SpecialType.FANTOME:
-			SpecialEffects.execute_fantome(_grid, col, _rows)
+			SpecialEffects.execute_fantome(_grid, col, _rows, _holes)
 		TokenData.SpecialType.BOMBE:
-			result = SpecialEffects.execute_bombe(_grid, col, _cols, _rows)
+			result = SpecialEffects.execute_bombe(_grid, col, _cols, _rows, _holes)
 		TokenData.SpecialType.MAREE:
 			var landing_row: int = column_height(col)
-			SpecialEffects.execute_maree(_grid, col, landing_row, _cols)
+			SpecialEffects.execute_maree(_grid, col, landing_row, _cols, _holes)
 	special_executed.emit(token.special_type, col, 0, result)
 
 
-## Place un jeton entity directement dans la grille, sans pipeline de resolution ni signal.
-## Retourne la row de landing (-1 si colonne pleine).
-func place_entity_token(col: int, token: TokenData) -> int:
+## Place un jeton directement dans la grille, sans pipeline de resolution ni
+## signal (utilise par l'Entity). Respecte la gravite et les trous : atterrit
+## sur la case non-trouee la plus basse libre de la colonne.
+## Retourne la row de landing (-1 si colonne pleine ou entierement trouee).
+func place_token_direct(col: int, token: TokenData) -> int:
 	var row: int = column_height(col)
 	if row >= _rows:
 		return -1
@@ -80,10 +90,29 @@ func place_entity_token(col: int, token: TokenData) -> int:
 	return row
 
 
+## "Grille cabossee" : genere `count` trous a des positions aleatoires,
+## jamais en row 0 (le sol reste toujours garanti dans chaque colonne).
+## Un jeton qui tombe traverse un trou sans pouvoir s'y arreter — contrairement
+## a un Rock, qui bloque et sert d'appui. Appele au debut de chaque manche.
+func generate_random_holes(count: int) -> void:
+	_holes.clear()
+	var attempts: int = 0
+	while _holes.size() < count and attempts < count * 20:
+		attempts += 1
+		var col: int = randi() % _cols
+		var row: int = 1 + randi() % (_rows - 1)  # jamais row 0
+		_holes[Vector2i(col, row)] = true
+	holes_changed.emit(_holes.duplicate())
+
+
+func get_holes() -> Dictionary:
+	return _holes.duplicate()
+
+
 ## Lance la resolution des cascades.
 func resolve() -> void:
 	var resolver: CascadeResolver = CascadeResolver.new()
-	var resolve_result: Dictionary = resolver.resolve(_grid, _cols, _rows, _run_context)
+	var resolve_result: Dictionary = resolver.resolve(_grid, _cols, _rows, _run_context, _holes)
 	resolution_complete.emit(resolve_result["timeline"], resolve_result["total_score"])
 
 

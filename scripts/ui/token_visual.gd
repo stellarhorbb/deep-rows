@@ -5,6 +5,7 @@ const FAMILY_SPRITES: Dictionary = {
 	TokenData.Family.CORAL: "res://assets/tokens/coral-nude.png",
 	TokenData.Family.SHELL: "res://assets/tokens/shell-nude.png",
 	TokenData.Family.RUST: "res://assets/tokens/rust-nude.png",
+	TokenData.Family.INK: "res://assets/tokens/ink-nude.png",
 }
 
 const ROCK_SPRITE_PATH: String = "res://assets/tokens/rock.png"

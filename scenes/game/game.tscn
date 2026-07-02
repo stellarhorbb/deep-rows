@@ -71,7 +71,7 @@ text = "SALT
 horizontal_alignment = 2
 
 [node name="GridVisual" type="Node2D" parent="." unique_id=1596514991]
-position = Vector2(675, 130)
+position = Vector2(600, 130)
 script = ExtResource("2_grid")
 
 [node name="StreamUI" type="Control" parent="." unique_id=1024901384]

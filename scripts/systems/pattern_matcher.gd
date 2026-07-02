@@ -121,10 +121,14 @@ static func find_squares(grid: Array, cols: int, rows: int) -> Array[Dictionary]
 	return results
 
 
-## Trouve tous les diamonds de 4 rocks (losange : haut/bas/gauche/droite autour d'un centre).
-## Le centre peut etre n'importe quel jeton.
+## Trouve tous les diamonds (losange : haut/bas/gauche/droite autour d'un
+## centre). Le centre peut etre n'importe quel jeton — il n'entre jamais dans
+## la condition de match, seulement dans le scoring (cf. CascadeResolver,
+## qui score le jeton central pour toute forme "diamond").
+## Deux variantes : les 4 jetons du losange sont soit tous des Rocks, soit
+## tous scorables et de la meme famille.
 ## Retourne : [{ "cells": Array[Vector2i], "center": Vector2i,
-##               "match_rule": &"rock", "shape": &"diamond", "direction": &"any" }]
+##               "match_rule": &"rock"|&"family", "shape": &"diamond", "direction": &"any" }]
 static func find_diamonds(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
 	var results: Array[Dictionary] = []
 
@@ -136,23 +140,35 @@ static func find_diamonds(grid: Array, cols: int, rows: int) -> Array[Dictionary
 			var right: TokenData  = grid[c + 1][r] as TokenData
 			if top == null or bottom == null or left == null or right == null:
 				continue
-			if top.kind    != TokenData.Kind.ROCK: continue
-			if bottom.kind != TokenData.Kind.ROCK: continue
-			if left.kind   != TokenData.Kind.ROCK: continue
-			if right.kind  != TokenData.Kind.ROCK: continue
 
-			results.append({
-				"cells": [
-					Vector2i(c, r - 1),
-					Vector2i(c - 1, r),
-					Vector2i(c + 1, r),
-					Vector2i(c, r + 1),
-				] as Array[Vector2i],
-				"center": Vector2i(c, r),
-				"match_rule": &"rock",
-				"shape": &"diamond",
-				"direction": &"any",
-			})
+			var cells: Array[Vector2i] = [
+				Vector2i(c, r - 1),
+				Vector2i(c - 1, r),
+				Vector2i(c + 1, r),
+				Vector2i(c, r + 1),
+			]
+
+			var all_rock: bool = top.kind == TokenData.Kind.ROCK and bottom.kind == TokenData.Kind.ROCK \
+				and left.kind == TokenData.Kind.ROCK and right.kind == TokenData.Kind.ROCK
+			if all_rock:
+				results.append({
+					"cells": cells,
+					"center": Vector2i(c, r),
+					"match_rule": &"rock",
+					"shape": &"diamond",
+					"direction": &"any",
+				})
+				continue
+
+			var all_scorable: bool = top.is_scorable() and bottom.is_scorable() and left.is_scorable() and right.is_scorable()
+			if all_scorable and top.family == bottom.family and top.family == left.family and top.family == right.family:
+				results.append({
+					"cells": cells,
+					"center": Vector2i(c, r),
+					"match_rule": &"family",
+					"shape": &"diamond",
+					"direction": &"any",
+				})
 
 	return results
 
