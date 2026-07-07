@@ -9,4 +9,5 @@ const BONUS_MULT: float = 2.0
 
 func apply(event: Dictionary, run_manager: RunManager) -> void:
 	var remaining: int = event.get("deck_remaining", DECK_THRESHOLD + 1) as int
-	run_manager.set_global_multiplier(BONUS_MULT if remaining <= DECK_THRESHOLD else 1.0)
+	var mult: float = BONUS_MULT if remaining <= DECK_THRESHOLD else 1.0
+	run_manager.set_global_multiplier(mult, &"dernier_carre")

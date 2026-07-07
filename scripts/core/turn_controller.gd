@@ -135,8 +135,10 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 	turn_resolved.emit(timeline)
 
 	if score_manager.is_target_reached():
-		if _state == State.LAST_BREATH:
-			await timeline_done_ack
+		# Attend toujours la fin de l'animation (banniere de resolution comprise)
+		# avant de declarer la victoire — sinon la transition peut demarrer
+		# pendant que le decompte du score est encore en train de se derouler.
+		await timeline_done_ack
 		_state = State.ROUND_OVER
 		round_won.emit(score_manager.get_score(), score_manager.get_target())
 		return
@@ -155,8 +157,28 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 
 	deck_manager.force_hold_to_current()
 
+	# Grille pleine, deck pas vide : aucun coup legal possible (sauf un
+	# Fantome en main/hold, qui peut cibler une colonne pleine). Sans lui, le
+	# joueur serait bloque indefiniment — meme traitement que le deck vide.
+	if not _has_legal_move():
+		_trigger_last_breath()
+		return
+
 	_state = State.AWAITING_INPUT
 	awaiting_input.emit()
+
+
+## Verifie si le jeton courant ou celui au hold a au moins une colonne
+## jouable. Utilise pour detecter un plateau bloque (voir _on_resolution_complete).
+func _has_legal_move() -> bool:
+	var current: TokenData = deck_manager.get_current()
+	var hold: TokenData = deck_manager.get_hold()
+	for col in range(GameRules.COLS):
+		if current != null and grid_manager.can_play_token(current, col, 0):
+			return true
+		if hold != null and grid_manager.can_play_token(hold, col, 0):
+			return true
+	return false
 
 
 func notify_last_breath_ready() -> void:

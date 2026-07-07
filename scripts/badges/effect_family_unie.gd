@@ -4,4 +4,4 @@ extends BadgeEffect
 
 
 func apply(_event: Dictionary, run_manager: RunManager) -> void:
-	run_manager.set_rule_multiplier(&"family", 2.0)
+	run_manager.set_rule_multiplier(&"family", 2.0, &"family_unie")

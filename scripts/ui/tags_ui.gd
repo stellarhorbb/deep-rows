@@ -17,7 +17,9 @@ const MAX_SLOTS: int = 4
 @export var progress_fill_color: Color = Color("f0e6c8")  # tres legerement different du fond, pour la barre de niveau
 @export var sell_button_size: Vector2 = Vector2(64.0, 32.0)
 
-var pattern_manager: PatternManager = null
+## Lu en direct (pas de snapshot fige de manche, contrairement au
+## PatternManager utilise par la resolution) — permet a TagsUI de s'afficher
+## sur n'importe quel ecran, meme hors manche active (Shell persistant).
 var run_manager: RunManager = null
 
 var _font: Font = null
@@ -29,9 +31,8 @@ func _ready() -> void:
 
 
 func setup() -> void:
-	if pattern_manager != null:
-		pattern_manager.tags_changed.connect(_on_tags_changed)
 	if run_manager != null:
+		run_manager.tags_changed.connect(_on_tags_changed)
 		run_manager.tag_leveled_up.connect(_on_tag_leveled_up)
 		run_manager.tag_progress_changed.connect(_on_tag_progress_changed)
 	_create_sell_buttons()
@@ -51,9 +52,9 @@ func _create_sell_buttons() -> void:
 
 
 func _on_sell_pressed(i: int) -> void:
-	if pattern_manager == null or run_manager == null:
+	if run_manager == null:
 		return
-	var tags: Array[PatternData] = pattern_manager.get_active_tags()
+	var tags: Array[PatternData] = run_manager.get_equipped_tags()
 	if i >= tags.size():
 		return
 	run_manager.sell_tag(tags[i])
@@ -90,8 +91,8 @@ func _draw() -> void:
 
 	# Slots
 	var tags: Array[PatternData] = []
-	if pattern_manager != null:
-		tags = pattern_manager.get_active_tags()
+	if run_manager != null:
+		tags = run_manager.get_equipped_tags()
 
 	for i in range(MAX_SLOTS):
 		var is_filled: bool = i < tags.size()
@@ -248,9 +249,9 @@ func _tooltip_for_position(pos: Vector2) -> String:
 
 
 func _tag_at_position(pos: Vector2) -> PatternData:
-	if pattern_manager == null:
+	if run_manager == null:
 		return null
-	var tags: Array[PatternData] = pattern_manager.get_active_tags()
+	var tags: Array[PatternData] = run_manager.get_equipped_tags()
 
 	var y_offset: float = header_font_size + header_gap
 	y_offset += 14 + header_gap + 2.0

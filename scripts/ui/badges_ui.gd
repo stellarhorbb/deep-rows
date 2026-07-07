@@ -12,11 +12,14 @@ extends Control
 @export var slot_bg_color: Color = Color(1, 1, 1, 0.85)
 @export var empty_bg_color: Color = Color(1, 1, 1, 0.35)
 @export var sell_button_size: Vector2 = Vector2(64.0, 32.0)
+@export var tilt_flash_color: Color = Color("f0e6c8")
+@export var tilt_duration: float = 0.4
 
 var run_manager: RunManager = null
 
 var _font: Font = null
 var _sell_buttons: Array[Button] = []
+var _flash_intensity: Dictionary = {}  # int (slot index) -> float 0..1
 
 
 func _ready() -> void:
@@ -79,6 +82,9 @@ func _draw() -> void:
 		var x: float = start_x + i * (slot_width + horizontal_gap)
 		var is_filled: bool = i < badges.size()
 		var bg: Color = slot_bg_color if is_filled else empty_bg_color
+		var flash: float = _flash_intensity.get(i, 0.0) as float
+		if flash > 0.0:
+			bg = bg.lerp(tilt_flash_color, flash)
 		var rect: Rect2 = Rect2(Vector2(x, y_offset), Vector2(slot_width, slot_height))
 		draw_rect(rect, bg, true)
 
@@ -109,6 +115,30 @@ func _update_sell_button(i: int, x_pos: float, y_pos: float, is_filled: bool, ba
 
 func _on_badges_changed(_badges: Array[BadgeData]) -> void:
 	queue_redraw()
+
+
+## Petit flash sur le slot du Badge donne (identifie par id), pour signaler
+## qu'il vient de contribuer au score d'une figure. N'attend rien — la
+## banniere de resolution qui l'appelle continue sa propre sequence en parallele.
+func tilt_badge(badge_id: StringName) -> void:
+	if run_manager == null:
+		return
+	var badges: Array[BadgeData] = run_manager.get_equipped_badges()
+	var slot_index: int = -1
+	for i in range(badges.size()):
+		if badges[i].id == badge_id:
+			slot_index = i
+			break
+	if slot_index == -1:
+		return
+
+	var tween: Tween = create_tween()
+	tween.tween_method(
+		func(v: float) -> void:
+			_flash_intensity[slot_index] = v
+			queue_redraw(),
+		1.0, 0.0, tilt_duration
+	).set_ease(Tween.EASE_OUT)
 
 
 ## Hover simple : recalcule le tooltip a chaque mouvement de souris selon

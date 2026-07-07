@@ -1,0 +1,52 @@
+## Scene racine et persistante du jeu (scene principale du projet). Contient
+## le HUD fixe — Partitions, Badges, Deck, et plus tard Settings/Menu — jamais
+## detruit entre les ecrans, a des positions toujours identiques. SceneRouter
+## instancie l'ecran actif (Game/Shop/PartitionSelect/EndScreen) dans
+## content_container au lieu d'un change_scene_to_file complet, qui aurait
+## detruit et recree le HUD a chaque transition.
+class_name Shell
+extends Control
+
+@onready var content_container: Control = $ContentContainer
+@onready var tags_ui: TagsUI = $TagsUI
+@onready var badges_ui: BadgesUI = $BadgesUI
+@onready var deck_button: Button = $DeckButton
+@onready var deck_inspector_ui: DeckInspectorUI = $DeckInspectorUI
+
+var _current_content: Node = null
+
+
+func _ready() -> void:
+	SceneRouter.shell = self
+
+	tags_ui.run_manager = RunService.run_manager
+	tags_ui.setup()
+	badges_ui.run_manager = RunService.run_manager
+	badges_ui.setup()
+
+	deck_button.pressed.connect(deck_inspector_ui.toggle)
+	# Pas de manche active tant que GameScene n'a pas cable son deck_manager
+	# (voir GameScene._wire_references) — rien a inspecter avant ca.
+	deck_button.disabled = true
+
+	# Shell est la scene principale du projet — premier ecran a charger.
+	SceneRouter.go_to_partition_select()
+
+
+## Remplace l'ecran actif par celui demande. Retourne l'instance pour que
+## l'appelant (SceneRouter) puisse la caster et laisser l'ecran se cabler
+## lui-meme (managers de manche, etc.) dans son propre _ready().
+func load_content(scene_path: String) -> Node:
+	if _current_content != null:
+		_current_content.queue_free()
+		_current_content = null
+
+	deck_button.disabled = true
+	deck_inspector_ui.deck_manager = null
+	deck_inspector_ui.visible = false
+
+	var packed: PackedScene = load(scene_path) as PackedScene
+	var instance: Node = packed.instantiate()
+	content_container.add_child(instance)
+	_current_content = instance
+	return instance

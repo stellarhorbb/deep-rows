@@ -5,4 +5,4 @@ extends BadgeEffect
 
 
 func apply(_event: Dictionary, run_manager: RunManager) -> void:
-	run_manager.set_rule_multiplier(&"rock", 2.0)
+	run_manager.set_rule_multiplier(&"rock", 2.0, &"collectionneur")

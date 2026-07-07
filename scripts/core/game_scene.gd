@@ -5,19 +5,22 @@
 class_name GameScene
 extends Node2D
 
-# --- UI (places dans la scene, references par @onready) ---
+# --- UI locale a cette scene (places dans la scene, references par @onready) ---
 @onready var grid_visual: GridVisual = $GridVisual
 @onready var stream_ui: StreamUI = $StreamUI
-@onready var tags_ui: TagsUI = $TagsUI
-@onready var badges_ui: BadgesUI = $BadgesUI
 @onready var message_display: MessageDisplay = $MessageDisplay
 @onready var input_handler: InputHandler = $InputHandler
-@onready var deck_button: Button = $DeckButton
-@onready var deck_inspector_ui: DeckInspectorUI = $DeckInspectorUI
+@onready var resolution_banner: ResolutionBanner = $ResolutionBanner
 @onready var score_label: Label = $ScoreLabel
 @onready var target_label: Label = $TargetLabel
 @onready var zone_label: Label = $ZoneLabel
 @onready var flies_label: Label = $SaltLabel
+
+# --- UI persistante, portee par le Shell (voir scripts/core/shell.gd) ---
+var tags_ui: TagsUI
+var badges_ui: BadgesUI
+var deck_button: Button
+var deck_inspector_ui: DeckInspectorUI
 
 # --- Managers locaux a la manche (grid, deck, score, pattern, turn, entity) ---
 var turn_controller: TurnController
@@ -33,6 +36,10 @@ var _score_tween: Tween = null
 
 func _ready() -> void:
 	RunService.ensure_run_started()
+	tags_ui = SceneRouter.shell.tags_ui
+	badges_ui = SceneRouter.shell.badges_ui
+	deck_button = SceneRouter.shell.deck_button
+	deck_inspector_ui = SceneRouter.shell.deck_inspector_ui
 	_create_managers()
 	_wire_references()
 	_wire_signals()
@@ -75,14 +82,13 @@ func _create_managers() -> void:
 
 func _wire_references() -> void:
 	grid_visual.grid_manager = grid_manager
+	grid_visual.badges_ui = badges_ui
+	grid_visual.resolution_banner = resolution_banner
 	grid_visual.setup()
 	stream_ui.deck_manager = deck_manager
 	stream_ui.setup()
-	tags_ui.pattern_manager = pattern_manager
-	tags_ui.run_manager = RunService.run_manager
-	tags_ui.setup()
-	badges_ui.run_manager = RunService.run_manager
-	badges_ui.setup()
+	# tags_ui / badges_ui sont cables au run_manager (global) une seule fois
+	# par le Shell — rien a refaire ici a chaque manche.
 	input_handler.grid_visual = grid_visual
 	input_handler.stream_ui = stream_ui
 	input_handler.turn_controller = turn_controller
@@ -90,10 +96,11 @@ func _wire_references() -> void:
 	input_handler.grid_manager = grid_manager
 	entity_manager.grid_manager = grid_manager
 	deck_inspector_ui.deck_manager = deck_manager
+	deck_button.disabled = false
 
 
 func _wire_signals() -> void:
-	score_manager.score_changed.connect(_on_score_changed)
+	grid_visual.group_score_revealed.connect(_on_group_score_revealed)
 	turn_controller.turn_resolved.connect(_on_turn_resolved)
 	turn_controller.last_breath_started.connect(_on_last_breath_started)
 	turn_controller.round_won.connect(_on_round_won)
@@ -105,7 +112,6 @@ func _wire_signals() -> void:
 	grid_manager.holes_changed.connect(grid_visual.set_holes)
 	RunService.run_manager.flies_changed.connect(_on_flies_changed)
 	RunService.run_manager.grid_modifiers_changed.connect(grid_visual.set_grid_modifiers)
-	deck_button.pressed.connect(deck_inspector_ui.toggle)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -149,8 +155,12 @@ func _on_flies_changed(amount: int) -> void:
 	flies_label.text = "MOUCHES\n" + str(amount)
 
 
-func _on_score_changed(new_score: int, _delta: int) -> void:
-	_animate_score_to(new_score)
+## La reveal visuelle du score suit la banniere de resolution, pas l'ajout
+## logique au ScoreManager (qui arrive plus tot, avant meme l'animation du
+## match). Chaque groupe qui termine sa sequence sur la banniere ajoute son
+## score au compteur affiche a ce moment precis, pas avant.
+func _on_group_score_revealed(amount: int) -> void:
+	_animate_score_to(_displayed_score + amount)
 
 
 func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
@@ -190,7 +200,9 @@ func _on_round_won(final_score: int, target: int) -> void:
 	# Manche gagnee (hors derniere) : recompense + transition vers shop
 	RunService.run_manager.add_flies(GameRules.FLIES_PER_ROUND_WON)
 	RunService.game_flow = RunService.GameFlow.SHOPPING
+	message_display.show_message("YOU WIN", &"win")
 	await get_tree().create_timer(GameRules.ROUND_END_DELAY).timeout
+	message_display.clear_message()
 	SceneRouter.go_to_shop()
 
 
@@ -236,6 +248,9 @@ func _on_special_executed(special_type: TokenData.SpecialType, _col: int, _row: 
 		var bombe_score: int = result.get("score", 0) as int
 		if bombe_score > 0:
 			message_display.show_message("BOMBE +" + str(bombe_score) + " TICKETS", &"cascade")
+			# Pas de banniere de resolution pour la Bombe (instantanee, hors
+			# figure) -- la reveal du score se fait ici directement.
+			_animate_score_to(_displayed_score + bombe_score)
 
 	# Rebuild les sprites pour montrer l'etat apres l'effet
 	grid_visual.rebuild_sprites()

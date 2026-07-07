@@ -170,6 +170,11 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 
 		var diamond_mod_mult: float = _modifier_multiplier(scored_cells, grid_modifiers)
 		var diamond_value_bonus_mult: float = _value_bonus_multiplier(scored_cells, grid, value_bonus_multipliers)
+		# cascade_mult exclu du breakdown affiche : la banniere de resolution
+		# lui dedie sa propre annonce (voir GridVisual._animate_match), pas
+		# noye dans le MULTI generique. Le score reel l'inclut toujours.
+		var diamond_base_mult: float = tag_mult * diamond_mod_mult * level_mult
+		_attach_breakdown(group, context, base_value, diamond_base_mult, rule_mult, global_mult, diamond_value_bonus_mult, rule, scored_cells, grid)
 		return int(base_value * tag_mult * cascade_mult * diamond_mod_mult * rule_mult * level_mult * global_mult * diamond_value_bonus_mult)
 
 	var value_sum: int = 0
@@ -189,6 +194,9 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 
 	var mod_mult: float = _modifier_multiplier(group["cells"], grid_modifiers)
 	var value_bonus_mult: float = _value_bonus_multiplier(group["cells"], grid, value_bonus_multipliers)
+	# cascade_mult exclu du breakdown affiche, meme raison que la branche diamond.
+	var base_mult: float = shape_mult * mod_mult * level_mult
+	_attach_breakdown(group, context, value_sum, base_mult, rule_mult, global_mult, value_bonus_mult, rule, group["cells"], grid)
 	return int(value_sum * shape_mult * cascade_mult * mod_mult * rule_mult * level_mult * global_mult * value_bonus_mult)
 
 
@@ -219,3 +227,49 @@ func _value_bonus_multiplier(cells: Array, grid: Array, value_bonus_multipliers:
 			continue
 		mult += value_bonus_multipliers.get(token.value, 0.0) as float
 	return mult
+
+
+## Attache au groupe la decomposition du score pour la banniere de resolution
+## (GridVisual.ResolutionBanner) — n'influence jamais le score reellement
+## calcule, qui reste le int() de la formule complete. base_mult regroupe tout
+## ce qui est intrinseque a la figure (forme/direction, cascade, niveau de
+## Partition, modifiers de cellule) ; badge_mult regroupe ce qui vient d'un
+## Badge et peut donc etre attribue (rule/global/value_bonus). Les modifiers
+## de cellule contribuent a base_mult sans attribution precise — savoir quel
+## Badge a pose quelle case demanderait de tracer la provenance de
+## grid_modifiers, hors scope pour l'instant.
+func _attach_breakdown(group: Dictionary, context: RunContext, base_value: int, base_mult: float, rule_mult: float, global_mult: float, value_bonus_mult: float, rule: StringName, value_bonus_cells: Array, grid: Array) -> void:
+	var sources: Dictionary = {}  # StringName -> true, utilise comme un set
+
+	if rule_mult > 1.0:
+		var rule_source: StringName = context.rule_multiplier_sources.get(rule, &"") as StringName
+		if rule_source != &"":
+			sources[rule_source] = true
+
+	if global_mult > 1.0 and context.global_multiplier_source != &"":
+		sources[context.global_multiplier_source] = true
+
+	if value_bonus_mult > 1.0:
+		for cell in value_bonus_cells:
+			var c: Vector2i = cell as Vector2i
+			var token: TokenData = grid[c.x][c.y] as TokenData
+			if token == null or not token.is_scorable():
+				continue
+			var value_source: StringName = context.value_bonus_multiplier_sources.get(token.value, &"") as StringName
+			if value_source != &"":
+				sources[value_source] = true
+
+	group["score_breakdown"] = {
+		"label": _tag_label(group.get("tag_name", &"") as StringName, context),
+		"base_value": base_value,
+		"base_mult": base_mult,
+		"badge_mult": rule_mult * global_mult * value_bonus_mult,
+		"badge_sources": sources.keys(),
+	}
+
+
+func _tag_label(tag_name: StringName, context: RunContext) -> String:
+	for tag in context.equipped_tags:
+		if tag.tag_name == tag_name:
+			return tag.label
+	return ""

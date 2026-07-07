@@ -20,17 +20,17 @@ func apply(event: Dictionary, run_manager: RunManager) -> void:
 
 	if had_cascade:
 		run_manager.set_badge_state(STATE_KEY, 0)
-		run_manager.set_global_multiplier(1.0)
+		run_manager.set_global_multiplier(1.0, &"regularite")
 		return
 
 	var streak: int = run_manager.get_badge_state(STATE_KEY, 0) as int
 	streak += 1
 	if streak >= STREAK_TARGET:
 		run_manager.set_badge_state(STATE_KEY, 0)
-		run_manager.set_global_multiplier(BONUS_MULT)
+		run_manager.set_global_multiplier(BONUS_MULT, &"regularite")
 	else:
 		run_manager.set_badge_state(STATE_KEY, streak)
-		run_manager.set_global_multiplier(1.0)
+		run_manager.set_global_multiplier(1.0, &"regularite")
 
 
 func get_progress_text(run_manager: RunManager) -> String:

@@ -9,4 +9,4 @@ const BONUS_PER_TOKEN: float = 0.5
 
 
 func apply(_event: Dictionary, run_manager: RunManager) -> void:
-	run_manager.add_value_bonus_multiplier(BONUS_VALUE, BONUS_PER_TOKEN)
+	run_manager.add_value_bonus_multiplier(BONUS_VALUE, BONUS_PER_TOKEN, &"petites_mains")

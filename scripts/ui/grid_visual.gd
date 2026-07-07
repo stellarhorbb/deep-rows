@@ -1,6 +1,11 @@
 class_name GridVisual
 extends Node2D
 
+## Emis quand la banniere de resolution termine sa sequence pour un groupe —
+## le compteur de score affiche (game_scene.gd) s'incremente a ce moment,
+## pas au moment ou le score est logiquement ajoute au ScoreManager (plus tot).
+signal group_score_revealed(amount: int)
+
 @export var cell_size: float = 90.0
 @export var cell_gap: float = 6.0
 @export var empty_cell_color: Color = Color("e8e8e8")
@@ -21,11 +26,9 @@ extends Node2D
 @export var gravity_duration: float = 0.18
 @export var cascade_pause: float = 0.15
 
-## Score popup colors
-@export var score_color: Color = Color("e2b714")
-@export var cascade_score_color: Color = Color("ff6b6b")
-
 @export var grid_manager: GridManager
+@export var badges_ui: BadgesUI
+@export var resolution_banner: ResolutionBanner
 
 var _token_sprites: Dictionary = {}  # Vector2i -> Sprite2D
 var _grid_modifiers: Dictionary = {}  # Vector2i -> StringName
@@ -261,31 +264,6 @@ func _set_shake(offset: Vector2) -> void:
 	position = _base_position + offset
 
 
-## --- Pattern label ---
-
-func _spawn_pattern_label(pos: Vector2, pattern_text: String) -> void:
-	var label: Label = Label.new()
-	label.text = pattern_text
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.position = pos - Vector2(100, 40)
-	label.custom_minimum_size = Vector2(200, 0)
-	if _popup_font != null:
-		label.add_theme_font_override("font", _popup_font)
-	label.add_theme_font_size_override("font_size", 20)
-	label.add_theme_color_override("font_color", Color("3d3d5c"))
-	label.modulate.a = 0.0
-	add_child(label)
-
-	var tween: Tween = create_tween()
-	# Fade in rapide + monte en parallele
-	tween.set_parallel(true)
-	tween.tween_property(label, "modulate:a", 1.0, 0.1)
-	tween.tween_property(label, "position:y", pos.y - 80.0, 0.7).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	# Fade out apres la montee
-	tween.chain().tween_property(label, "modulate:a", 0.0, 0.3)
-	tween.chain().tween_callback(label.queue_free)
-
-
 ## --- Animations internes ---
 
 func _animate_match(event: Dictionary) -> void:
@@ -344,24 +322,27 @@ func _animate_match(event: Dictionary) -> void:
 
 	await shake_tw.finished
 
-	# Pattern labels + score popups par groupe
-	for i in range(groups.size()):
-		var group: Dictionary = groups[i] as Dictionary
-		var group_score: int = scores[i] as int
-		var center: Vector2 = _group_center(group["cells"] as Array)
+	# Annonce dediee si ce MATCH event est une vraie cascade (2+ resolutions
+	# chainees dans le tour, cascade_level >= 1) — un seul appel ici suffit,
+	# _animate_match est deja scope a un seul niveau par le timeline.
+	if resolution_banner != null and cascade_level >= 1:
+		var cascade_mult: float = pow(GameRules.CASCADE_MULTIPLIER_BASE, cascade_level)
+		await resolution_banner.play_cascade_announcement(cascade_mult)
 
-		# Pattern label (ex: "FAMILY LINE x4")
-		var pattern_text: String = _build_pattern_text(group)
-		_spawn_pattern_label(center, pattern_text)
-
-		if group_score > 0:
-			var popup_text: String = "+" + str(group_score)
-			if cascade_level > 0:
-				popup_text += " x" + str(int(pow(2, cascade_level)))
-			var color: Color = score_color if cascade_level == 0 else cascade_score_color
-			_spawn_score_popup(center, popup_text, color)
-
-	await get_tree().create_timer(match_highlight_duration * 0.5).timeout
+	# Banniere de resolution decomposee, un groupe a la fois (remplace les
+	# anciens popups "+X"/labels de pattern par groupe — narration sequentielle
+	# unique plutot que du texte disperse sur la grille).
+	if resolution_banner != null:
+		for i in range(groups.size()):
+			var group: Dictionary = groups[i] as Dictionary
+			var group_score: int = scores[i] as int
+			var breakdown: Dictionary = group.get("score_breakdown", {}) as Dictionary
+			if group_score <= 0 or breakdown.is_empty():
+				continue
+			await resolution_banner.play_breakdown(breakdown, group_score, badges_ui)
+			group_score_revealed.emit(group_score)
+	else:
+		await get_tree().create_timer(match_highlight_duration * 0.5).timeout
 
 
 func _animate_remove(event: Dictionary) -> void:
@@ -515,64 +496,6 @@ func _cell_center(col: int, visual_row: int) -> Vector2:
 		col * (cell_size + cell_gap) + cell_size / 2.0,
 		visual_row * (cell_size + cell_gap) + cell_size / 2.0,
 	)
-
-
-func _group_center(cells: Array) -> Vector2:
-	var sum: Vector2 = Vector2.ZERO
-	for cell_key in cells:
-		var cell: Vector2i = cell_key as Vector2i
-		sum += _grid_to_pixel(cell.x, cell.y)
-	return sum / cells.size()
-
-
-func _build_pattern_text(group: Dictionary) -> String:
-	var shape: StringName = group["shape"] as StringName
-	var rule: StringName = group["match_rule"] as StringName
-	var cells: Array = group["cells"] as Array
-	var count: int = cells.size()
-	var mult: float = group.get("score_multiplier", 1.0) as float
-	var raw_mult: String = _format_multiplier(mult)
-	var mult_str: String = " " + raw_mult if raw_mult != "" else ""
-
-	if shape == &"diamond":
-		return "DIAMOND ROCK" + mult_str
-
-	var rule_name: String
-	match rule:
-		&"family": rule_name = "FAMILY"
-		&"suite":  rule_name = "SUITE"
-		_:         rule_name = "NUMBER"
-
-	if shape == &"square":
-		return rule_name + " SQUARE" + mult_str
-
-	# Lignes : affiche la direction + le multiplicateur reel
-	var dir: StringName = group.get("direction", &"vertical") as StringName
-	var dir_label: String
-	match dir:
-		&"horizontal": dir_label = "H"
-		&"diagonal":   dir_label = "D"
-		_:             dir_label = "V"
-	var dir_mult: float = GameRules.get_direction_multiplier(dir)
-	var dir_mult_str: String = _format_multiplier(dir_mult)
-	var dir_suffix: String = " " + dir_label + ("  " + dir_mult_str if dir_mult_str != "" else "")
-	return rule_name + " LINE x" + str(count) + dir_suffix
-
-
-func _format_multiplier(mult: float) -> String:
-	if mult <= 1.0:
-		return ""
-	if mult == float(int(mult)):
-		return "x" + str(int(mult))
-	return "x%.1f" % mult
-
-
-func _spawn_score_popup(pos: Vector2, text_value: String, color: Color) -> void:
-	var popup: ScorePopup = ScorePopup.new()
-	if _popup_font != null:
-		popup.add_theme_font_override("font", _popup_font)
-	add_child(popup)
-	popup.show_at(pos - Vector2(40, 20), text_value, color)
 
 
 static var _circle_tex_cache: ImageTexture = null

@@ -24,7 +24,10 @@ var _deck_composition: Dictionary = {
 }
 var _grid_modifiers: Dictionary = {}    # Vector2i -> StringName
 var _rule_multipliers: Dictionary = {}  # StringName -> float
+var _rule_multiplier_sources: Dictionary = {}  # StringName (rule) -> StringName (badge id)
 var _value_bonus_multipliers: Dictionary = {}  # int (value) -> float
+var _value_bonus_multiplier_sources: Dictionary = {}  # int (value) -> StringName (badge id)
+var _global_multiplier_source: StringName = &""
 var _tag_progress: Dictionary = {}      # StringName (tag_name) -> {"cumulative": int, "level": int}
 
 ## Etat libre pour badges a compteur (ex: streak de Regularite, familles deja
@@ -104,8 +107,11 @@ func build_context() -> RunContext:
 	ctx.equipped_tags = _equipped_tags.duplicate()
 	ctx.grid_modifiers = _grid_modifiers.duplicate()
 	ctx.rule_multipliers = _rule_multipliers.duplicate()
+	ctx.rule_multiplier_sources = _rule_multiplier_sources.duplicate()
 	ctx.tag_level_multipliers = _build_tag_level_multipliers()
 	ctx.value_bonus_multipliers = _value_bonus_multipliers.duplicate()
+	ctx.value_bonus_multiplier_sources = _value_bonus_multiplier_sources.duplicate()
+	ctx.global_multiplier_source = _global_multiplier_source
 	_active_context = ctx
 	return ctx
 
@@ -160,7 +166,10 @@ func get_tag_cumulative_score(tag_name: StringName) -> int:
 func reset_round_modifiers() -> void:
 	_grid_modifiers.clear()
 	_rule_multipliers.clear()
+	_rule_multiplier_sources.clear()
 	_value_bonus_multipliers.clear()
+	_value_bonus_multiplier_sources.clear()
+	_global_multiplier_source = &""
 	_badge_state.clear()
 	_active_context = null
 
@@ -175,9 +184,12 @@ func notify_grid_modifiers_ready() -> void:
 	grid_modifiers_changed.emit(_grid_modifiers.duplicate())
 
 
-## Pose un multiplicateur de score par rule (ex: &"family" -> 2.0). Appele par les badges.
-func set_rule_multiplier(rule: StringName, mult: float) -> void:
+## Pose un multiplicateur de score par rule (ex: &"family" -> 2.0). Appele par
+## les badges, qui passent leur propre id (ex: &"famille_unie") pour que la
+## bannière de résolution puisse identifier — et faire tilter — le bon Badge.
+func set_rule_multiplier(rule: StringName, mult: float, source: StringName = &"") -> void:
 	_rule_multipliers[rule] = mult
+	_rule_multiplier_sources[rule] = source
 
 
 func get_grid_modifiers() -> Dictionary:
@@ -190,21 +202,26 @@ func get_rule_multipliers() -> Dictionary:
 
 ## Pose un bonus additif au multiplicateur d'une figure par occurrence d'une
 ## valeur de jeton donnee (ex: 1 -> 0.5 pour "Petites Mains"). Appele par les
-## badges au round_start.
-func add_value_bonus_multiplier(value: int, bonus: float) -> void:
+## badges au round_start, qui passent leur propre id (attribution pour la
+## bannière de résolution).
+func add_value_bonus_multiplier(value: int, bonus: float, source: StringName = &"") -> void:
 	_value_bonus_multipliers[value] = bonus
+	_value_bonus_multiplier_sources[value] = source
 
 
 ## Change le multiplicateur global de score, effectif des la prochaine
 ## resolution (mute directement le RunContext actif de la manche en cours).
-## Appele par des badges dynamiques (ex: "Dernier Carre", "Regularite").
+## Appele par des badges dynamiques (ex: "Dernier Carre", "Regularite"), qui
+## passent leur propre id (attribution pour la bannière de résolution).
 ## NOTE : comme set_rule_multiplier, la derniere ecriture ecrase les
 ## precedentes — pas de cumul entre deux badges qui viseraient tous les deux
 ## le multiplicateur global (meme limitation connue que les rule_multipliers,
 ## voir questions-ouvertes.md).
-func set_global_multiplier(mult: float) -> void:
+func set_global_multiplier(mult: float, source: StringName = &"") -> void:
+	_global_multiplier_source = source
 	if _active_context != null:
 		_active_context.global_multiplier = mult
+		_active_context.global_multiplier_source = source
 
 
 ## Etat libre par badge, remis a zero a chaque manche (voir _badge_state).

@@ -6,9 +6,7 @@
 [ext_resource type="Script" path="res://scripts/ui/message_display.gd" id="4_message"]
 [ext_resource type="Script" path="res://scripts/ui/input_handler.gd" id="5_input"]
 [ext_resource type="FontFile" uid="uid://dryqbsw3ute3w" path="res://assets/fonts/LondrinaSolid-Black.ttf" id="6_font_black"]
-[ext_resource type="Script" path="res://scripts/ui/tags_ui.gd" id="7_tags"]
-[ext_resource type="Script" path="res://scripts/ui/badges_ui.gd" id="8_badges"]
-[ext_resource type="Script" path="res://scripts/ui/deck_inspector_ui.gd" id="9_deck_inspector"]
+[ext_resource type="Script" path="res://scripts/ui/resolution_banner.gd" id="10_resolution_banner"]
 
 [node name="Game" type="Node2D" unique_id=1117591923]
 script = ExtResource("1_game")
@@ -96,64 +94,26 @@ theme_override_font_sizes/font_size = 24
 horizontal_alignment = 1
 script = ExtResource("4_message")
 
-[node name="TagsUI" type="Control" parent="." unique_id=1844201001]
-layout_mode = 3
-anchors_preset = 0
-offset_left = 30.0
-offset_top = 160.0
-offset_right = 300.0
-offset_bottom = 440.0
-mouse_filter = 1
-script = ExtResource("7_tags")
+[node name="ResolutionBanner" type="Label" parent="." unique_id=1000000200]
+visible = false
+offset_left = 600.0
+offset_top = 430.0
+offset_right = 1266.0
+offset_bottom = 490.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+script = ExtResource("10_resolution_banner")
 
-[node name="BadgesUI" type="Control" parent="." unique_id=2034567890]
-layout_mode = 3
-anchors_preset = 0
-offset_left = 30.0
-offset_top = 900.0
-offset_right = 1890.0
-offset_bottom = 1060.0
-mouse_filter = 1
-script = ExtResource("8_badges")
+[node name="Background" type="ColorRect" parent="ResolutionBanner" unique_id=1000000201]
+show_behind_parent = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.08, 0.08, 0.12, 0.85)
 
 [node name="InputHandler" type="Node2D" parent="." unique_id=1018510731]
 script = ExtResource("5_input")
-
-[node name="DeckButton" type="Button" parent="." unique_id=1000000101]
-layout_mode = 0
-offset_left = 1780.0
-offset_top = 990.0
-offset_right = 1890.0
-offset_bottom = 1050.0
-text = "DECK"
-
-[node name="DeckInspectorUI" type="Control" parent="." unique_id=1000000102]
-visible = false
-offset_right = 1920.0
-offset_bottom = 1080.0
-script = ExtResource("9_deck_inspector")
-
-[node name="Dim" type="ColorRect" parent="DeckInspectorUI" unique_id=1000000103]
-layout_mode = 0
-offset_right = 1920.0
-offset_bottom = 1080.0
-color = Color(0, 0, 0, 0.55)
-
-[node name="Box" type="PanelContainer" parent="DeckInspectorUI" unique_id=1000000104]
-layout_mode = 0
-offset_left = 660.0
-offset_top = 200.0
-offset_right = 1260.0
-offset_bottom = 880.0
-
-[node name="VBox" type="VBoxContainer" parent="DeckInspectorUI/Box" unique_id=1000000105]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="ContentLabel" type="Label" parent="DeckInspectorUI/Box/VBox" unique_id=1000000106]
-layout_mode = 2
-autowrap_mode = 2
-
-[node name="CloseButton" type="Button" parent="DeckInspectorUI/Box/VBox" unique_id=1000000107]
-layout_mode = 2
-text = "FERMER"
