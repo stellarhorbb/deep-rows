@@ -24,7 +24,19 @@ var _deck_composition: Dictionary = {
 }
 var _grid_modifiers: Dictionary = {}    # Vector2i -> StringName
 var _rule_multipliers: Dictionary = {}  # StringName -> float
+var _value_bonus_multipliers: Dictionary = {}  # int (value) -> float
 var _tag_progress: Dictionary = {}      # StringName (tag_name) -> {"cumulative": int, "level": int}
+
+## Etat libre pour badges a compteur (ex: streak de Regularite, familles deja
+## vues de Un Pour Tous). Cle = StringName propre a chaque badge, remis a zero
+## a chaque manche. Voir get_badge_state/set_badge_state.
+var _badge_state: Dictionary = {}
+
+## Reference vivante vers le RunContext de la manche en cours, pour permettre
+## aux badges de muter le multiplicateur global en cours de manche (voir
+## set_global_multiplier). Tous les autres champs du contexte restent des
+## snapshots figes au round_start.
+var _active_context: RunContext = null
 
 
 ## Initialise un nouveau run. Les Partitions de depart ne sont plus auto-equipees
@@ -59,15 +71,18 @@ func init_run() -> void:
 	deck_composition_changed.emit()
 
 
-## Genere le pool de boutons de depart (famille + valeur aleatoires).
+## Genere le pool de boutons de depart : x copies de chaque (famille, valeur)
+## possible (STARTER_COPIES_PER_VALUE), pas un tirage purement aleatoire —
+## garantit une repartition egale entre les 4 familles, pour ne pas saboter
+## un demarrage jouable par un mauvais tirage independant du choix de Partition.
 ## Ce pool persiste ensuite pour toute la run, seul le shop pourra le muter
-## (achat, fusion — a venir).
+## (achat, fusion).
 func _generate_starter_buttons() -> Array[TokenData]:
 	var buttons: Array[TokenData] = []
-	for i in range(GameRules.DECK_BASE_COUNT):
-		var family: int = randi() % GameRules.FAMILY_COUNT
-		var value: int = randi() % GameRules.TOKEN_MAX_VALUE + GameRules.TOKEN_MIN_VALUE
-		buttons.append(TokenData.make_base(family as TokenData.Family, value))
+	for family in range(GameRules.FAMILY_COUNT):
+		for value in range(GameRules.TOKEN_MIN_VALUE, GameRules.TOKEN_MAX_VALUE + 1):
+			for i in range(GameRules.STARTER_COPIES_PER_VALUE):
+				buttons.append(TokenData.make_base(family as TokenData.Family, value))
 	return buttons
 
 
@@ -90,6 +105,8 @@ func build_context() -> RunContext:
 	ctx.grid_modifiers = _grid_modifiers.duplicate()
 	ctx.rule_multipliers = _rule_multipliers.duplicate()
 	ctx.tag_level_multipliers = _build_tag_level_multipliers()
+	ctx.value_bonus_multipliers = _value_bonus_multipliers.duplicate()
+	_active_context = ctx
 	return ctx
 
 
@@ -143,6 +160,9 @@ func get_tag_cumulative_score(tag_name: StringName) -> int:
 func reset_round_modifiers() -> void:
 	_grid_modifiers.clear()
 	_rule_multipliers.clear()
+	_value_bonus_multipliers.clear()
+	_badge_state.clear()
+	_active_context = null
 
 
 ## Ajoute un modifier sur une cellule. Appele par les badges.
@@ -166,6 +186,34 @@ func get_grid_modifiers() -> Dictionary:
 
 func get_rule_multipliers() -> Dictionary:
 	return _rule_multipliers.duplicate()
+
+
+## Pose un bonus additif au multiplicateur d'une figure par occurrence d'une
+## valeur de jeton donnee (ex: 1 -> 0.5 pour "Petites Mains"). Appele par les
+## badges au round_start.
+func add_value_bonus_multiplier(value: int, bonus: float) -> void:
+	_value_bonus_multipliers[value] = bonus
+
+
+## Change le multiplicateur global de score, effectif des la prochaine
+## resolution (mute directement le RunContext actif de la manche en cours).
+## Appele par des badges dynamiques (ex: "Dernier Carre", "Regularite").
+## NOTE : comme set_rule_multiplier, la derniere ecriture ecrase les
+## precedentes — pas de cumul entre deux badges qui viseraient tous les deux
+## le multiplicateur global (meme limitation connue que les rule_multipliers,
+## voir questions-ouvertes.md).
+func set_global_multiplier(mult: float) -> void:
+	if _active_context != null:
+		_active_context.global_multiplier = mult
+
+
+## Etat libre par badge, remis a zero a chaque manche (voir _badge_state).
+func get_badge_state(key: StringName, default: Variant = null) -> Variant:
+	return _badge_state.get(key, default)
+
+
+func set_badge_state(key: StringName, value: Variant) -> void:
+	_badge_state[key] = value
 
 
 # --- Mouches ---

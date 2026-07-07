@@ -7,6 +7,14 @@ const ROWS: int = 7
 # Patterns — taille minimum
 const MIN_MATCH_SIZE: int = 3
 
+# Chevauchement de figures dans un meme tour (CascadeResolver.resolve) :
+# nombre max de cellules qu'un groupe peut partager avec des groupes deja
+# retenus tout en scorant quand meme. 1 = deux figures qui convergent sur le
+# jeton qui vient d'etre pose scorent toutes les deux (combo delibere) ; au
+# dela, une figure qui en avale une autre (ex: T contenu dans Plus) ne garde
+# que la mieux payee.
+const PATTERN_SHARED_CELL_TOLERANCE: int = 1
+
 # Multiplicateurs de direction (lignes uniquement)
 const LINE_MULT_VERTICAL: float = 1.0
 const LINE_MULT_HORIZONTAL: float = 1.5
@@ -16,7 +24,6 @@ const LINE_MULT_DIAGONAL: float = 2.0
 const CASCADE_MULTIPLIER_BASE: float = 2.0
 
 # Deck
-const DECK_BASE_COUNT: int = 30
 const DECK_ROCK_COUNT: int = 4
 
 # "Grille cabossee" — trous generes au debut de chaque manche (jamais en row 0,
@@ -73,6 +80,12 @@ const ENTITY_DROP_INTERVAL: int = 6  # Un drop tous les N poses joueur
 const TOKEN_MIN_VALUE: int = 1
 const TOKEN_MAX_VALUE: int = 5
 const FAMILY_COUNT: int = 4
+
+# Deck de depart structure : x copies de chaque (famille, valeur) possible,
+# plutot qu'un tirage purement aleatoire — garantit une repartition egale
+# entre les 4 familles a chaque run (voir RunManager._generate_starter_buttons).
+const STARTER_COPIES_PER_VALUE: int = 2
+const DECK_BASE_COUNT: int = FAMILY_COUNT * (TOKEN_MAX_VALUE - TOKEN_MIN_VALUE + 1) * STARTER_COPIES_PER_VALUE
 
 ## Plafond de valeur apres fusion (voir RunManager.fuse_buttons) — la valeur
 ## ne sert plus a resoudre des patterns (seule la famille compte pour ca),

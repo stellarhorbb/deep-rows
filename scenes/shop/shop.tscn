@@ -1,7 +1,7 @@
-[gd_scene format=3 load_steps=3]
+[gd_scene format=3 uid="uid://d2rnd4yawrowu"]
 
-[ext_resource type="Script" path="res://scripts/ui/shop_ui.gd" id="1_script"]
-[ext_resource type="Script" path="res://scripts/ui/pack_panel_ui.gd" id="2_pack_panel"]
+[ext_resource type="Script" uid="uid://byilyrqrldpxk" path="res://scripts/ui/shop_ui.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://clacrtyacyvq5" path="res://scripts/ui/pack_panel_ui.gd" id="2_pack_panel"]
 
 [node name="Shop" type="Control" unique_id=1148645018]
 layout_mode = 3
@@ -60,8 +60,8 @@ horizontal_alignment = 1
 
 [node name="PacksContainer" type="HBoxContainer" parent="Panel/VBox" unique_id=1000000021]
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 16
+alignment = 1
 
 [node name="UnitairesTitle" type="Label" parent="Panel/VBox" unique_id=1000000023]
 layout_mode = 2
@@ -70,8 +70,8 @@ horizontal_alignment = 1
 
 [node name="UnitairesContainer" type="HBoxContainer" parent="Panel/VBox" unique_id=1000000024]
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 16
+alignment = 1
 
 [node name="ContinueButton" type="Button" parent="Panel/VBox" unique_id=1820314853]
 layout_mode = 2

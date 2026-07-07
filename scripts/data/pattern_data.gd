@@ -4,7 +4,7 @@ extends Resource
 enum Rarity { COMMON, UNCOMMON, RARE, EPIC }
 
 @export var tag_name: StringName = &""
-@export var shape: StringName = &""       # &"line" | &"square" | &"diamond"
+@export var shape: StringName = &""       # &"line" | &"square" | &"diamond" | &"plus" | &"cross" | &"ring" | &"t"
 @export var rule: StringName = &""        # &"family" | &"value" | &"suite" | &"rock"
 @export var min_size: int = 3             # 3 pour lignes, 4 pour carres (2x2 = 4 cells)
 @export var direction: StringName = &"any"  # &"horizontal" | &"diagonal" | &"any" (jamais &"vertical")
@@ -23,6 +23,10 @@ func describe() -> String:
 		&"line":    shape_desc = "Ligne de %d+ jetons" % min_size
 		&"square":  shape_desc = "Carré 2x2"
 		&"diamond": shape_desc = "Losange autour d'un centre"
+		&"plus":    shape_desc = "Croix orthogonale (centre inclus)"
+		&"cross":   shape_desc = "Croix diagonale (centre inclus)"
+		&"ring":    shape_desc = "Cadre 3x3 autour d'un centre"
+		&"t":       shape_desc = "Tétromino T, 4 jetons, orientation libre"
 		_:          shape_desc = "Figure"
 
 	var rule_desc: String

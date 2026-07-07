@@ -130,8 +130,12 @@ func _start_round() -> void:
 
 
 func _update_score_display() -> void:
-	score_label.text = NumberFormat.with_spaces(score_manager.get_score())
-	target_label.text = "TARGET : " + NumberFormat.with_spaces(score_manager.get_target())
+	score_label.text = _format_tickets_label(score_manager.get_score())
+	target_label.text = "TICKETS REQUIS : " + NumberFormat.with_spaces(score_manager.get_target())
+
+
+func _format_tickets_label(value: int) -> String:
+	return "TICKETS : " + NumberFormat.with_spaces(value)
 
 
 func _update_zone_display() -> void:
@@ -231,7 +235,7 @@ func _on_special_executed(special_type: TokenData.SpecialType, _col: int, _row: 
 	if special_type == TokenData.SpecialType.BOMBE:
 		var bombe_score: int = result.get("score", 0) as int
 		if bombe_score > 0:
-			message_display.show_message("BOMBE +" + str(bombe_score), &"cascade")
+			message_display.show_message("BOMBE +" + str(bombe_score) + " TICKETS", &"cascade")
 
 	# Rebuild les sprites pour montrer l'etat apres l'effet
 	grid_visual.rebuild_sprites()
@@ -249,7 +253,7 @@ func _animate_score_to(target: int) -> void:
 
 	_score_tween = create_tween()
 	_score_tween.tween_method(func(val: float) -> void:
-		score_label.text = NumberFormat.with_spaces(int(val))
+		score_label.text = _format_tickets_label(int(val))
 	, float(from), float(target), 0.4).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 
 	# Scale bump

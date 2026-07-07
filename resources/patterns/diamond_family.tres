@@ -9,6 +9,6 @@ shape = &"diamond"
 rule = &"family"
 min_size = 4
 score_multiplier = 2.5
-label = "FAMILY DIAMOND"
+label = "DIAMOND"
 price = 10
 rarity = 1

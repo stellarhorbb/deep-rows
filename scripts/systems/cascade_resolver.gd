@@ -25,26 +25,65 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 	var cascade_level: int = 0
 
 	while true:
-		var groups: Array[Dictionary] = PatternMatcher.find_all(grid, cols, rows, context)
-		if groups.size() == 0:
+		var candidates: Array[Dictionary] = PatternMatcher.find_all(grid, cols, rows, context)
+		if candidates.size() == 0:
 			break
 
-		# Calculer le score de chaque groupe
+		# Capture la famille avant suppression des cellules (utile aux badges
+		# qui lisent la timeline apres coup, ex: "Un Pour Tous").
+		for group in candidates:
+			if group.get("match_rule") == &"family":
+				var cells: Array = group["cells"]
+				if cells.size() > 0:
+					var first_cell: Vector2i = cells[0]
+					var first_token: TokenData = grid[first_cell.x][first_cell.y] as TokenData
+					if first_token != null:
+						group["family"] = first_token.family
+			group["score"] = _score_group(group, grid, cascade_level, context)
+
+		# Deux formes differentes peuvent matcher un cluster qui se chevauche.
+		# On trie par score decroissant et on ne garde un groupe que si son
+		# nombre de cellules deja revendiquees par des groupes mieux payes ne
+		# depasse pas PATTERN_SHARED_CELL_TOLERANCE — une seule cellule commune
+		# (typiquement le jeton qui vient d'etre pose) laisse passer un combo
+		# delibere de 2 figures distinctes ; au-dela, une figure qui en avale
+		# une autre (ex: T contenu dans Plus) ne garde que la mieux payee.
+		candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			return (a["score"] as int) > (b["score"] as int)
+		)
+
+		var claimed_cells: Dictionary = {}  # Vector2i -> true
+		var groups: Array[Dictionary] = []
 		var scores: Array[int] = []
 		var earned: int = 0
-		for group in groups:
-			var group_score: int = _score_group(group, grid, cascade_level, context)
-			scores.append(group_score)
-			earned += group_score
+		for group in candidates:
+			var group_cells: Array = (group["cells"] as Array).duplicate()
+			if group.has("center"):
+				group_cells.append(group["center"])
 
-		# Collecter les cellules a supprimer (dedupliquees)
+			var shared_count: int = 0
+			for cell in group_cells:
+				if claimed_cells.has(cell):
+					shared_count += 1
+			if shared_count > GameRules.PATTERN_SHARED_CELL_TOLERANCE:
+				continue
+
+			for cell in group_cells:
+				claimed_cells[cell] = true
+			groups.append(group)
+			scores.append(group["score"] as int)
+			earned += group["score"] as int
+
+		# Collecter les cellules a supprimer (dedupliquees, deja garanties
+		# sans chevauchement par le filtrage ci-dessus)
 		var cells_to_remove: Dictionary = {}  # Vector2i -> true
 		for group in groups:
 			for cell in group["cells"]:
 				cells_to_remove[cell] = true
-			# Les diamonds detruisent aussi la cellule centrale
-			if group["shape"] == &"diamond":
-				cells_to_remove[group["center"]] = true
+			# Les formes a centre indifferent (diamond, ring) detruisent aussi
+			# la cellule centrale, meme si elle n'entre jamais dans le match.
+			if group.has("center"):
+				cells_to_remove[group["center"] as Vector2i] = true
 		var removed_cells: Array[Vector2i] = []
 		for cell in cells_to_remove.keys():
 			removed_cells.append(cell as Vector2i)
@@ -95,11 +134,13 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	var grid_modifiers: Dictionary = context.grid_modifiers
 	var rule_multipliers: Dictionary = context.rule_multipliers
 	var tag_level_multipliers: Dictionary = context.tag_level_multipliers
+	var value_bonus_multipliers: Dictionary = context.value_bonus_multipliers
 	var cascade_mult: float = pow(GameRules.CASCADE_MULTIPLIER_BASE, cascade_level)
 	var rule: StringName = group.get("match_rule", &"") as StringName
 	var rule_mult: float = rule_multipliers.get(rule, 1.0) as float
 	var tag_name: StringName = group.get("tag_name", &"") as StringName
 	var level_mult: float = tag_level_multipliers.get(tag_name, 1.0) as float
+	var global_mult: float = context.global_multiplier
 
 	# Diamond : le centre n'entre jamais dans la condition de match (voir
 	# PatternMatcher.find_diamonds), mais son role dans le SCORE depend de la
@@ -128,7 +169,8 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 			scored_cells = group["cells"]
 
 		var diamond_mod_mult: float = _modifier_multiplier(scored_cells, grid_modifiers)
-		return int(base_value * tag_mult * cascade_mult * diamond_mod_mult * rule_mult * level_mult)
+		var diamond_value_bonus_mult: float = _value_bonus_multiplier(scored_cells, grid, value_bonus_multipliers)
+		return int(base_value * tag_mult * cascade_mult * diamond_mod_mult * rule_mult * level_mult * global_mult * diamond_value_bonus_mult)
 
 	var value_sum: int = 0
 	for cell in group["cells"]:
@@ -146,7 +188,8 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		shape_mult = group.get("score_multiplier", 1.0) as float
 
 	var mod_mult: float = _modifier_multiplier(group["cells"], grid_modifiers)
-	return int(value_sum * shape_mult * cascade_mult * mod_mult * rule_mult * level_mult)
+	var value_bonus_mult: float = _value_bonus_multiplier(group["cells"], grid, value_bonus_multipliers)
+	return int(value_sum * shape_mult * cascade_mult * mod_mult * rule_mult * level_mult * global_mult * value_bonus_mult)
 
 
 ## Chaque cellule modifiee dans la liste multiplie le total par son coefficient (cumulatif).
@@ -159,4 +202,20 @@ func _modifier_multiplier(cells: Array, grid_modifiers: Dictionary) -> float:
 		var type: StringName = grid_modifiers.get(key, &"") as StringName
 		if type != &"":
 			mult *= GameRules.get_modifier_multiplier(type)
+	return mult
+
+
+## Chaque jeton scorable de la figure dont la valeur a un bonus enregistre
+## ajoute ce bonus au multiplicateur (additif, pas multiplicatif entre jetons :
+## 2 jetons a +0.5 donnent x2.0, pas x2.25).
+func _value_bonus_multiplier(cells: Array, grid: Array, value_bonus_multipliers: Dictionary) -> float:
+	if value_bonus_multipliers.is_empty():
+		return 1.0
+	var mult: float = 1.0
+	for cell in cells:
+		var c: Vector2i = cell as Vector2i
+		var token: TokenData = grid[c.x][c.y] as TokenData
+		if token == null or not token.is_scorable():
+			continue
+		mult += value_bonus_multipliers.get(token.value, 0.0) as float
 	return mult

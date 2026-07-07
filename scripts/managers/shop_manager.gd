@@ -27,6 +27,10 @@ const TAG_PATHS: Array[String] = [
 	# "res://resources/patterns/line_number_3.tres",
 	"res://resources/patterns/line_family_5.tres",
 	"res://resources/patterns/diamond_family.tres",
+	"res://resources/patterns/plus_family.tres",
+	"res://resources/patterns/cross_family.tres",
+	"res://resources/patterns/ring_family.tres",
+	"res://resources/patterns/t_family.tres",
 ]
 
 ## Speciaux achetables (SpecialItem).
@@ -51,6 +55,11 @@ const BADGE_PATHS: Array[String] = [
 	"res://resources/badges/badge_collectionneur.tres",
 	"res://resources/badges/badge_vertige.tres",
 	"res://resources/badges/badge_colonne_chanceuse.tres",
+	"res://resources/badges/badge_bord_a_bord.tres",
+	"res://resources/badges/badge_un_pour_tous.tres",
+	"res://resources/badges/badge_regularite.tres",
+	"res://resources/badges/badge_dernier_carre.tres",
+	"res://resources/badges/badge_petites_mains.tres",
 ]
 
 ## Categories tirables pour un pack (pas de "pack de Des a coudre" — ce n'est

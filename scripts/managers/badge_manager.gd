@@ -5,11 +5,13 @@ class_name BadgeManager
 extends Node
 
 var run_manager: RunManager
+var _deck_manager: DeckManager
 
 
 ## Connecte tous les hooks de la manche en cours. Les signaux seront
 ## automatiquement nettoyes quand le turn_controller sera free (fin de scene).
 func bind_round(turn_controller: TurnController) -> void:
+	_deck_manager = turn_controller.deck_manager
 	turn_controller.round_started.connect(_on_round_started)
 	turn_controller.token_dropped.connect(_on_token_dropped)
 	turn_controller.cascade_step_resolved.connect(_on_cascade_step)
@@ -22,7 +24,8 @@ func _on_round_started() -> void:
 
 
 func _on_token_dropped(token: TokenData, col: int, row: int) -> void:
-	_dispatch(&"on_token_drop", {"token": token, "col": col, "row": row})
+	var deck_remaining: int = _deck_manager.get_remaining() if _deck_manager != null else 0
+	_dispatch(&"on_token_drop", {"token": token, "col": col, "row": row, "deck_remaining": deck_remaining})
 
 
 func _on_cascade_step(level: int, earned: int) -> void:

@@ -4,11 +4,12 @@
 
 [resource]
 script = ExtResource("1_script")
-tag_name = &"line_family_3_diagonal"
-shape = &"line"
+tag_name = &"t_family"
+shape = &"t"
 rule = &"family"
-min_size = 3
+min_size = 4
 direction = &"any"
-score_multiplier = 1.5
-label = "LINE 3"
-price = 6
+score_multiplier = 2.0
+label = "T"
+price = 7
+rarity = 0

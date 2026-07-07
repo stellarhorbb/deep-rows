@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BadgeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/badge_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/badges/effect_bord_a_bord.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"bord_a_bord"
+label = "BORD À BORD"
+description = "Les 2 colonnes extérieures passent en BOOST ×1.5"
+trigger = &"on_round_start"
+price = 5
+rarity = 2
+effect_script = ExtResource("2_effect")

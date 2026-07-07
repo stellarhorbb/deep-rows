@@ -168,20 +168,28 @@ func _level_progress(tag: PatternData) -> float:
 
 func _format_tag_label(tag: PatternData) -> String:
 	var shape_str: String = _shape_label(tag.shape)
+	# "family" n'est plus affiche : c'est la rule de la quasi-totalite du
+	# catalogue actif, l'afficher est redondant. Les rules qui distinguent
+	# vraiment un Tag (rock, suite) restent visibles.
 	var rule_str: String
 	match tag.rule:
-		&"family": rule_str = "FAMILY"
-		&"suite":  rule_str = "SUITE"
-		&"rock":   rule_str = "ROCK"
-		_:         rule_str = "NUMBER"
+		&"suite": rule_str = "SUITE"
+		&"rock":  rule_str = "ROCK"
+		_:        rule_str = ""
 
 	# Lines : pas de multiplicateur fixe affiche (varie selon la direction)
 	if tag.shape == &"line":
-		return shape_str + " " + rule_str + " " + str(tag.min_size)
+		var line_label: String = shape_str
+		if rule_str != "":
+			line_label += " " + rule_str
+		return line_label + " " + str(tag.min_size)
 
-	# Autres formes (square, diamond) : multiplicateur fixe visible
+	# Autres formes (square, diamond, plus, cross) : multiplicateur fixe visible
 	var raw_mult: String = _format_multiplier(tag.score_multiplier)
-	return shape_str + " " + rule_str + ("  " + raw_mult if raw_mult != "" else "")
+	var label: String = shape_str
+	if rule_str != "":
+		label += " " + rule_str
+	return label + ("  " + raw_mult if raw_mult != "" else "")
 
 
 func _shape_label(shape: StringName) -> String:
@@ -189,6 +197,10 @@ func _shape_label(shape: StringName) -> String:
 		&"line":    return "LINE"
 		&"square":  return "SQUARE"
 		&"diamond": return "DIAMOND"
+		&"plus":    return "PLUS"
+		&"cross":   return "CROSS"
+		&"ring":    return "RING"
+		&"t":       return "T"
 	return "SHAPE"
 
 

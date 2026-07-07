@@ -19,5 +19,18 @@ extends Resource
 # cours de manche ne s'applique qu'a la manche suivante, comme rule_multipliers.
 @export var tag_level_multipliers: Dictionary = {}
 
+# Multiplicateur global dynamique : float. Contrairement aux autres champs,
+# celui-ci peut etre mute en cours de manche (ex: "Dernier Carre" reagit au
+# deck restant a chaque tour) car RunManager garde une reference vivante vers
+# le RunContext actif (voir RunManager.set_global_multiplier). Les autres
+# champs restent des snapshots figes au round_start.
+@export var global_multiplier: float = 1.0
+
+# Bonus de multiplicateur additif par valeur de jeton : int (value) -> float.
+# Pour chaque jeton scorable de cette valeur present dans la figure qui score,
+# ajoute ce bonus au multiplicateur de la figure (ex: {1: 0.5} pour "Petites
+# Mains"). Alimente par les badges au start_round. Lu par CascadeResolver._score_group.
+@export var value_bonus_multipliers: Dictionary = {}
+
 # Extension future (ne pas implementer avant d'en avoir besoin) :
 # @export var button_states: Dictionary = {}     # Vector2i -> Array[StateData]

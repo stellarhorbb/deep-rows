@@ -130,6 +130,13 @@ func _tooltip_for_position(pos: Vector2) -> String:
 	var text: String = badge.label
 	if badge.description != "":
 		text += "\n" + badge.description
+
+	var effect: BadgeEffect = badge.make_effect()
+	if effect != null:
+		var progress: String = effect.get_progress_text(run_manager)
+		if progress != "":
+			text += "\n" + progress
+
 	return text
 
 

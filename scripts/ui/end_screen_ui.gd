@@ -16,7 +16,7 @@ func _ready() -> void:
 func _populate() -> void:
 	var score: int = RunService.last_score
 	var target: int = RunService.last_target
-	var result_text: String = "%s / %s" % [NumberFormat.with_spaces(score), NumberFormat.with_spaces(target)]
+	var result_text: String = "TICKETS : %s / %s" % [NumberFormat.with_spaces(score), NumberFormat.with_spaces(target)]
 	if RunService.game_flow == RunService.GameFlow.RUN_WON:
 		title_label.text = "VICTOIRE"
 	else:

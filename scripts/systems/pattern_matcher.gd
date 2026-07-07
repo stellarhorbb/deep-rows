@@ -121,6 +121,163 @@ static func find_squares(grid: Array, cols: int, rows: int) -> Array[Dictionary]
 	return results
 
 
+## Trouve tous les plus (croix orthogonale : centre + haut/bas/gauche/droite,
+## les 5 cellules doivent matcher, contrairement au diamond ou le centre est
+## indifferent). Retourne : [{ "cells": Array[Vector2i] (5), "match_rule": &"family",
+##                             "shape": &"plus", "direction": &"any" }]
+static func find_plus(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	return _find_cross_shape(grid, cols, rows, [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)], &"plus")
+
+
+## Trouve tous les cross (croix diagonale : centre + les 4 coins). Meme
+## principe que plus mais sur les diagonales plutot que les orthogonales.
+## Retourne : [{ "cells": Array[Vector2i] (5), "match_rule": &"family",
+##               "shape": &"cross", "direction": &"any" }]
+static func find_cross(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	return _find_cross_shape(grid, cols, rows, [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)], &"cross")
+
+
+## Base commune a find_plus/find_cross : centre + 4 cellules aux offsets
+## donnes, toutes scorables et de la meme famille (centre inclus).
+static func _find_cross_shape(grid: Array, cols: int, rows: int, offsets: Array, shape: StringName) -> Array[Dictionary]:
+	var results: Array[Dictionary] = []
+
+	for c in range(1, cols - 1):
+		for r in range(1, rows - 1):
+			var center: TokenData = grid[c][r] as TokenData
+			if center == null or not center.is_scorable():
+				continue
+
+			var cells: Array[Vector2i] = [Vector2i(c, r)]
+			var all_match: bool = true
+			for offset in offsets:
+				var o: Vector2i = offset as Vector2i
+				var arm: TokenData = grid[c + o.x][r + o.y] as TokenData
+				if arm == null or not arm.is_scorable() or not _tokens_match(arm, center, &"family"):
+					all_match = false
+					break
+				cells.append(Vector2i(c + o.x, r + o.y))
+
+			if all_match:
+				results.append({
+					"cells": cells,
+					"match_rule": &"family",
+					"shape": shape,
+					"direction": &"any",
+				})
+
+	return results
+
+
+## Trouve tous les rings (cadre 3x3 : les 8 cellules autour d'un centre,
+## centre indifferent — le grand frere du diamond). Retourne :
+## [{ "cells": Array[Vector2i] (8), "center": Vector2i, "match_rule": &"family",
+##    "shape": &"ring", "direction": &"any" }]
+static func find_ring(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	var results: Array[Dictionary] = []
+	var offsets: Array = [
+		Vector2i(-1, -1), Vector2i(0, -1), Vector2i(1, -1),
+		Vector2i(-1, 0),                   Vector2i(1, 0),
+		Vector2i(-1, 1),  Vector2i(0, 1),  Vector2i(1, 1),
+	]
+
+	for c in range(1, cols - 1):
+		for r in range(1, rows - 1):
+			var tokens: Array[TokenData] = []
+			var cells: Array[Vector2i] = []
+			var all_scorable: bool = true
+			for offset in offsets:
+				var o: Vector2i = offset as Vector2i
+				var cell: Vector2i = Vector2i(c + o.x, r + o.y)
+				var token: TokenData = grid[cell.x][cell.y] as TokenData
+				if token == null or not token.is_scorable():
+					all_scorable = false
+					break
+				tokens.append(token)
+				cells.append(cell)
+
+			if not all_scorable:
+				continue
+
+			var ref: TokenData = tokens[0]
+			var all_match: bool = true
+			for i in range(1, tokens.size()):
+				if not _tokens_match(tokens[i], ref, &"family"):
+					all_match = false
+					break
+
+			if all_match:
+				results.append({
+					"cells": cells,
+					"center": Vector2i(c, r),
+					"match_rule": &"family",
+					"shape": &"ring",
+					"direction": &"any",
+				})
+
+	return results
+
+
+## Trouve tous les tetromino T (4 cellules : une barre de 3 + un pied au
+## centre, dans une des 4 orientations). Peu importe l'orientation, meme
+## score — une seule orientation retenue par pivot pour eviter le
+## sur-comptage quand un plus (5 cellules) contient plusieurs T valides a la fois.
+## Retourne : [{ "cells": Array[Vector2i] (4), "match_rule": &"family",
+##               "shape": &"t", "direction": &"any" }]
+static func find_t(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	var results: Array[Dictionary] = []
+	var rotations: Array = [
+		[Vector2i(-1, 0), Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1)],   # pied bas
+		[Vector2i(-1, 0), Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, -1)],  # pied haut
+		[Vector2i(0, -1), Vector2i(0, 0), Vector2i(0, 1), Vector2i(1, 0)],   # pied droite
+		[Vector2i(0, -1), Vector2i(0, 0), Vector2i(0, 1), Vector2i(-1, 0)], # pied gauche
+	]
+
+	# Contrairement a plus/cross/ring (qui ont besoin d'une marge symetrique
+	# des 2 cotes sur les 2 axes), chaque rotation du T n'a besoin de marge que
+	# d'un seul cote — donc pas de range(1, cols-1) uniforme ici, on scanne
+	# toute la grille et on verifie les bornes cellule par cellule.
+	for c in range(cols):
+		for r in range(rows):
+			for rotation in rotations:
+				var tokens: Array[TokenData] = []
+				var cells: Array[Vector2i] = []
+				var all_scorable: bool = true
+				for offset in (rotation as Array):
+					var o: Vector2i = offset as Vector2i
+					var cell: Vector2i = Vector2i(c + o.x, r + o.y)
+					if cell.x < 0 or cell.x >= cols or cell.y < 0 or cell.y >= rows:
+						all_scorable = false
+						break
+					var token: TokenData = grid[cell.x][cell.y] as TokenData
+					if token == null or not token.is_scorable():
+						all_scorable = false
+						break
+					tokens.append(token)
+					cells.append(cell)
+
+				if not all_scorable:
+					continue
+
+				var ref: TokenData = tokens[0]
+				var all_match: bool = true
+				for i in range(1, tokens.size()):
+					if not _tokens_match(tokens[i], ref, &"family"):
+						all_match = false
+						break
+
+				if all_match:
+					results.append({
+						"cells": cells,
+						"match_rule": &"family",
+						"shape": &"t",
+						"direction": &"any",
+					})
+					break  # une seule orientation retenue par pivot
+
+	return results
+
+
 ## Trouve tous les diamonds (losange : haut/bas/gauche/droite autour d'un
 ## centre). Le centre peut etre n'importe quel jeton — il n'entre jamais dans
 ## la condition de match, seulement dans le scoring (cf. CascadeResolver,
@@ -180,6 +337,10 @@ static func find_all(grid: Array, cols: int, rows: int, context: RunContext) -> 
 	all_groups.append_array(find_lines(grid, cols, rows))
 	all_groups.append_array(find_squares(grid, cols, rows))
 	all_groups.append_array(find_diamonds(grid, cols, rows))
+	all_groups.append_array(find_plus(grid, cols, rows))
+	all_groups.append_array(find_cross(grid, cols, rows))
+	all_groups.append_array(find_ring(grid, cols, rows))
+	all_groups.append_array(find_t(grid, cols, rows))
 
 	var filtered: Array[Dictionary] = []
 	for group in all_groups:
