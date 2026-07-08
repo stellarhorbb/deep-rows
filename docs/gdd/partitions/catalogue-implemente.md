@@ -1,8 +1,8 @@
 # Catalogue implémenté
 
-**10 Partitions actives** dans le proto (session 12 : la valeur ne résout plus de patterns, seuls famille et rock restent actifs — voir [Axes de règles](axes-de-regles.md). Session 13 : 4 nouvelles formes — Plus, Cross, Ring, T — voir [Formes](formes.md)).
+**17 Partitions actives** dans le proto (session 12 : la valeur ne résout plus de patterns sur les formes famille, seuls famille et rock restent actifs — voir [Axes de règles](axes-de-regles.md). Session 13 : 4 nouvelles formes — Plus, Cross, Ring, T. Session 14 : Rainbow sur l'axe famille + retour de la valeur sous vocabulaire casino confiné aux lignes, voir [Formes](formes.md) et [Axes de règles](axes-de-regles.md)).
 
-Les labels affichés en jeu ne montrent plus "FAMILY" (redondant, quasi tout le catalogue actif est en rule `family`) — nettoyé en session 13, voir `TagsUI._format_tag_label`.
+Les labels affichés en jeu ne montrent plus "FAMILY" (redondant, quasi tout le catalogue actif est en rule `family`) — nettoyé en session 13, voir `TagsUI._format_tag_label`. Depuis la session 14, `_format_tag_label` distingue aussi `value`/`rainbow`/`fibonacci` (sinon Brelan et Line 3 auraient affiché le même libellé en jeu).
 
 | Partition | Forme | Règle | Taille min | Direction | Mult | Prix |
 |---|---|---|---|---|---|---|
@@ -16,8 +16,25 @@ Les labels affichés en jeu ne montrent plus "FAMILY" (redondant, quasi tout le 
 | Cross | Croix diagonale | Famille (centre inclus) | 5 | any | ×3 fixe | 12 |
 | Ring | Cadre 3×3 | Famille (centre indifférent) | 8 | any | ×5 fixe | 15 |
 | T | Tétromino | Famille (orientation libre) | 4 | any | ×2 fixe | 7 |
+| Square Rainbow | Carré 2×2 | 4 familles distinctes | 4 | — | ×3 fixe | 12 |
+| Diamond Rainbow | Losange | 4 familles distinctes, centre indifférent | 4 | — | ×3.5 fixe (somme des 4) | 14 |
+| Line 4 Rainbow | Ligne | 4 familles distinctes | 4 | any | direction | 10 |
+| Suite | Ligne | Valeurs consécutives (any sens) | 3 | any | direction | 14 |
+| Brelan | Ligne | Même valeur | 3 | any | direction | 6 |
+| Carré | Ligne | Même valeur (clin d'œil poker, pas la forme carrée) | 4 | any | direction | 8 |
+| Fibonacci | Ligne | 1, 1, 2, 3 (dans un sens ou l'autre) | 4 | any | direction | 14 |
 
-Pour les lignes "any direction", le multiplicateur est celui de la direction du match au moment de la résolution.
+Pour les lignes "any direction", le multiplicateur est celui de la direction du match au moment de la résolution — vrai aussi pour Rainbow/Suite/Brelan/Carré/Fibonacci puisqu'ils vivent tous sur la forme Ligne (voir [Formes](formes.md)).
+
+## Rainbow, casino (session 14)
+
+Détection dans `PatternMatcher` :
+- **Rainbow** (Square/Diamond/Line 4) — `_all_families_distinct()`, un nouveau helper. Plafonné à taille 4 par `GameRules.FAMILY_COUNT` (4 familles existantes, impossible d'aligner plus sans répétition). Square/Diamond étendent `find_squares`/`find_diamonds` existants ; Line 4 Rainbow a sa propre fonction `find_line_rainbow` (fenêtre fixe, pas d'extension incrémentale comme les lignes famille).
+- **Suite/Brelan/Carré** — aucune nouvelle logique de détection : ce sont les anciennes Partitions dormantes "chiffre" (`line_number_3`, `line_number_4_horizontal`, `suite_3_diagonal`) simplement renommées/relabellées (`brelan.tres`, `carre_poker.tres`, `suite.tres`) et remises dans `ShopManager.TAG_PATHS`. Le moteur (`find_lines`, rules `value`/`suite`) n'a pas changé.
+- **Fibonacci** — cible fixe `GameRules.FIBONACCI_SEQUENCE` (1,1,2,3), nouvelle fonction dédiée `find_fibonacci` (fenêtre fixe, matche la cible dans un sens ou l'autre le long de l'axe).
+- Le Badge Numérologie (`rule == "value"` ×2) reste hors catalogue actif mais boosterait déjà Brelan/Carré sans changement — non réactivé pour l'instant, à décider séparément.
+
+## Chevauchement de figures (session 13)
 
 ## Chevauchement de figures (session 13)
 
@@ -27,18 +44,13 @@ Deux Tags différents peuvent matcher des groupes qui se recouvrent (ex : un Plu
 
 Voir [Décisions tranchées](../meta/decisions-tranchees.md) pour le raisonnement complet, y compris pourquoi certaines paires de Partitions (T + Plus, Ligne 3 + Ligne 4...) restent volontairement anti-synergiques par construction — au joueur de gérer via la vente.
 
-## Dormantes (valeur/suite — hors catalogue actif)
-
-Les .tres existent toujours sur le disque et le moteur les supporte encore, juste retirées de `ShopManager.TAG_PATHS` :
+## Dormantes (hors catalogue actif)
 
 | Partition | Forme | Règle | Statut |
 |---|---|---|---|
-| Number Line 3 | Ligne | Chiffre | Dormant |
-| Number Line 4 Horiz | Ligne | Chiffre | Dormant |
-| Number Square | Carré 2×2 | Chiffre | Dormant |
-| Suite 3 Diagonal | Ligne | Chiffres consécutifs | Dormant |
+| Number Square | Carré 2×2 | Chiffre | Dormant — l'axe casino reste volontairement confiné à la Ligne (session 14), voir [Axes de règles](axes-de-regles.md) |
 
-À réactiver le jour où la valeur redevient un axe de résolution (contenu rare, Shore...).
+Number Line 3, Number Line 4 Horiz et Suite 3 Diagonal ont été réactivées en session 14 sous les noms Brelan/Carré/Suite (voir tableau ci-dessus) — mêmes `.tres` renommés, même moteur de détection.
 
 ## Sélection de départ (session 12)
 

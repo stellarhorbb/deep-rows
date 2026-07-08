@@ -112,7 +112,7 @@ func _rebuild_unitaires() -> void:
 
 func _make_unitaire_button(entry: Dictionary) -> Button:
 	var slot: Dictionary = entry["slot"]
-	var btn: Button = Button.new()
+	var btn: RarityButton = RarityButton.new()
 	btn.custom_minimum_size = Vector2(260.0, 140.0)
 
 	if slot["format"] == "des_a_coudre":
@@ -124,6 +124,7 @@ func _make_unitaire_button(entry: Dictionary) -> Button:
 		var item: Variant = slot["item"]
 		btn.text = "%s\n%s\n%d mouches" % [_category_label(slot["category"]), ShopManager.get_label(item), ShopManager.get_price(item)]
 		btn.tooltip_text = ShopManager.get_description(item)
+		btn.rarity = ShopManager.get_rarity(item)
 		btn.disabled = not _shop_manager.can_purchase(item, _run_manager)
 		btn.pressed.connect(_on_unitaire_pressed.bind(entry))
 

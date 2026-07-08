@@ -36,6 +36,10 @@ Le grand frère du losange : les 8 jetons du cadre 3×3 autour d'un centre, qui 
 
 Quatre jetons : une barre de 3 + un pied au centre, dans une des 4 orientations — peu importe laquelle, même score. Une seule orientation retenue par pivot pour éviter de compter plusieurs fois le même cluster (un Plus complet contient toujours 4 T valides simultanément). `PatternMatcher.find_t`.
 
+## Ligne — contenant partagé famille et chiffre (session 14)
+
+La Ligne 3+ est la seule forme utilisée par les deux axes de règles : famille (voir [Axes de règles](axes-de-regles.md)) et le nouvel axe casino chiffre (Suite/Brelan/Carré/Fibonacci). Toutes les autres formes (Carré, Losange, Plus, Cross, Ring, T) restent exclusivement famille — division volontaire pour que le joueur sache d'un coup d'œil quoi vérifier : forme pleine = famille, ligne = famille ou chiffre.
+
 ## Formes à développer plus tard
 
 Brainstorm en exploration dans `brainstorm-pattern-tags.md` — pyramides (`Chapelle`), carrés 3×3 pleins, etc. À autoriser si on veut étendre le pool.

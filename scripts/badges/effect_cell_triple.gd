@@ -3,7 +3,6 @@
 extends BadgeEffect
 
 
-func apply(_event: Dictionary, run_manager: RunManager) -> void:
-	var col: int = randi() % GameRules.COLS
-	var row: int = randi() % GameRules.ROWS
-	run_manager.add_grid_modifier(Vector2i(col, row), GameRules.MODIFIER_TRIPLE)
+func apply(event: Dictionary, run_manager: RunManager) -> void:
+	var holes: Dictionary = event.get("holes", {}) as Dictionary
+	run_manager.add_grid_modifier(random_open_cell(holes), GameRules.MODIFIER_TRIPLE)

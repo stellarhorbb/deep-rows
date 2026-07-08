@@ -81,6 +81,27 @@ const TOKEN_MIN_VALUE: int = 1
 const TOKEN_MAX_VALUE: int = 5
 const FAMILY_COUNT: int = 4
 
+## Sequence Fibonacci fixe retenue pour la Partition "Fibonacci" (session 14) —
+## pas de fenetre generique, cette cible exacte, dans un sens ou dans l'autre
+## le long de la ligne (voir PatternMatcher.find_fibonacci).
+const FIBONACCI_SEQUENCE: Array[int] = [1, 1, 2, 3]
+
+## Poids de tirage par rarete au shop (unitaires + packs, Tags et Badges
+## uniquement — Speciaux et boutons n'ont pas de champ rarity). Index = valeur
+## de l'enum Rarity (COMMON/UNCOMMON/RARE/EPIC), commune a PatternData.Rarity
+## et BadgeData.Rarity (memes valeurs 0-3). Voir ShopManager._weighted_pick.
+const RARITY_WEIGHTS: Array[float] = [10.0, 5.0, 2.0, 1.0]
+
+## Couleurs et noms par rarete, pour le badge colore affiche dans les tooltips
+## (voir RarityTooltip). Meme indexation que RARITY_WEIGHTS.
+const RARITY_COLORS: Array[Color] = [
+	Color("9a9a9a"), # COMMON
+	Color("4caf7d"), # UNCOMMON
+	Color("4a90d9"), # RARE
+	Color("b06fd9"), # EPIC
+]
+const RARITY_NAMES: Array[String] = ["COMMON", "UNCOMMON", "RARE", "EPIC"]
+
 # Deck de depart structure : x copies de chaque (famille, valeur) possible,
 # plutot qu'un tirage purement aleatoire — garantit une repartition egale
 # entre les 4 familles a chaque run (voir RunManager._generate_starter_buttons).
@@ -113,10 +134,10 @@ const PACK_SIZE_BUTTON: int = 5
 
 # Prix des packs par categorie — plus cher qu'un unitaire equivalent mais
 # meilleur ratio par item (voir docs/gdd/shop/economie.md). Premiers jets.
-const PACK_PRICE_TAG: int = 14
-const PACK_PRICE_BADGE: int = 8
+const PACK_PRICE_TAG: int = 8
+const PACK_PRICE_BADGE: int = 6
 const PACK_PRICE_SPECIAL: int = 4
-const PACK_PRICE_BUTTON: int = 10
+const PACK_PRICE_BUTTON: int = 4
 
 # Shop — boutons a l'unite
 const BUTTON_UNIT_PRICE: int = 3
@@ -125,10 +146,10 @@ const BUTTON_UNIT_PRICE: int = 3
 # titre que les autres categories), une seule fusion autorisee par achat.
 # Remplace l'ancien FUSION_PRICE (bouton permanent, spammable).
 const DES_A_COUDRE_PRICE: int = 6
-const FUSION_DRAW_SIZE: int = 10
+const FUSION_DRAW_SIZE: int = 8
 
 # Shop — reroll (prix croissant, reset a chaque nouvelle visite)
-const REROLL_BASE_PRICE: int = 5
+const REROLL_BASE_PRICE: int = 2
 const REROLL_INCREMENT: int = 1
 
 # Level up des Partitions — regles generiques, identiques pour toutes.

@@ -170,6 +170,15 @@ func _tooltip_for_position(pos: Vector2) -> String:
 	return text
 
 
+func _make_custom_tooltip(for_text: String) -> Object:
+	if run_manager == null:
+		return null
+	var badge: BadgeData = _badge_at_position(get_local_mouse_position())
+	if badge == null:
+		return null
+	return RarityTooltip.build(for_text, badge.rarity)
+
+
 func _badge_at_position(pos: Vector2) -> BadgeData:
 	var badges: Array[BadgeData] = run_manager.get_equipped_badges()
 

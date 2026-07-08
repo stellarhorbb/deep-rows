@@ -17,3 +17,14 @@ func apply(_event: Dictionary, _run_manager: RunManager) -> void:
 ## leur etat via run_manager.get_badge_state().
 func get_progress_text(_run_manager: RunManager) -> String:
 	return ""
+
+
+## Pioche une cellule hors des trous de la grille cabossee (holes vient de
+## l'event on_round_start, voir BadgeManager._on_round_started). Evite qu'un
+## modifier a cellule unique (Cellule Double/Triple) se gaspille sur une case
+## jamais accessible pendant toute la manche.
+func random_open_cell(holes: Dictionary) -> Vector2i:
+	var cell: Vector2i = Vector2i(randi() % GameRules.COLS, randi() % GameRules.ROWS)
+	while holes.has(cell):
+		cell = Vector2i(randi() % GameRules.COLS, randi() % GameRules.ROWS)
+	return cell

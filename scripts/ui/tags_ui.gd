@@ -174,9 +174,12 @@ func _format_tag_label(tag: PatternData) -> String:
 	# vraiment un Tag (rock, suite) restent visibles.
 	var rule_str: String
 	match tag.rule:
-		&"suite": rule_str = "SUITE"
-		&"rock":  rule_str = "ROCK"
-		_:        rule_str = ""
+		&"suite":     rule_str = "SUITE"
+		&"rock":      rule_str = "ROCK"
+		&"value":     rule_str = "VALUE"
+		&"rainbow":   rule_str = "RAINBOW"
+		&"fibonacci": rule_str = "FIBO"
+		_:            rule_str = ""
 
 	# Lines : pas de multiplicateur fixe affiche (varie selon la direction)
 	if tag.shape == &"line":
@@ -246,6 +249,13 @@ func _tooltip_for_position(pos: Vector2) -> String:
 	if tag == null:
 		return ""
 	return tag.describe() + _level_tooltip(tag)
+
+
+func _make_custom_tooltip(for_text: String) -> Object:
+	var tag: PatternData = _tag_at_position(get_local_mouse_position())
+	if tag == null:
+		return null
+	return RarityTooltip.build(for_text, tag.rarity)
 
 
 func _tag_at_position(pos: Vector2) -> PatternData:

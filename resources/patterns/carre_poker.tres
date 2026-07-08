@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/pattern_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+tag_name = &"carre_poker"
+shape = &"line"
+rule = &"value"
+min_size = 4
+direction = &"any"
+score_multiplier = 1.5
+label = "CARRÉ"
+price = 8

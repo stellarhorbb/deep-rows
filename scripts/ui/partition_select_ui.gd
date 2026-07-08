@@ -25,9 +25,10 @@ func _ready() -> void:
 
 func _build_cards() -> void:
 	for candidate in _run_manager.draft_starter_partitions():
-		var btn: Button = Button.new()
+		var btn: RarityButton = RarityButton.new()
 		btn.text = candidate.label
 		btn.tooltip_text = candidate.describe()
+		btn.rarity = candidate.rarity
 		btn.custom_minimum_size = Vector2(320.0, 160.0)
 		btn.toggle_mode = true
 		btn.pressed.connect(_on_candidate_pressed.bind(candidate, btn))

@@ -4,9 +4,12 @@
 
 [resource]
 script = ExtResource("1_script")
-tag_name = &"suite_3_diagonal"
+tag_name = &"suite"
 shape = &"line"
 rule = &"suite"
+min_size = 3
+direction = &"any"
 score_multiplier = 2.0
-label = "SUITE 3 DIAGONAL"
+label = "SUITE"
 price = 14
+rarity = 1

@@ -2,57 +2,52 @@
 
 Les Partitions se construisent sur des axes de règles. Un même axe peut se décliner en plusieurs Partitions avec tailles / conditions différentes.
 
-**Changement important (session 12)** : la valeur ne résout plus de patterns — seuls les axes **famille** et **rock** sont actifs dans le catalogue courant. Les axes "par chiffre" ci-dessous restent documentés pour mémoire et pourraient revenir plus tard (contenu rare, Shore), mais leurs Partitions et le Badge Numérologie sont hors catalogue actif — voir [Boutons](../jetons/boutons.md) et [Catalogue implémenté](catalogue-implemente.md).
+**Changement important (session 12)** : la valeur ne résout plus de patterns sur les formes famille — seuls les axes **famille** et **rock** étaient actifs. **Session 14** : la valeur revient, mais cantonnée à son propre axe séparé (voir "Par chiffre — axe casino" ci-dessous), pas mélangée aux formes famille.
 
 ## Par famille (matière) — actif
 
-Même famille alignée (ligne, carré, ou losange — voir [Formes](formes.md)). Pousse vers des packs mono-famille et des [Badges](../badges/principe.md) de boost famille (Famille Unie).
+Même famille alignée (ligne, carré, losange, plus, cross, ring, T — voir [Formes](formes.md)). Pousse vers des packs mono-famille et des [Badges](../badges/principe.md) de boost famille (Famille Unie).
 
-Variantes possibles : rainbow (N familles différentes alignées), duo opposé (exactement 2 familles), alternance stricte.
+**Rainbow (session 14)** : variante retenue — N familles **toutes différentes** au lieu de toutes identiques. Comme il n'y a que 4 familles (`TokenData.Family`), "toutes différentes" plafonne mathématiquement à des formes de **taille exactement 4** : Square Rainbow, Diamond Rainbow, Line 4 Rainbow. Au-delà (Plus/Cross à 5, Ring à 8), impossible d'avoir 4 familles sans répétition — pas de Rainbow sur ces formes.
+
+**Duo (2 familles) et Alternance (2 familles en alternance stricte) — écartées.** Sans contrainte de position fixe, "exactement 2 familles quelque part" peut être un split 3-1 comme un 2-2 : aucun template visuel unique et reconnaissable d'un coup d'œil, contrairement à Rainbow (toujours "chacune une fois, zéro répétition" peu importe l'arrangement) ou à Famille (toujours "tout pareil"). Leur donner un vrai template (ex : split symétrique N/S vs E/O sur le Diamond) réglerait le problème mais demanderait une logique de matching dédiée par forme, non générique — jugé disproportionné pour le gain. Resterait une piste si un besoin précis émerge.
 
 ## Par rock — actif
 
 4 rocks en losange autour d'un centre scorable. Boosté par le Badge Collectionneur. Voir [Rocks](../jetons/rocks.md).
 
-## Par chiffre (identité) — dormant
+## Par chiffre — axe casino (session 14, à activer)
 
-Même chiffre aligné. Pousse vers des packs avec chiffres répétés.
+La valeur redevient un axe de résolution, mais avec deux gardes-fous délibérés pour ne pas reproduire les problèmes de la session 12 :
 
-Variantes : tous pairs, tous impairs, alternance pair/impair, tous dans un intervalle.
+1. **Vocabulaire séparé, poker/casino** (Suite, Brelan, Carré, Fibonacci...) plutôt que de réutiliser le vocabulaire géométrique de la famille (Ligne/Carré/Losange...) — sépare nettement les deux systèmes dans la tête du joueur, malgré le nom "Carré" qui existe des deux côtés (voir point 2).
+2. **Confiné à la Ligne (any direction)** — aucune des autres formes (Carré, Losange, Plus, Cross, Ring, T) ne porte de règle chiffre. Ça évite de réinventer un moteur de détection, réutilise le scan de ligne existant, et surtout ça donne une règle de lecture simple : forme pleine (non-ligne) = toujours famille, ligne = peut-être chiffre. Bonus : "Carré" (poker, 4 même valeur) ne collisionne jamais visuellement avec le Carré 2×2 famille puisqu'il vit sur une ligne, pas sur la forme carrée.
 
-## Par chiffre (séquence) — dormant
+Catalogue retenu (toutes en ligne, any direction, comme les Lignes famille) :
 
-Suites consécutives (3-4-5), Fibonacci, progressions arithmétiques, nombres premiers, carrés parfaits.
+| Partition | Condition | Taille |
+|---|---|---|
+| Suite | Valeurs consécutives (n, n+1, n+2...) | 3+ |
+| Brelan | Même valeur | 3 |
+| Carré | Même valeur (clin d'œil poker/quads, pas la forme géométrique) | 4 |
+| Fibonacci | **1, 1, 2, 3** dans l'ordre — séquence fixe retenue, pas générique | 4 |
 
-Récompense les builds qui maîtrisent l'ordre de placement.
+**Lisibilité** : Brelan/Carré/Fibonacci demandent de lire des chiffres un par un, ce qui avait motivé le family-only en session 12. Compromis retenu : cet axe reste optionnel/spécialisé (un "build casino" choisi), contrairement à avant où la valeur comptait partout par défaut — le coût de lecture n'est payé que par qui choisit ce build.
 
-## Par chiffre (arithmétique) — dormant
+## Tiroir rare / signature (session 14, hors pool régulier)
 
-Somme = cible (ex : 10, 15, 20), produit = cible, moyenne = médiane, différence constante.
+Pièces précieuses justement parce qu'elles sont figées, pas génériques — pas un moteur d'expansion du pool, une poignée de récompenses de fin de run :
 
-## Mixtes — dormant tant que le chiffre est dormant
+- **9999 (Jackpot)** — 4 jetons de valeur 9 alignés. N'existe qu'après plusieurs fusions réussies vers 9 (jetons de base 1-5, `MAX_BUTTON_VALUE = 10`) : un vrai jalon de build, pas un tirage de chance.
+- **Paires de familles figées** (ex "Cross Ink+Shell") — envisagées puis écartées comme axe systématique (RNG punitif si la paire ne tombe jamais dans une run, et 6 paires × 7 formes explose le pool sans identité claire par pièce). Resteraient viables comme loot rare/Shore ponctuel, pas comme contenu de base.
 
-- Même famille **ET** même chiffre (Parfait)
-- Même famille ET suite
-- Rainbow ET suite
+## Par position sur la grille / Par contexte
 
-## Par position sur la grille
-
-- Sur la rangée du bas (facile)
-- Sur la rangée du haut (risqué, proche du game over)
-- Touchant un bord latéral
-- Dans un coin
-- Adjacent à un [rock](../jetons/rocks.md)
-
-## Par contexte
-
-- Incluant le jeton qui vient de sortir du hold
-- Pendant une cascade (niveau ≥ 2)
-- Incluant le dernier jeton droppé
+Ces deux axes (rangée du bas/haut, bord, coin, adjacent à un rock ; incluant le jeton du hold, pendant une cascade, dernier jeton droppé) sont **recadrés côté Badges, pas Partitions** (session 14) — une Partition porte une condition sur la composition des jetons (quoi est posé), pas sur le contexte spatial/temporel (où/quand). Les Badges gèrent déjà ce registre (Dernier Carré réagit au deck, Régularité compte des occurrences). Gardés ici pour mémoire d'idée, à instancier comme Badges le cas échéant.
 
 ## Catalogue complet
 
-Les pistes non implémentées sont dans `brainstorm-pattern-tags.md` et `docs/content/partitions.csv`.
+Les pistes non retenues restent dans `brainstorm-pattern-tags.md`.
 
 ## Liens
 

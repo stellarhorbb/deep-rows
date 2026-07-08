@@ -118,6 +118,14 @@ static func find_squares(grid: Array, cols: int, rows: int) -> Array[Dictionary]
 						"direction": &"any",
 					})
 
+			if _all_families_distinct(tokens):
+				results.append({
+					"cells": cells,
+					"match_rule": &"rainbow",
+					"shape": &"square",
+					"direction": &"any",
+				})
+
 	return results
 
 
@@ -326,6 +334,106 @@ static func find_diamonds(grid: Array, cols: int, rows: int) -> Array[Dictionary
 					"shape": &"diamond",
 					"direction": &"any",
 				})
+				continue
+
+			if all_scorable:
+				var arms: Array[TokenData] = [top, bottom, left, right]
+				if _all_families_distinct(arms):
+					results.append({
+						"cells": cells,
+						"center": Vector2i(c, r),
+						"match_rule": &"rainbow",
+						"shape": &"diamond",
+						"direction": &"any",
+					})
+
+	return results
+
+
+## Trouve les Rainbow de Ligne : exactement FAMILY_COUNT jetons consecutifs
+## sur un axe, tous de familles differentes. Fenetre fixe (pas d'extension
+## incrementale comme find_lines) car la taille est plafonnee par le nombre
+## de familles existantes — impossible d'aller au-dela sans repetition.
+## Retourne : [{ "cells": Array[Vector2i], "match_rule": &"rainbow",
+##               "shape": &"line", "direction": StringName }]
+static func find_line_rainbow(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	var results: Array[Dictionary] = []
+	var window: int = GameRules.FAMILY_COUNT
+
+	for axis_entry in AXES:
+		var dx: int = (axis_entry[0] as Vector2i).x
+		var dy: int = (axis_entry[0] as Vector2i).y
+		var dir_name: StringName = axis_entry[1]
+
+		for c in range(cols):
+			for r in range(rows):
+				var cells: Array[Vector2i] = []
+				var tokens: Array[TokenData] = []
+				var all_scorable: bool = true
+				for i in range(window):
+					var cell: Vector2i = Vector2i(c + dx * i, r + dy * i)
+					if cell.x < 0 or cell.x >= cols or cell.y < 0 or cell.y >= rows:
+						all_scorable = false
+						break
+					var token: TokenData = grid[cell.x][cell.y] as TokenData
+					if token == null or not token.is_scorable():
+						all_scorable = false
+						break
+					cells.append(cell)
+					tokens.append(token)
+
+				if all_scorable and _all_families_distinct(tokens):
+					results.append({
+						"cells": cells,
+						"match_rule": &"rainbow",
+						"shape": &"line",
+						"direction": dir_name,
+					})
+
+	return results
+
+
+## Trouve la sequence Fibonacci fixe (GameRules.FIBONACCI_SEQUENCE, 1,1,2,3),
+## dans un sens ou dans l'autre le long de l'axe. Cible exacte, pas de fenetre
+## generique — voir la discussion "Partitions chiffre" en session 14.
+## Retourne : [{ "cells": Array[Vector2i], "match_rule": &"fibonacci",
+##               "shape": &"line", "direction": StringName }]
+static func find_fibonacci(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	var results: Array[Dictionary] = []
+	var sequence: Array[int] = GameRules.FIBONACCI_SEQUENCE
+	var reversed_sequence: Array[int] = sequence.duplicate()
+	reversed_sequence.reverse()
+	var window: int = sequence.size()
+
+	for axis_entry in AXES:
+		var dx: int = (axis_entry[0] as Vector2i).x
+		var dy: int = (axis_entry[0] as Vector2i).y
+		var dir_name: StringName = axis_entry[1]
+
+		for c in range(cols):
+			for r in range(rows):
+				var cells: Array[Vector2i] = []
+				var values: Array[int] = []
+				var all_scorable: bool = true
+				for i in range(window):
+					var cell: Vector2i = Vector2i(c + dx * i, r + dy * i)
+					if cell.x < 0 or cell.x >= cols or cell.y < 0 or cell.y >= rows:
+						all_scorable = false
+						break
+					var token: TokenData = grid[cell.x][cell.y] as TokenData
+					if token == null or not token.is_scorable():
+						all_scorable = false
+						break
+					cells.append(cell)
+					values.append(token.value)
+
+				if all_scorable and (values == sequence or values == reversed_sequence):
+					results.append({
+						"cells": cells,
+						"match_rule": &"fibonacci",
+						"shape": &"line",
+						"direction": dir_name,
+					})
 
 	return results
 
@@ -341,6 +449,8 @@ static func find_all(grid: Array, cols: int, rows: int, context: RunContext) -> 
 	all_groups.append_array(find_cross(grid, cols, rows))
 	all_groups.append_array(find_ring(grid, cols, rows))
 	all_groups.append_array(find_t(grid, cols, rows))
+	all_groups.append_array(find_line_rainbow(grid, cols, rows))
+	all_groups.append_array(find_fibonacci(grid, cols, rows))
 
 	var filtered: Array[Dictionary] = []
 	for group in all_groups:
@@ -384,3 +494,14 @@ static func _tokens_match(a: TokenData, b: TokenData, rule: StringName) -> bool:
 	if rule == &"value":
 		return a.value == b.value
 	return false
+
+
+## Verifie qu'aucune famille n'apparait deux fois (utilise par Rainbow — le
+## nombre de familles existantes plafonne la forme a une taille exacte).
+static func _all_families_distinct(tokens: Array[TokenData]) -> bool:
+	var seen: Dictionary = {}
+	for token in tokens:
+		if seen.has(token.family):
+			return false
+		seen[token.family] = true
+	return true

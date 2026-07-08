@@ -6,12 +6,14 @@ extends Node
 
 var run_manager: RunManager
 var _deck_manager: DeckManager
+var _grid_manager: GridManager
 
 
 ## Connecte tous les hooks de la manche en cours. Les signaux seront
 ## automatiquement nettoyes quand le turn_controller sera free (fin de scene).
 func bind_round(turn_controller: TurnController) -> void:
 	_deck_manager = turn_controller.deck_manager
+	_grid_manager = turn_controller.grid_manager
 	turn_controller.round_started.connect(_on_round_started)
 	turn_controller.token_dropped.connect(_on_token_dropped)
 	turn_controller.cascade_step_resolved.connect(_on_cascade_step)
@@ -20,7 +22,11 @@ func bind_round(turn_controller: TurnController) -> void:
 
 
 func _on_round_started() -> void:
-	_dispatch(&"on_round_start", {})
+	# Trous deja generes a ce stade (TurnController.start_round, etape 0 avant
+	# l'emission de round_started) — les badges a cellule unique (Cellule
+	# Double/Triple) s'en servent pour ne jamais cibler une case inaccessible.
+	var holes: Dictionary = _grid_manager.get_holes() if _grid_manager != null else {}
+	_dispatch(&"on_round_start", {"holes": holes})
 
 
 func _on_token_dropped(token: TokenData, col: int, row: int) -> void:

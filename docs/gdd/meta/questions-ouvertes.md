@@ -8,7 +8,7 @@ Ce qui reste à trancher, par le proto ou par réflexion.
 - **Multiplicateur de cascade (`CASCADE_MULTIPLIER_BASE = 2.0`)** — s'est révélé fragile lors du proto swap-sur-plateau-plein de la session 12 (explosion à 100k points en 10 coups dès que la profondeur de cascade augmente). Le family-only + la grille cabossée visent justement à augmenter la fréquence des cascades — à surveiller en priorité au prochain playtest : si les scores partent en vrille dès qu'une cascade de 3-4 niveaux se déclenche, c'est ce multiplicateur qu'il faut baisser (x1.5 ?), pas autre chose.
 - **Intensité de la [grille cabossée](../grille/trous.md)** — 5-8 trous/manche, jamais row 0. Premier jet, à retuner au ressenti.
 - **Rename des familles** — Bone/Wood/Brass décidé en session 10, jamais appliqué au code (toujours `CORAL/SHELL/RUST/INK`). À faire à un moment, pas bloquant.
-- **Retour de la résolution par valeur** — désactivée en session 12 (family-only). Les Partitions/Badge liés à la valeur restent sur le disque, hors catalogue. Pourrait revenir comme contenu rare/Shore plus tard.
+- **Retour de la résolution par valeur** — implémenté en session 14 : axe "casino" séparé (Suite/Brelan/Carré/Fibonacci), confiné aux lignes, vocabulaire poker distinct du vocabulaire géométrique famille. Voir [Catalogue implémenté](../partitions/catalogue-implemente.md). Number Square reste seul dormant (l'axe casino ne touche jamais le Carré géométrique).
 - **Taille de la preview du stream** — 3 jetons actuellement. À tester si 2 est plus tendu.
 - **Courbe du [score cible](../manche/score-cible.md)** — actuellement linéaire (+30 par manche). À revoir avec les multiplicateurs directionnels et le level up des Partitions qui scalent différemment.
 - **Seuils et multiplicateurs du [level up des Partitions](../partitions/level-up.md)** — vocabulaire musical (Pianissimo → Maestro) décidé, valeurs à tuner.
@@ -18,6 +18,7 @@ Ce qui reste à trancher, par le proto ou par réflexion.
 - **Forme exacte de l'[Inspecteur de deck](../manche/inspecteur-deck.md)** — modale, panneau latéral, avec ou sans pause ?
 - **Effets "Tarot" sur les boutons** (swap avec le voisin, ancrage façon Fantôme, évoqués en session 12) — à trancher d'abord : mutation du pool (comme la Fusion, hors-manche) ou effet de grille en cours de manche (comme Fantôme/Bombe/Marée) ? Portée technique différente selon la réponse.
 - **Decks de départ façon Balatro (bonus/malus)** — idée évoquée en session 13 pour la rejouabilité, distincte des grilles spéciales (réservées à la progression du Shore). Le pool de boutons de départ est structuré depuis la session 13 (2× chaque famille/valeur) mais reste fixe, aucun choix du joueur dessus. Vision d'origine "classes" (grille + pack), jamais implémentée — seule la [sélection de Partition](../partitions/principe.md) existe comme vrai choix de départ aujourd'hui.
+- **Prix/mult des 7 nouvelles Partitions (session 14)** — Rainbow (Square/Diamond/Line 4) et l'axe casino (Suite/Brelan/Carré/Fibonacci) ont des premiers jets de prix/mult (voir [Catalogue implémenté](../partitions/catalogue-implemente.md)), jamais playtestés. À rééquilibrer une fois en conditions réelles. Le tiroir rare/signature (9999/Jackpot, paires de familles figées) reste non implémenté.
 
 ## Économie
 
@@ -25,7 +26,7 @@ Ce qui reste à trancher, par le proto ou par réflexion.
 - **Mouches non dépensées en fin de run** — converties en tickets pour le Shore ? Perdues ?
 - **Courbe de prix au shop** — les prix augmentent-ils avec les zones ?
 - **Surplus de score** — bonus de mouches ? À tester.
-- **Pondération par rareté dans le shop** — pas encore implémentée (voir [Génération de l'offre](../shop/generation-offre.md)), tirage uniforme pour l'instant. Pas urgent tant qu'il n'y a pas de contenu Epic.
+- **Pondération par rareté dans le shop** — implémentée en session 14 (voir [Génération de l'offre](../shop/generation-offre.md)). Poids (10/5/2/1) posés au jugé, à retuner au playtest.
 - **Prix du shop v2** (packs, Dés à coudre, reroll) — premiers jets posés en session 12, à rééquilibrer avec plus de playtest.
 
 ## Univers

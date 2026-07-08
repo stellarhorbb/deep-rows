@@ -4,11 +4,12 @@
 
 [resource]
 script = ExtResource("1_script")
-tag_name = &"line_number_4_horizontal"
+tag_name = &"fibonacci"
 shape = &"line"
-rule = &"value"
+rule = &"fibonacci"
 min_size = 4
 direction = &"any"
-score_multiplier = 1.5
-label = "NUMBER LINE 4"
-price = 8
+score_multiplier = 2.0
+label = "FIBONACCI"
+price = 14
+rarity = 1

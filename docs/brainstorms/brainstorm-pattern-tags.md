@@ -2,6 +2,8 @@
 
 **Statut** : bac a sable. Rien ici n'est tranche. C'est un dump d'idees pour ne pas les perdre, a piocher quand on construira le catalogue officiel de Pattern Tags (`03-patterns.md`).
 
+**Session 14** : direction retenue pour etendre le pool (Rainbow sur l'axe famille, axe chiffre "casino" confine a la Ligne, tiroir rare/signature) — voir [Axes de regles](../gdd/partitions/axes-de-regles.md). Les pistes ci-dessous qui recoupent position/contexte ont ete recadrees cote Badges, pas Partitions. Ce fichier reste la reserve pour tout le reste (formes etendues type pyramide/3x3, autres regles non retenues).
+
 Format libre. On ajoute, on rature, on regroupe au fil des sessions.
 
 ---

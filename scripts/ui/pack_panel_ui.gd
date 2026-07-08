@@ -25,9 +25,10 @@ func open_with(candidates: Array, title: String) -> void:
 	_clear_candidates()
 
 	for item in candidates:
-		var btn: Button = Button.new()
+		var btn: RarityButton = RarityButton.new()
 		btn.text = ShopManager.get_label(item)
 		btn.tooltip_text = ShopManager.get_description(item)
+		btn.rarity = ShopManager.get_rarity(item)
 		btn.pressed.connect(_on_candidate_pressed.bind(item))
 		candidates_container.add_child(btn)
 		_candidate_buttons.append(btn)

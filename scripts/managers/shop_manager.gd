@@ -12,25 +12,27 @@ signal purchase_failed(item: Resource)
 signal button_purchased(token: TokenData)
 
 ## Tags achetables (PatternData avec label + price).
-## Tags valeur/suite retires du catalogue actif : la valeur ne resout plus de
-## patterns, seule la famille (et rock) compte — la valeur reste un levier de
-## score pur (voir GameRules.MAX_BUTTON_VALUE). Les .tres restent sur le
-## disque au cas ou ces regles reviennent plus tard (Shore, contenu rare...).
+## square_number.tres reste hors catalogue : l'axe chiffre (session 14) est
+## volontairement confine a la Ligne, jamais au Carre (voir axes-de-regles.md).
 const TAG_PATHS: Array[String] = [
 	"res://resources/patterns/line_family_3_diagonal.tres",
-	# "res://resources/patterns/line_number_4_horizontal.tres",
 	"res://resources/patterns/square_family.tres",
 	# "res://resources/patterns/square_number.tres",
 	"res://resources/patterns/diamond_rock.tres",
-	# "res://resources/patterns/suite_3_diagonal.tres",
 	"res://resources/patterns/line_family_4.tres",
-	# "res://resources/patterns/line_number_3.tres",
 	"res://resources/patterns/line_family_5.tres",
 	"res://resources/patterns/diamond_family.tres",
 	"res://resources/patterns/plus_family.tres",
 	"res://resources/patterns/cross_family.tres",
 	"res://resources/patterns/ring_family.tres",
 	"res://resources/patterns/t_family.tres",
+	"res://resources/patterns/square_rainbow.tres",
+	"res://resources/patterns/diamond_rainbow.tres",
+	"res://resources/patterns/line_4_rainbow.tres",
+	"res://resources/patterns/suite.tres",
+	"res://resources/patterns/brelan.tres",
+	"res://resources/patterns/carre_poker.tres",
+	"res://resources/patterns/fibonacci.tres",
 ]
 
 ## Speciaux achetables (SpecialItem).
@@ -163,15 +165,49 @@ func _draw_unitaire(category: String, run_manager: RunManager) -> Variant:
 	match category:
 		"tag":
 			var pool: Array[PatternData] = _available_tags(run_manager)
-			return pool[randi() % pool.size()] if not pool.is_empty() else null
+			return _weighted_pick(pool)
 		"badge":
 			var pool: Array[BadgeData] = _available_badges(run_manager)
-			return pool[randi() % pool.size()] if not pool.is_empty() else null
+			return _weighted_pick(pool)
 		"special":
 			return _all_specials[randi() % _all_specials.size()] if not _all_specials.is_empty() else null
 		"button":
 			return _random_button()
 	return null
+
+
+## Tirage pondere par rarete (GameRules.RARITY_WEIGHTS). Marche sur n'importe
+## quel pool de Resource exposant un champ "rarity" (PatternData, BadgeData) —
+## Speciaux et boutons n'en ont pas, ils restent tires uniformement ailleurs.
+static func _weighted_pick(pool: Array) -> Variant:
+	if pool.is_empty():
+		return null
+	var weights: Array[float] = []
+	var total: float = 0.0
+	for item in pool:
+		var w: float = GameRules.RARITY_WEIGHTS[int(item.rarity)]
+		weights.append(w)
+		total += w
+
+	var roll: float = randf() * total
+	var cumulative: float = 0.0
+	for i in range(pool.size()):
+		cumulative += weights[i]
+		if roll < cumulative:
+			return pool[i]
+	return pool[pool.size() - 1]
+
+
+## Meme pondration que _weighted_pick mais tire `count` items distincts (sans
+## remise) — utilise par l'ouverture de pack.
+static func _weighted_sample(pool: Array, count: int) -> Array:
+	var remaining: Array = pool.duplicate()
+	var picked: Array = []
+	while remaining.size() > 0 and picked.size() < count:
+		var item: Variant = _weighted_pick(remaining)
+		picked.append(item)
+		remaining.erase(item)
+	return picked
 
 
 func _available_tags(run_manager: RunManager) -> Array[PatternData]:
@@ -229,6 +265,16 @@ static func get_description(item: Variant) -> String:
 	if item is BadgeData:
 		return (item as BadgeData).description
 	return ""
+
+
+## Retourne la rarete d'un item, -1 si le type n'en a pas (Special, Bouton) —
+## RarityButton retombe alors sur le tooltip texte simple.
+static func get_rarity(item: Variant) -> int:
+	if item is PatternData:
+		return (item as PatternData).rarity
+	if item is BadgeData:
+		return (item as BadgeData).rarity
+	return -1
 
 
 ## Retourne le prix unitaire d'un item.
@@ -315,12 +361,10 @@ func open_pack(slot: Dictionary, run_manager: RunManager) -> Array:
 	match category:
 		"tag":
 			var pool: Array[PatternData] = _available_tags(run_manager)
-			pool.shuffle()
-			return pool.slice(0, min(size, pool.size()))
+			return _weighted_sample(pool, size)
 		"badge":
 			var pool: Array[BadgeData] = _available_badges(run_manager)
-			pool.shuffle()
-			return pool.slice(0, min(size, pool.size()))
+			return _weighted_sample(pool, size)
 		"special":
 			var pool: Array[SpecialItem] = _all_specials.duplicate()
 			pool.shuffle()

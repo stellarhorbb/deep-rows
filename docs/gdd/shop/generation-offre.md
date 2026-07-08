@@ -13,10 +13,11 @@ Pool de contenu enrichi progressivement via [les unlocks du Shore](../shore/unlo
 - **Pas de doublons** de Badges déjà possédées
 - **Pas de doublons** de Partitions déjà équipées
 - Pour les boutons/spéciaux, doublons possibles (tu peux acheter 2 Fantômes dans la même run)
+- **Pondération par rareté** (session 14) — Tags et Badges tirés (unitaires et packs) selon `GameRules.RARITY_WEIGHTS` (COMMON=10, UNCOMMON=5, RARE=2, EPIC=1), via `ShopManager._weighted_pick`/`_weighted_sample`. Spéciaux et boutons restent tirés uniformément (pas de champ `rarity`). Poids posés au jugé, jamais playtestés.
 
 ## Pas encore implémenté
 
-- **Pondération par rareté** — les Common devraient apparaître plus souvent, les Epic très rarement. Tirage actuellement uniforme entre les items d'une catégorie, sans regarder `rarity`. Pas urgent : pas encore de contenu Epic dans le catalogue pour que ça compte.
+- Rien côté pondération pour l'instant — reste à retuner les poids au ressenti une fois du contenu Epic réellement testé en jeu.
 
 ## Liens
 
