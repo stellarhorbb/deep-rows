@@ -2,8 +2,7 @@
 .godot/
 /android/
 
-# GDD et docs internes (pas en clair sur le repo public)
-docs/
+# CLAUDE.md interne (pas en clair sur le repo public)
 CLAUDE.md
 
 # OS / editeurs
