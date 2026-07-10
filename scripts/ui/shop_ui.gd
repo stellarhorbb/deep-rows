@@ -32,6 +32,8 @@ var _reroll_count: int = 0
 
 var _fusion_candidate_buttons: Array[Button] = []
 var _fusion_selected_indices: Array[int] = []
+var _fusion_candidate_values: Dictionary = {}  # pool_index -> int (valeur du bouton)
+var _fusion_candidate_by_index: Dictionary = {}  # pool_index -> Button
 
 
 func _ready() -> void:
@@ -88,7 +90,7 @@ func _on_pack_pressed(entry: Dictionary) -> void:
 	entry["consumed"] = true
 	(entry["button"] as Button).disabled = true
 	var candidates: Array = _shop_manager.open_pack(slot, _run_manager)
-	pack_panel.open_with(candidates, "PACK %s — choisis 1" % _category_label(slot["category"]))
+	pack_panel.open_with(candidates, "PACK %s — choisis 1" % _category_label(slot["category"]), _shop_manager, _run_manager)
 
 
 func _on_pack_item_chosen(item: Variant) -> void:
@@ -222,6 +224,8 @@ func _rebuild_fusion_candidates() -> void:
 		btn.queue_free()
 	_fusion_candidate_buttons.clear()
 	_fusion_selected_indices.clear()
+	_fusion_candidate_values.clear()
+	_fusion_candidate_by_index.clear()
 
 	for candidate in _run_manager.get_fusion_candidates(GameRules.FUSION_DRAW_SIZE):
 		var pool_index: int = candidate["index"] as int
@@ -232,6 +236,8 @@ func _rebuild_fusion_candidates() -> void:
 		btn.pressed.connect(_on_fusion_candidate_pressed.bind(pool_index, btn))
 		fusion_candidates_container.add_child(btn)
 		_fusion_candidate_buttons.append(btn)
+		_fusion_candidate_values[pool_index] = token.value
+		_fusion_candidate_by_index[pool_index] = btn
 
 	_update_fusion_confirm_state()
 
@@ -245,6 +251,26 @@ func _on_fusion_candidate_pressed(pool_index: int, btn: Button) -> void:
 	else:
 		_fusion_selected_indices.erase(pool_index)
 	_update_fusion_confirm_state()
+	_update_fusion_candidate_availability()
+
+
+## Des qu'un premier bouton est selectionne, grise les candidats dont la somme
+## depasserait GameRules.MAX_BUTTON_VALUE — empeche de choisir une combinaison
+## qui serait de toute facon plafonnee au moment de fusionner.
+func _update_fusion_candidate_availability() -> void:
+	if _fusion_selected_indices.size() != 1:
+		for pool_index in _fusion_candidate_by_index:
+			(_fusion_candidate_by_index[pool_index] as Button).disabled = false
+		return
+
+	var selected_value: int = _fusion_candidate_values.get(_fusion_selected_indices[0], 0) as int
+	for pool_index in _fusion_candidate_by_index:
+		var btn: Button = _fusion_candidate_by_index[pool_index] as Button
+		if pool_index == _fusion_selected_indices[0]:
+			btn.disabled = false
+			continue
+		var candidate_value: int = _fusion_candidate_values.get(pool_index, 0) as int
+		btn.disabled = selected_value + candidate_value > GameRules.MAX_BUTTON_VALUE
 
 
 func _update_fusion_confirm_state() -> void:

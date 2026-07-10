@@ -20,7 +20,10 @@ func _ready() -> void:
 
 
 ## `candidates` : Array de PatternData/BadgeData/SpecialItem/TokenData deja tires.
-func open_with(candidates: Array, title: String) -> void:
+## shop_manager/run_manager servent uniquement a griser les candidats Partition/
+## Badge dont les slots sont deja pleins (le pack est deja paye, le joueur ne
+## doit pas pouvoir choisir un item qui ne pourra jamais s'equiper).
+func open_with(candidates: Array, title: String, shop_manager: ShopManager, run_manager: RunManager) -> void:
 	title_label.text = title
 	_clear_candidates()
 
@@ -29,6 +32,7 @@ func open_with(candidates: Array, title: String) -> void:
 		btn.text = ShopManager.get_label(item)
 		btn.tooltip_text = ShopManager.get_description(item)
 		btn.rarity = ShopManager.get_rarity(item)
+		btn.disabled = not shop_manager.can_equip_slot(item, run_manager)
 		btn.pressed.connect(_on_candidate_pressed.bind(item))
 		candidates_container.add_child(btn)
 		_candidate_buttons.append(btn)

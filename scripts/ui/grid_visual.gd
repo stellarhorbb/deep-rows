@@ -14,10 +14,10 @@ signal group_score_revealed(amount: int)
 @export var modifier_border_width: float = 6.0
 
 ## Couleurs par type de modifier (StringName -> Color)
-@export var modifier_color_half: Color = Color("b33d3d")    # rouge (×0.5)
-@export var modifier_color_boost: Color = Color("3d8b5a")   # vert (×1.5)
-@export var modifier_color_double: Color = Color("1a2b5c")  # bleu fonce (×2)
-@export var modifier_color_triple: Color = Color("6b1a99")  # violet (×3)
+@export var modifier_color_half: Color = Color("b33d3d")    # rouge (x0.5)
+@export var modifier_color_boost: Color = Color("3d8b5a")   # vert (x1.5)
+@export var modifier_color_double: Color = Color("1a2b5c")  # bleu fonce (x2)
+@export var modifier_color_triple: Color = Color("6b1a99")  # violet (x3)
 
 ## Timing des animations
 @export var drop_duration: float = 0.25
@@ -31,7 +31,7 @@ signal group_score_revealed(amount: int)
 @export var resolution_banner: ResolutionBanner
 
 var _token_sprites: Dictionary = {}  # Vector2i -> Sprite2D
-var _grid_modifiers: Dictionary = {}  # Vector2i -> StringName
+var _grid_modifiers: Dictionary = {}  # Vector2i -> Array[StringName]
 var _holes: Dictionary = {}  # Vector2i -> true
 var _is_animating: bool = false
 var _popup_font: Font = null
@@ -59,13 +59,19 @@ func _draw() -> void:
 			var is_hole: bool = _holes.has(Vector2i(c, r))
 			draw_circle(center, cell_size / 2.0, hole_color if is_hole else empty_cell_color)
 
-	# Contour des cellules modifiees (par dessus le fond, sous les sprites)
+	# Contour des cellules modifiees (par dessus le fond, sous les sprites).
+	# Plusieurs modifiers empiles sur une meme case = plusieurs anneaux
+	# concentriques, du plus large (premier empile) au plus etroit (dernier).
 	for cell_key in _grid_modifiers:
 		var cell: Vector2i = cell_key as Vector2i
-		var type: StringName = _grid_modifiers[cell_key] as StringName
+		var types: Array = _grid_modifiers[cell_key] as Array
 		var visual_row_m: int = GameRules.ROWS - 1 - cell.y
 		var c_center: Vector2 = _cell_center(cell.x, visual_row_m)
-		draw_arc(c_center, cell_size / 2.0, 0.0, TAU, 48, _modifier_color(type), modifier_border_width)
+		for i in range(types.size()):
+			var ring_radius: float = cell_size / 2.0 - i * (modifier_border_width + 2.0)
+			if ring_radius <= 0.0:
+				break
+			draw_arc(c_center, ring_radius, 0.0, TAU, 48, _modifier_color(types[i] as StringName), modifier_border_width)
 
 
 func _modifier_color(type: StringName) -> Color:
@@ -339,8 +345,21 @@ func _animate_match(event: Dictionary) -> void:
 			var breakdown: Dictionary = group.get("score_breakdown", {}) as Dictionary
 			if group_score <= 0 or breakdown.is_empty():
 				continue
+			# Diamond Rock : petite roulette casino avant le detail du score
+			# (voir CascadeResolver._score_group — breakdown.roll).
+			if breakdown.has("roll"):
+				await resolution_banner.play_roll_announcement(breakdown["roll"] as int, GameRules.DIAMOND_ROCK_ROLL_MIN, GameRules.DIAMOND_ROCK_ROLL_MAX)
 			await resolution_banner.play_breakdown(breakdown, group_score, badges_ui)
 			group_score_revealed.emit(group_score)
+
+		# "Double Partition" : deux figures distinctes ont matche sur le meme
+		# placement sans que l'une contienne l'autre (voir CascadeResolver).
+		# Revele apres le detail des groupes, comme un bonus qui recompense le
+		# coup delibere plutot que noye dans les MULTI individuels.
+		var combo_bonus: int = event.get("combo_bonus", 0) as int
+		if combo_bonus > 0:
+			await resolution_banner.play_combo_announcement(GameRules.PATTERN_COMBO_MULTIPLIER)
+			group_score_revealed.emit(combo_bonus)
 	else:
 		await get_tree().create_timer(match_highlight_duration * 0.5).timeout
 

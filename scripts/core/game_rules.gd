@@ -7,13 +7,13 @@ const ROWS: int = 7
 # Patterns — taille minimum
 const MIN_MATCH_SIZE: int = 3
 
-# Chevauchement de figures dans un meme tour (CascadeResolver.resolve) :
-# nombre max de cellules qu'un groupe peut partager avec des groupes deja
-# retenus tout en scorant quand meme. 1 = deux figures qui convergent sur le
-# jeton qui vient d'etre pose scorent toutes les deux (combo delibere) ; au
-# dela, une figure qui en avale une autre (ex: T contenu dans Plus) ne garde
-# que la mieux payee.
-const PATTERN_SHARED_CELL_TOLERANCE: int = 1
+# Chevauchement de figures dans un meme tour (CascadeResolver.resolve) : deux
+# groupes qui partagent au moins une cellule sans que l'un soit entierement
+# inclus dans l'autre sont un "Double Partition" delibere — les deux scorent
+# et leur total combine est multiplie par ce facteur. Si l'un des deux groupes
+# est un sous-ensemble strict de l'autre (ex: T contenu dans Plus, memes
+# jetons), ce n'est pas un combo : seule la mieux payee compte, comme avant.
+const PATTERN_COMBO_MULTIPLIER: float = 2.0
 
 # Multiplicateurs de direction (lignes uniquement)
 const LINE_MULT_VERTICAL: float = 1.0
@@ -63,7 +63,8 @@ const FLIES_PER_ROUND_WON: int = 10
 const ROUND_END_DELAY: float = 2.0
 
 # Modificateurs de cellules
-# Cle stockee dans le dict grid_modifiers : Vector2i -> StringName
+# Cle stockee dans le dict grid_modifiers : Vector2i -> Array[StringName]
+# (plusieurs types peuvent s'empiler sur une meme case, voir RunManager.add_grid_modifier)
 const MODIFIER_HALF: StringName = &"half"
 const MODIFIER_BOOST: StringName = &"boost"
 const MODIFIER_DOUBLE: StringName = &"double"
@@ -85,6 +86,14 @@ const FAMILY_COUNT: int = 4
 ## pas de fenetre generique, cette cible exacte, dans un sens ou dans l'autre
 ## le long de la ligne (voir PatternMatcher.find_fibonacci).
 const FIBONACCI_SEQUENCE: Array[int] = [1, 1, 2, 3]
+
+## Roll casino ajoute a la valeur du centre d'un Diamond Rock (session 15) —
+## avec seulement DECK_ROCK_COUNT rocks dans tout le deck, ce pattern ne se
+## declenche quasiment qu'une fois par run : le roll garantit un plancher
+## correct independamment de la valeur (chanceuse ou non) du jeton central,
+## et ajoute un moment casino avant que le multiplicateur du tag s'applique.
+const DIAMOND_ROCK_ROLL_MIN: int = 1
+const DIAMOND_ROCK_ROLL_MAX: int = 5
 
 ## Poids de tirage par rarete au shop (unitaires + packs, Tags et Badges
 ## uniquement — Speciaux et boutons n'ont pas de champ rarity). Index = valeur
@@ -154,7 +163,7 @@ const REROLL_INCREMENT: int = 1
 
 # Level up des Partitions — regles generiques, identiques pour toutes.
 # Seuils de score cumule pour passer au niveau suivant (1->2, 2->3, 3->4, 4->5).
-const PATTERN_LEVEL_THRESHOLDS: Array[int] = [150, 400, 800, 1500]
+const PATTERN_LEVEL_THRESHOLDS: Array[int] = [150, 500, 1100, 2200]
 # Multiplicateur applique au score selon le niveau (index 0 = niveau 1).
 const PATTERN_LEVEL_MULTIPLIERS: Array[float] = [1.0, 1.25, 1.5, 1.75, 2.0]
 const PATTERN_LEVEL_NAMES: Array[String] = ["Pianissimo", "Piano", "Forte", "Fortissimo", "Maestro"]

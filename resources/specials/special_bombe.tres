@@ -8,4 +8,3 @@ label = "BOMBE"
 description = "Détruit un carré 3x3 autour de l'impact."
 price = 2
 special_type = 2
-debug_always_in_deck = true

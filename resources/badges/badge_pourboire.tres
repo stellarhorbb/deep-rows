@@ -7,7 +7,7 @@
 script = ExtResource("1_data")
 id = &"pourboire"
 label = "POURBOIRE"
-description = "+5 mouches en début de manche"
+description = "+3 mouches en début de manche"
 price = 3
 rarity = 0
 effect_script = ExtResource("2_effect")

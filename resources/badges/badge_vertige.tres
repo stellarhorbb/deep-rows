@@ -7,7 +7,7 @@
 script = ExtResource("1_data")
 id = &"vertige"
 label = "VERTIGE"
-description = "+8 mouches si une cascade se déclenche ce tour"
+description = "+5 mouches si une cascade se déclenche ce tour"
 trigger = &"on_turn_resolved"
 price = 4
 rarity = 0

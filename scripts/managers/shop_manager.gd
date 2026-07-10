@@ -294,6 +294,13 @@ static func get_price(item: Variant) -> int:
 func can_purchase(item: Variant, run_manager: RunManager) -> bool:
 	if run_manager.get_flies() < get_price(item):
 		return false
+	return can_equip_slot(item, run_manager)
+
+
+## Retourne true si l'item a encore un slot dispo pour etre equipe (Partition/
+## Badge). Ne verifie pas le prix — utilise par can_purchase (achat unitaire)
+## et par choose_from_pack (deja paye, slots seulement).
+func can_equip_slot(item: Variant, run_manager: RunManager) -> bool:
 	if item is PatternData:
 		var equipped_tags: Array[PatternData] = run_manager.get_equipped_tags()
 		if equipped_tags.size() >= GameRules.MAX_PATTERN_SLOTS:
@@ -378,7 +385,12 @@ func open_pack(slot: Dictionary, run_manager: RunManager) -> Array:
 
 
 ## Applique le choix du joueur dans un pack ouvert (deja paye a l'achat du pack).
+## Filet de securite : PackPanelUI grise deja les candidats sans slot dispo,
+## mais on revalide ici pour ne jamais equiper silencieusement au-dela des slots.
 func choose_from_pack(item: Variant, run_manager: RunManager) -> void:
+	if not can_equip_slot(item, run_manager):
+		purchase_failed.emit(item)
+		return
 	_apply_item(item, run_manager)
 	if item is TokenData:
 		button_purchased.emit(item)

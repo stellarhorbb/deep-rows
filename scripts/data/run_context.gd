@@ -5,7 +5,8 @@ extends Resource
 
 @export var equipped_tags: Array[PatternData] = []
 
-# Cellules modifiees pour la manche en cours : Vector2i -> StringName (type de modifier).
+# Cellules modifiees pour la manche en cours : Vector2i -> Array[StringName]
+# (types de modifiers empiles sur cette case, cumulatifs).
 # Types supportes : MODIFIER_HALF, MODIFIER_BOOST, MODIFIER_DOUBLE, MODIFIER_TRIPLE.
 @export var grid_modifiers: Dictionary = {}
 

@@ -81,8 +81,12 @@ func play_current_to(col: int, row: int) -> void:
 	# Attendre l'animation de chute
 	await drop_animated
 
-	# Pour les specials : executer l'effet apres la chute, attendre l'animation d'impact
+	# Pour les specials : executer l'effet apres la chute, attendre l'animation
+	# d'impact. Consomme le special de l'inventaire persistant a cet instant
+	# precis (pas avant) — tant qu'il n'est pas reellement joue, il reste dans
+	# le deck manche apres manche (voir RunManager.consume_special).
 	if token.kind == TokenData.Kind.SPECIAL:
+		run_manager.consume_special(token.special_type)
 		grid_manager.execute_special(token, col)
 		await special_effect_done
 

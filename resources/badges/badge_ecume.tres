@@ -1,13 +1,13 @@
-[gd_resource type="Resource" script_class="BadgeData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BadgeData" format=3 uid="uid://cnsxfsv7kgcp8"]
 
-[ext_resource type="Script" path="res://scripts/data/badge_data.gd" id="1_data"]
-[ext_resource type="Script" path="res://scripts/badges/effect_ecume.gd" id="2_effect"]
+[ext_resource type="Script" uid="uid://ct80ym651ovo7" path="res://scripts/data/badge_data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://bv2acqp5bgq6" path="res://scripts/badges/effect_ecume.gd" id="2_effect"]
 
 [resource]
 script = ExtResource("1_data")
 id = &"ecume"
 label = "ÉCUME"
-description = "La rangée du bas passe en BOOST ×1.5"
+description = "La rangée du bas passe en BOOST x1.5"
 price = 4
 rarity = 1
 effect_script = ExtResource("2_effect")

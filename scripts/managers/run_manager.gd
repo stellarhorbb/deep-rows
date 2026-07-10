@@ -22,7 +22,7 @@ var _deck_composition: Dictionary = {
 	"fantome_count": 0,
 	"maree_count": 0,
 }
-var _grid_modifiers: Dictionary = {}    # Vector2i -> StringName
+var _grid_modifiers: Dictionary = {}    # Vector2i -> Array[StringName]
 var _rule_multipliers: Dictionary = {}  # StringName -> float
 var _rule_multiplier_sources: Dictionary = {}  # StringName (rule) -> StringName (badge id)
 var _value_bonus_multipliers: Dictionary = {}  # int (value) -> float
@@ -174,9 +174,14 @@ func reset_round_modifiers() -> void:
 	_active_context = null
 
 
-## Ajoute un modifier sur une cellule. Appele par les badges.
+## Ajoute un modifier sur une cellule. Appele par les badges. Les modifiers
+## s'empilent sur une meme case (ex: Tranchee + Bord a Bord, ou Cellule Triple
+## par-dessus un badge colonne) : chaque type ajoute son propre multiplicateur
+## au lieu d'ecraser les precedents, voir CascadeResolver._modifier_multiplier.
 func add_grid_modifier(cell: Vector2i, type: StringName) -> void:
-	_grid_modifiers[cell] = type
+	var types: Array = (_grid_modifiers.get(cell, []) as Array).duplicate()
+	types.append(type)
+	_grid_modifiers[cell] = types
 
 
 ## Emis une fois tous les modifiers de manche peuples (base + badges).
@@ -391,12 +396,18 @@ func add_special(type: TokenData.SpecialType) -> void:
 	deck_composition_changed.emit()
 
 
-## One-shot : les specials sont consommes a chaque manche, les compteurs sont
-## remis a zero apres le round. Les specials avec debug_always_in_deck == true
-## sont re-ajoutes pour le round suivant.
-func reset_specials_counts() -> void:
-	for key in _deck_composition.keys():
-		_deck_composition[key] = 0
+## Un special achete est un bien persistant (comme un bouton ou un Badge) :
+## il reste dans le deck manche apres manche jusqu'a etre reellement joue sur
+## la grille (voir TurnController.play_current_to). La seule facon d'en
+## obtenir un autre est d'en racheter au shop.
+func consume_special(type: TokenData.SpecialType) -> void:
+	_decrement_special_count(type)
+	deck_composition_changed.emit()
+
+
+## Re-ajoute au deck les specials dont le flag debug_always_in_deck est actif
+## (outil de test, voir SpecialItem — n'affecte jamais les specials achetes).
+func apply_debug_specials() -> void:
 	_apply_debug_specials_to_deck()
 	deck_composition_changed.emit()
 
@@ -418,3 +429,16 @@ func _increment_special_count(type: TokenData.SpecialType) -> void:
 			_deck_composition["fantome_count"] += 1
 		TokenData.SpecialType.MAREE:
 			_deck_composition["maree_count"] += 1
+
+
+func _decrement_special_count(type: TokenData.SpecialType) -> void:
+	var key: String = ""
+	match type:
+		TokenData.SpecialType.BOMBE:
+			key = "bombe_count"
+		TokenData.SpecialType.FANTOME:
+			key = "fantome_count"
+		TokenData.SpecialType.MAREE:
+			key = "maree_count"
+	if key != "":
+		_deck_composition[key] = maxi(0, (_deck_composition[key] as int) - 1)

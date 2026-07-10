@@ -19,6 +19,17 @@ extends Label
 @export var cascade_font_size_boost: int = 28
 @export var cascade_duration: float = 0.6
 
+@export var combo_color: Color = Color("ffb400")
+@export var combo_font_size_boost: int = 28
+@export var combo_duration: float = 0.6
+
+@export var roll_color: Color = Color("2ecc71")
+@export var roll_font_size_boost: int = 24
+@export var roll_spin_count: int = 10
+@export var roll_spin_start_interval: float = 0.05
+@export var roll_spin_end_interval: float = 0.25
+@export var roll_result_duration: float = 0.7
+
 var _base_font_size: int = 0
 
 
@@ -49,14 +60,14 @@ func play_breakdown(breakdown: Dictionary, final_score: int, badges_ui: BadgesUI
 	await get_tree().create_timer(step_duration).timeout
 
 	if base_mult > 1.0:
-		_show_step("×%s MULTI" % _format_mult(base_mult), mult_color)
+		_show_step("x%s MULTI" % _format_mult(base_mult), mult_color)
 		await get_tree().create_timer(step_duration).timeout
 
 	if badge_mult > 1.0:
 		if badges_ui != null:
 			for source in badge_sources:
 				badges_ui.tilt_badge(source as StringName)
-		_show_step("BADGE ×%s" % _format_mult(badge_mult), badge_color)
+		_show_step("BADGE x%s" % _format_mult(badge_mult), badge_color)
 		await get_tree().create_timer(step_duration).timeout
 
 	add_theme_font_size_override("font_size", _base_font_size + result_font_size_boost)
@@ -75,7 +86,7 @@ func play_cascade_announcement(mult: float) -> void:
 	visible = true
 	remove_theme_font_size_override("font_size")
 	add_theme_font_size_override("font_size", _base_font_size + cascade_font_size_boost)
-	_show_step("CASCADE ×%s !" % _format_mult(mult), cascade_color)
+	_show_step("CASCADE x%s !" % _format_mult(mult), cascade_color)
 
 	scale = Vector2(0.7, 0.7)
 	var tween: Tween = create_tween()
@@ -84,6 +95,57 @@ func play_cascade_announcement(mult: float) -> void:
 	await tween.finished
 
 	await get_tree().create_timer(cascade_duration).timeout
+	visible = false
+
+
+## Annonce dediee a un "Double Partition" (CascadeResolver.resolve —
+## combo_bonus > 0) : deux figures distinctes se chevauchent sur au moins une
+## cellule sans que l'une soit incluse dans l'autre. Jouee une fois par
+## niveau, apres le detail des groupes de ce niveau (voir GridVisual._animate_match) —
+## meme principe que play_cascade_announcement, son propre temps fort plutot
+## que noye dans un MULTI generique.
+func play_combo_announcement(mult: float) -> void:
+	visible = true
+	remove_theme_font_size_override("font_size")
+	add_theme_font_size_override("font_size", _base_font_size + combo_font_size_boost)
+	_show_step("DOUBLE PARTITION x%s !" % _format_mult(mult), combo_color)
+
+	scale = Vector2(0.7, 0.7)
+	var tween: Tween = create_tween()
+	tween.tween_property(self, "scale", Vector2(1.15, 1.15), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(self, "scale", Vector2.ONE, 0.15).set_ease(Tween.EASE_IN_OUT)
+	await tween.finished
+
+	await get_tree().create_timer(combo_duration).timeout
+	visible = false
+
+
+## Petite roulette casino avant un Diamond Rock (CascadeResolver._score_group —
+## breakdown.roll). Defile des chiffres aleatoires dans [min_value, max_value]
+## de plus en plus lentement, puis s'arrete sur `result` — deja tire par le
+## resolver avant meme cette animation, jamais rerolle ici : ceci n'est qu'un
+## reveal, le score est fige en amont.
+func play_roll_announcement(result: int, min_value: int, max_value: int) -> void:
+	visible = true
+	remove_theme_font_size_override("font_size")
+	add_theme_font_size_override("font_size", _base_font_size + roll_font_size_boost)
+
+	for i in range(roll_spin_count):
+		var fake: int = randi_range(min_value, max_value)
+		_show_step("ROULETTE... %d" % fake, roll_color)
+		var progress: float = float(i) / float(maxi(roll_spin_count - 1, 1))
+		var interval: float = lerpf(roll_spin_start_interval, roll_spin_end_interval, progress)
+		await get_tree().create_timer(interval).timeout
+
+	_show_step("ROULETTE : %d !" % result, roll_color)
+	scale = Vector2(0.7, 0.7)
+	var tween: Tween = create_tween()
+	tween.tween_property(self, "scale", Vector2(1.2, 1.2), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(self, "scale", Vector2.ONE, 0.15).set_ease(Tween.EASE_IN_OUT)
+	await tween.finished
+
+	await get_tree().create_timer(roll_result_duration).timeout
+	visible = false
 
 
 func _show_step(msg: String, color: Color) -> void:

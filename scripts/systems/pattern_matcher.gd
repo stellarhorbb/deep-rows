@@ -316,13 +316,19 @@ static func find_diamonds(grid: Array, cols: int, rows: int) -> Array[Dictionary
 			var all_rock: bool = top.kind == TokenData.Kind.ROCK and bottom.kind == TokenData.Kind.ROCK \
 				and left.kind == TokenData.Kind.ROCK and right.kind == TokenData.Kind.ROCK
 			if all_rock:
-				results.append({
-					"cells": cells,
-					"center": Vector2i(c, r),
-					"match_rule": &"rock",
-					"shape": &"diamond",
-					"direction": &"any",
-				})
+				# Le centre est "recolte" (voir CascadeResolver._score_group) : il
+				# doit etre scorable, sinon ce n'est pas encore un match valide —
+				# sans ce garde-fou, une Entity/un autre Rock/une case vide au
+				# centre consommait quand meme les 4 rocks pour 0 point.
+				var center_token: TokenData = grid[c][r] as TokenData
+				if center_token != null and center_token.is_scorable():
+					results.append({
+						"cells": cells,
+						"center": Vector2i(c, r),
+						"match_rule": &"rock",
+						"shape": &"diamond",
+						"direction": &"any",
+					})
 				continue
 
 			var all_scorable: bool = top.is_scorable() and bottom.is_scorable() and left.is_scorable() and right.is_scorable()

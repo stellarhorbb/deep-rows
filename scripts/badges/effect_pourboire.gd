@@ -2,7 +2,7 @@
 ## Trigger : on_round_start
 extends BadgeEffect
 
-const FLIES_PER_ROUND: int = 5
+const FLIES_PER_ROUND: int = 3
 
 
 func apply(_event: Dictionary, run_manager: RunManager) -> void:

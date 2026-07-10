@@ -185,8 +185,10 @@ func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
 
 
 func _on_round_won(final_score: int, target: int) -> void:
-	# Specials one-shot : on consomme ceux de la manche (qu'ils aient ete joues ou non).
-	RunService.run_manager.reset_specials_counts()
+	# Les specials achetes et non joues restent dans l'inventaire pour la
+	# manche suivante (voir RunManager.consume_special) — seul l'outil de
+	# debug_always_in_deck est re-applique ici.
+	RunService.run_manager.apply_debug_specials()
 
 	var total_rounds: int = GameRules.ROUNDS_PER_ZONE * GameRules.ZONES_PER_RUN
 	if RunService.current_round >= total_rounds:

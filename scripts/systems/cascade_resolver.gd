@@ -42,47 +42,83 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 			group["score"] = _score_group(group, grid, cascade_level, context)
 
 		# Deux formes differentes peuvent matcher un cluster qui se chevauche.
-		# On trie par score decroissant et on ne garde un groupe que si son
-		# nombre de cellules deja revendiquees par des groupes mieux payes ne
-		# depasse pas PATTERN_SHARED_CELL_TOLERANCE — une seule cellule commune
-		# (typiquement le jeton qui vient d'etre pose) laisse passer un combo
-		# delibere de 2 figures distinctes ; au-dela, une figure qui en avale
-		# une autre (ex: T contenu dans Plus) ne garde que la mieux payee.
+		# On trie par score decroissant, puis pour chaque candidat on compare
+		# son ensemble de cellules a celui de chaque groupe deja retenu :
+		# - inclusion totale dans un sens ou l'autre (ex: T contenu dans Plus,
+		#   memes jetons) -> simple doublon, on ne garde que le mieux paye
+		#   (deja garanti par le tri decroissant) ;
+		# - chevauchement partiel (au moins 1 cellule commune, aucune inclusion
+		#   totale, ex: Square Rainbow + Brelan qui convergent sur le jeton
+		#   qu'on vient de poser) -> "Double Partition" delibere, les deux
+		#   scorent et leur total combine est multiplie par PATTERN_COMBO_MULTIPLIER.
 		candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 			return (a["score"] as int) > (b["score"] as int)
 		)
 
-		var claimed_cells: Dictionary = {}  # Vector2i -> true
+		var accepted_cell_sets: Array[Dictionary] = []  # index-aligne avec `groups`
 		var groups: Array[Dictionary] = []
 		var scores: Array[int] = []
 		var earned: int = 0
+		var combo_bonus: int = 0
 		for group in candidates:
 			var group_cells: Array = (group["cells"] as Array).duplicate()
 			if group.has("center"):
 				group_cells.append(group["center"])
-
-			var shared_count: int = 0
+			var cell_set: Dictionary = {}
 			for cell in group_cells:
-				if claimed_cells.has(cell):
-					shared_count += 1
-			if shared_count > GameRules.PATTERN_SHARED_CELL_TOLERANCE:
+				cell_set[cell] = true
+
+			var contained: bool = false
+			var combo_with: Array[int] = []
+			for i in range(accepted_cell_sets.size()):
+				var other_set: Dictionary = accepted_cell_sets[i]
+				var overlap: int = 0
+				for cell in cell_set:
+					if other_set.has(cell):
+						overlap += 1
+				if overlap == 0:
+					continue
+				if overlap == cell_set.size() or overlap == other_set.size():
+					contained = true
+					break
+				combo_with.append(i)
+
+			if contained:
 				continue
 
-			for cell in group_cells:
-				claimed_cells[cell] = true
+			var group_score: int = group["score"] as int
+			for i in combo_with:
+				combo_bonus += int((scores[i] + group_score) * (GameRules.PATTERN_COMBO_MULTIPLIER - 1.0))
+
+			accepted_cell_sets.append(cell_set)
 			groups.append(group)
-			scores.append(group["score"] as int)
-			earned += group["score"] as int
+			scores.append(group_score)
+			earned += group_score
+
+		earned += combo_bonus
 
 		# Collecter les cellules a supprimer (dedupliquees, deja garanties
 		# sans chevauchement par le filtrage ci-dessus)
 		var cells_to_remove: Dictionary = {}  # Vector2i -> true
 		for group in groups:
-			for cell in group["cells"]:
-				cells_to_remove[cell] = true
-			# Les formes a centre indifferent (diamond, ring) detruisent aussi
-			# la cellule centrale, meme si elle n'entre jamais dans le match.
-			if group.has("center"):
+			# Diamond Rock "recolte" uniquement son centre : les 4 Rocks du
+			# losange ne sont jamais retires. Ils servent d'outil reutilisable
+			# (relief de grille, terrain de Badges) tant qu'ils sont sur le
+			# plateau, et doivent rester disponibles pour exploser au Dernier
+			# Souffle en fin de manche — les detruire a chaque recolte les
+			# priverait de ce role. Toutes les autres formes (dont diamond
+			# family/rainbow) retirent leurs cellules normalement.
+			var is_rock_harvest: bool = group["shape"] == &"diamond" and group.get("match_rule") == &"rock"
+			if not is_rock_harvest:
+				for cell in group["cells"]:
+					cells_to_remove[cell] = true
+			# Diamond Rock "recolte" son centre : il est scorable (voir
+			# _score_group) et consomme avec le reste du losange. Les autres
+			# formes a centre indifferent (diamond family/rainbow, ring) ne
+			# touchent jamais au centre — il n'entrait pas dans le match, il ne
+			# doit pas etre efface non plus : il reste en place et tombe
+			# normalement a la gravite qui suit si sa colonne s'est videe.
+			if group.has("center") and group.get("match_rule") == &"rock":
 				cells_to_remove[group["center"] as Vector2i] = true
 		var removed_cells: Array[Vector2i] = []
 		for cell in cells_to_remove.keys():
@@ -95,6 +131,7 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 			"scores": scores,
 			"cascade_level": cascade_level,
 			"total_earned": earned,
+			"combo_bonus": combo_bonus,
 		})
 
 		# Supprimer les jetons
@@ -154,12 +191,14 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		var base_value: int = 0
 		var scored_cells: Array = []
 
+		var rock_roll: int = -1
 		if rule == &"rock":
 			var center: Vector2i = group["center"] as Vector2i
 			var center_token: TokenData = grid[center.x][center.y] as TokenData
 			if center_token == null or not center_token.is_scorable():
 				return 0
-			base_value = center_token.value
+			rock_roll = randi_range(GameRules.DIAMOND_ROCK_ROLL_MIN, GameRules.DIAMOND_ROCK_ROLL_MAX)
+			base_value = center_token.value + rock_roll
 			scored_cells = [center]
 		else:
 			for cell in group["cells"]:
@@ -175,6 +214,8 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		# noye dans le MULTI generique. Le score reel l'inclut toujours.
 		var diamond_base_mult: float = tag_mult * diamond_mod_mult * level_mult
 		_attach_breakdown(group, context, base_value, diamond_base_mult, rule_mult, global_mult, diamond_value_bonus_mult, rule, scored_cells, grid)
+		if rock_roll >= 0:
+			(group["score_breakdown"] as Dictionary)["roll"] = rock_roll
 		return int(base_value * tag_mult * cascade_mult * diamond_mod_mult * rule_mult * level_mult * global_mult * diamond_value_bonus_mult)
 
 	var value_sum: int = 0
@@ -200,16 +241,19 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	return int(value_sum * shape_mult * cascade_mult * mod_mult * rule_mult * level_mult * global_mult * value_bonus_mult)
 
 
-## Chaque cellule modifiee dans la liste multiplie le total par son coefficient (cumulatif).
+## Chaque cellule modifiee dans la liste multiplie le total par son coefficient
+## (cumulatif). Une meme case peut porter plusieurs types empiles (ex: Tranchee
+## + Bord a Bord, ou Cellule Triple par-dessus un badge colonne) : tous ses
+## types se multiplient entre eux plutot que de s'ecraser.
 func _modifier_multiplier(cells: Array, grid_modifiers: Dictionary) -> float:
 	if grid_modifiers.is_empty():
 		return 1.0
 	var mult: float = 1.0
 	for cell in cells:
 		var key: Vector2i = cell as Vector2i
-		var type: StringName = grid_modifiers.get(key, &"") as StringName
-		if type != &"":
-			mult *= GameRules.get_modifier_multiplier(type)
+		var types: Array = grid_modifiers.get(key, []) as Array
+		for type in types:
+			mult *= GameRules.get_modifier_multiplier(type as StringName)
 	return mult
 
 
