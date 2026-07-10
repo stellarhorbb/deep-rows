@@ -2,7 +2,7 @@
 
 Les **outils** — coups d'éclat qu'on achète au shop et qu'on joue au bon moment.
 
-**Usage unique : le jeton est joué, puis consommé à la manche suivante** (one-shot). Le joueur peut en acheter 2-3 pour une manche qu'il sent chaude — ils sont volontairement peu chers et jetables.
+**Usage unique à l'utilisation, achat persistant tant qu'il n'est pas joué** (session 15). Un spécial acheté reste dans le deck manche après manche jusqu'à être réellement posé sur la grille — il n'est jamais reperdu "gratuitement" à la fin d'une manche où le joueur ne l'a pas utilisé. La seule façon d'en obtenir un autre est d'en racheter au shop. Le joueur peut en acheter 2-3 pour une manche qu'il sent chaude — ils sont volontairement peu chers et jetables.
 
 ## Principes
 

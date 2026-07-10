@@ -64,9 +64,12 @@ Exemple : le Badge "Famille Unie" pose `family → 2.0` → tous les patterns de
 
 `RunContext.value_bonus_multipliers: Dictionary` (int valeur → float bonus). Chaque jeton scorable de cette valeur présent dans la figure qui score ajoute ce bonus au multiplicateur — additif entre jetons, pas multiplicatif (2 jetons à +0.5 donnent x2.0, pas x2.25). Alimenté par les Badges au `round_start` (ex : Petites Mains pose `1 → 0.5`).
 
-## Chevauchement de figures (session 13)
+## Chevauchement de figures — Double Partition (session 13, révisé session 15)
 
-Deux groupes différents peuvent matcher sur des cellules qui se recouvrent (voir [Catalogue implémenté](catalogue-implemente.md) pour le détail et [Décisions tranchées](../meta/decisions-tranchees.md) pour le raisonnement). `CascadeResolver.resolve` calcule le score de tous les groupes candidats, les trie par score décroissant, et n'accepte un groupe que si son nombre de cellules déjà revendiquées ne dépasse pas `GameRules.PATTERN_SHARED_CELL_TOLERANCE`.
+Deux groupes différents peuvent matcher sur des cellules qui se recouvrent (voir [Catalogue implémenté](catalogue-implemente.md) pour le détail et [Décisions tranchées](../meta/decisions-tranchees.md) pour le raisonnement). `CascadeResolver.resolve` calcule le score de tous les groupes candidats, les trie par score décroissant, puis compare chaque candidat à l'ensemble de cellules de chaque groupe déjà retenu :
+
+- **Inclusion totale** (dans un sens ou l'autre — ex : T entièrement contenu dans Plus, mêmes jetons) → simple doublon, seule la mieux payée compte.
+- **Chevauchement partiel** (au moins une cellule commune, aucune inclusion totale — ex : Square Rainbow et Brelan qui convergent sur le jeton qu'on vient de poser sans que l'un ne contienne l'autre) → **Double Partition** : les deux scorent, et leur total combiné est multiplié par `GameRules.PATTERN_COMBO_MULTIPLIER` (x2 actuellement). Bannière dédiée dans `ResolutionBanner.play_combo_announcement`, jouée après le détail des deux groupes.
 
 ## Formule complète
 

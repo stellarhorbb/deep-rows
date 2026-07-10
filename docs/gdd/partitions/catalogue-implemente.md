@@ -10,7 +10,7 @@ Les labels affichés en jeu ne montrent plus "FAMILY" (redondant, quasi tout le 
 | Line 3 | Ligne | Famille | 3 | any | direction | 6 |
 | Line 5 | Ligne | Famille | 5 | any | direction | 10 |
 | Square 4 | Carré 2×2 | Famille | 4 | — | ×2 fixe | 8 |
-| Diamond Rock | Losange | 4 rocks autour d'un centre scorable | 4 | — | ×4 fixe (sur le centre) | 12 |
+| Diamond Rock | Losange | 4 rocks autour d'un centre scorable | 4 | — | ×4 fixe (sur centre + roll casino 1-5) | 12 |
 | Diamond | Losange | 4 jetons même famille, centre indifférent | 4 | — | ×2.5 fixe (somme des 4) | 10 |
 | Plus | Croix orthogonale | Famille (centre inclus) | 5 | any | ×3 fixe | 10 |
 | Cross | Croix diagonale | Famille (centre inclus) | 5 | any | ×3 fixe | 12 |
@@ -34,13 +34,11 @@ Détection dans `PatternMatcher` :
 - **Fibonacci** — cible fixe `GameRules.FIBONACCI_SEQUENCE` (1,1,2,3), nouvelle fonction dédiée `find_fibonacci` (fenêtre fixe, matche la cible dans un sens ou l'autre le long de l'axe).
 - Le Badge Numérologie (`rule == "value"` ×2) reste hors catalogue actif mais boosterait déjà Brelan/Carré sans changement — non réactivé pour l'instant, à décider séparément.
 
-## Chevauchement de figures (session 13)
+## Chevauchement de figures — Double Partition (session 13, révisé session 15)
 
-## Chevauchement de figures (session 13)
-
-Deux Tags différents peuvent matcher des groupes qui se recouvrent (ex : un Plus complet contient toujours un T valide sur 4 de ses 5 cellules). `CascadeResolver.resolve` trie les groupes candidats par score décroissant et n'accepte un groupe que si le nombre de ses cellules déjà revendiquées par un groupe mieux payé ne dépasse pas `GameRules.PATTERN_SHARED_CELL_TOLERANCE` (1 actuellement) :
-- **1 cellule commune** (typiquement le jeton qui vient d'être posé, point de convergence de deux figures distinctes) → les deux scorent, combo délibéré récompensé
-- **2+ cellules communes** (une figure contient largement une autre, ex Plus ⊃ T, Ligne 4 ⊃ Ligne 3) → seule la mieux payée compte
+Deux Tags différents peuvent matcher des groupes qui se recouvrent (ex : un Plus complet contient toujours un T valide sur 4 de ses 5 cellules). `CascadeResolver.resolve` trie les groupes candidats par score décroissant et compare chaque candidat à l'ensemble de cellules de chaque groupe déjà retenu :
+- **Inclusion totale** (une figure contient entièrement une autre, mêmes jetons, ex Plus ⊃ T, Ligne 4 ⊃ Ligne 3) → seule la mieux payée compte
+- **Chevauchement partiel** (au moins 1 cellule commune, aucune inclusion totale — typiquement le jeton qui vient d'être posé, point de convergence de deux figures distinctes) → **Double Partition** : les deux scorent, total combiné x`GameRules.PATTERN_COMBO_MULTIPLIER` (2 actuellement), bannière dédiée
 
 Voir [Décisions tranchées](../meta/decisions-tranchees.md) pour le raisonnement complet, y compris pourquoi certaines paires de Partitions (T + Plus, Ligne 3 + Ligne 4...) restent volontairement anti-synergiques par construction — au joueur de gérer via la vente.
 

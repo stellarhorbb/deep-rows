@@ -14,7 +14,7 @@ cascades x2 par niveau
 tu as un stream de jetons + 1 slot de hold, pas de défausse, un seul passage dans le deck
 30 boutons + 4 rocks (scaffold, explosent en fin de manche) + spéciaux achetés
 
-spéciaux = outils one-shot (bombe, fantôme, marée), consommés à la manche suivante
+spéciaux = outils one-shot (bombe, fantôme, marée), achat persistant tant qu'ils sont pas joués
 t'en achètes 2-3 pour une manche chaude
 
 badges = passifs permanents (5 slots max)
