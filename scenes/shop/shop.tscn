@@ -141,7 +141,7 @@ theme_override_constants/separation = 16
 
 [node name="Title" type="Label" parent="FusionPanel/Box/VBox" unique_id=1000000015]
 layout_mode = 2
-text = "FUSION DE BOUTONS — choisis 2 boutons"
+text = "DÉS À COUDRE — sélectionne 1 ou 2 boutons puis une action"
 horizontal_alignment = 1
 
 [node name="CandidatesContainer" type="GridContainer" parent="FusionPanel/Box/VBox" unique_id=1000000016]
@@ -150,9 +150,10 @@ theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 5
 
-[node name="ConfirmButton" type="Button" parent="FusionPanel/Box/VBox" unique_id=1000000017]
+[node name="ActionsContainer" type="HBoxContainer" parent="FusionPanel/Box/VBox" unique_id=1000000019]
 layout_mode = 2
-text = "FUSIONNER"
+theme_override_constants/separation = 12
+alignment = 1
 
 [node name="CloseButton" type="Button" parent="FusionPanel/Box/VBox" unique_id=1000000018]
 layout_mode = 2

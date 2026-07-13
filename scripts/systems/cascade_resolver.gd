@@ -162,8 +162,7 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 
 
 ## Calcule le score d'un groupe.
-## Lines : multiplicateur = direction du match (v=x1, h=x1.5, d=x2).
-## Autres formes : multiplicateur fixe defini sur le tag.
+## Toutes les formes (lignes comprises) : multiplicateur fixe defini sur le tag.
 ## Cellules modifiees : chaque cellule concernee multiplie le total par son coef (HALF/BOOST/DOUBLE/TRIPLE).
 ## rule_multipliers : multiplicateur applique selon la rule du pattern (ex: "family" x2 via badge).
 ## tag_level_multipliers : multiplicateur selon le niveau de la Partition qui a matche (level up).
@@ -224,14 +223,9 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		if token != null and token.is_scorable():
 			value_sum += token.value
 
-	var shape_mult: float
-	if group["shape"] == &"line":
-		# Les lignes sont recompensees selon leur direction de resolution
-		var dir: StringName = group.get("direction", &"vertical") as StringName
-		shape_mult = GameRules.get_direction_multiplier(dir)
-	else:
-		# Carres et autres : multiplicateur fixe du tag
-		shape_mult = group.get("score_multiplier", 1.0) as float
+	# Multiplicateur fixe du tag, meme regle pour toutes les formes (les lignes
+	# ne sont plus recompensees selon leur direction de resolution, session 16).
+	var shape_mult: float = group.get("score_multiplier", 1.0) as float
 
 	var mod_mult: float = _modifier_multiplier(group["cells"], grid_modifiers)
 	var value_bonus_mult: float = _value_bonus_multiplier(group["cells"], grid, value_bonus_multipliers)

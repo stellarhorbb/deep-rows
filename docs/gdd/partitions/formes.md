@@ -6,7 +6,7 @@ Sept primitives au total (session 13 : Plus, Cross, Ring et T ont rejoint Ligne/
 
 Horizontale, verticale, ou diagonale (montante / descendante). Les jetons doivent être exactement alignés sur un axe, **sans trou**.
 
-Pas de direction imposée par défaut : une Partition "Ligne famille" accepte les 4 axes, et depuis la session 16 la direction n'influence plus le score — chaque Partition ligne a un multiplicateur fixe comme les autres formes (voir [Scoring](scoring.md), décidé mais pas encore implémenté). Certaines Partitions exigent tout de même une direction spécifique pour matcher (ex : "Ligne Chiffre 4 Horizontale" ne score que sur l'axe horizontal) — ça reste une contrainte de détection, indépendante du multiplicateur.
+Pas de direction imposée par défaut : une Partition "Ligne famille" accepte les 4 axes, et depuis la session 16 la direction n'influence plus le score — chaque Partition ligne a un multiplicateur fixe comme les autres formes (voir [Scoring](scoring.md)). Certaines Partitions exigent tout de même une direction spécifique pour matcher (ex : "Ligne Chiffre 4 Horizontale" ne score que sur l'axe horizontal) — ça reste une contrainte de détection, indépendante du multiplicateur.
 
 ## Carré 2×2
 

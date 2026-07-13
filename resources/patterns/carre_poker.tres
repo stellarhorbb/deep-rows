@@ -9,6 +9,6 @@ shape = &"line"
 rule = &"value"
 min_size = 4
 direction = &"any"
-score_multiplier = 1.5
+score_multiplier = 2.5
 label = "CARRÉ"
 price = 8

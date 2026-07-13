@@ -41,6 +41,7 @@ func _create_sell_buttons() -> void:
 		var btn: Button = Button.new()
 		btn.text = "VENDRE"
 		btn.visible = false
+		btn.focus_mode = Control.FOCUS_NONE
 		btn.pressed.connect(_on_sell_pressed.bind(i))
 		add_child(btn)
 		_sell_buttons.append(btn)

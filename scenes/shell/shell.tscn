@@ -43,6 +43,7 @@ offset_left = 1780.0
 offset_top = 990.0
 offset_right = 1890.0
 offset_bottom = 1050.0
+focus_mode = 0
 text = "DECK"
 
 [node name="DeckInspectorUI" type="Control" parent="."]
@@ -74,4 +75,5 @@ autowrap_mode = 2
 
 [node name="CloseButton" type="Button" parent="DeckInspectorUI/Box/VBox"]
 layout_mode = 2
+focus_mode = 0
 text = "FERMER"

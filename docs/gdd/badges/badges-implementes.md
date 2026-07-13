@@ -1,6 +1,6 @@
 # Badges implémentés
 
-**15 Badges actifs** dans le proto (4 batchs). Couvrent les 5 triggers (session 13 : `on_token_drop` a eu son premier consommateur, Dernier Carré).
+**15 Badges actifs** dans le proto (4 batchs). Couvrent les 6 triggers (session 13 : `on_token_drop` a eu son premier consommateur, Dernier Carré ; session 16 : `on_round_end` ajouté, premier consommateur Pourboire, voir [Monnaies](../progression/monnaies.md)).
 
 | Badge                  | Trigger            | Effet                                                                                                           | Rareté   |
 | ---------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------- | -------- |
@@ -10,9 +10,9 @@
 | **Famille Unie**       | `on_round_start`   | Les patterns de rule `family` scorent ×2                                                                        | Uncommon |
 | **Cellule Double**     | `on_round_start`   | Ajoute une cellule DOUBLE aléatoire chaque manche                                                               | Common   |
 | **Écume**              | `on_round_start`   | Toute la rangée du bas passe en BOOST (×1.5)                                                                    | Uncommon |
-| **Pourboire**          | `on_round_start`   | +5 mouches fixes en début de manche                                                                             | Common   |
+| **Pourboire**          | `on_round_end`     | +3 mouches fixes en fin de manche, visible sur l'écran YouWinUI (session 16, était `on_round_start`)             | Common   |
 | **Collectionneur**     | `on_round_start`   | Les patterns de rule `rock` scorent ×2 (symétrique de Famille Unie, pour Diamond Rock)                          | Uncommon |
-| **Vertige**            | `on_turn_resolved` | +8 mouches si une cascade de profondeur 2+ se déclenche ce tour                                                 | Common   |
+| **Vertige**            | `on_turn_resolved` | +10 mouches si une cascade de profondeur **2+** se déclenche ce tour (session 16 : seuil et valeur remontés depuis 1+/+5)                                                 | Common   |
 | **Colonne Chanceuse**  | `on_round_start`   | Une colonne aléatoire entière passe en BOOST (×1.5)                                                             | Common   |
 | **Bord à Bord**        | `on_round_start`   | Les 2 colonnes extérieures passent en BOOST (×1.5) — symétrique de Tranchée                                     | Rare     |
 | **Un Pour Tous**       | `on_turn_resolved` | +2 mouches la 1ère fois qu'une famille donnée score, une fois par manche                                        | Common   |

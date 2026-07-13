@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="DeckToolData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/deck_tool_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"split"
+label = "SCINDER"
+description = "1 jeton de valeur paire devient 2 jetons de moitié valeur (ex : 6 → 3+3). Uniquement sur les valeurs paires."
+rarity = 1
+action = 3

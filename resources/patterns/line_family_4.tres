@@ -9,6 +9,6 @@ shape = &"line"
 rule = &"family"
 min_size = 4
 direction = &"any"
-score_multiplier = 1.0
+score_multiplier = 2.0
 label = "LINE 4"
 price = 6

@@ -33,7 +33,7 @@ Le registre des décisions de design qui ne sont plus à rediscuter, sauf à l'e
 | [Level up Partitions](../partitions/level-up.md) | **Pianissimo → Piano → Forte → Fortissimo → Maestro**, puis des "dan" sans plafond au-delà de Maestro (session 16, formule des incréments pas encore tranchée) | Cohérent avec grenouilles orchestre. Le plafond dur à Maestro payait mal un investissement proche du budget de score d'un run entier ; les dan donnent une vraie destination au [mode infini](../progression/structure-run.md#mode-infini) |
 | Minimum pour scorer | 3 connectés | Les paires sont trop faciles |
 | Slots de Partitions | 4 max | Force à choisir quoi résoudre |
-| [Scoring lignes](../partitions/scoring.md) | **Révisé session 16** : multiplicateur fixe par Partition (décidé, pas encore implémenté), remplace l'ancien multi par direction (v=x1, h=x1.5, d=x2) | L'axe directionnel en plus de cascade/modifiers/rule/level up/global/value bonus rendait la formule illisible et compliquait le balancing (calibrer un mult sur 3 valeurs au lieu d'une) |
+| [Scoring lignes](../partitions/scoring.md) | **Révisé session 16** : multiplicateur fixe par Partition (implémenté, `cascade_resolver.gd` + `.tres`), remplace l'ancien multi par direction (v=x1, h=x1.5, d=x2) | L'axe directionnel en plus de cascade/modifiers/rule/level up/global/value bonus rendait la formule illisible et compliquait le balancing (calibrer un mult sur 3 valeurs au lieu d'une) |
 | [Scoring autres formes](../partitions/scoring.md) | Multi fixe sur la Partition | Chaque forme a son ratio risque/récompense |
 | [Modifiers de cellules](../grille/modifiers-cellules.md) | 4 types (HALF, BOOST, DOUBLE, TRIPLE), plusieurs sources prévues | Couche séparée, extensible. HOB-11 pour l'override |
 | Jeton scorant plusieurs Partitions | **Oui**, un même jeton peut valider plusieurs formes simultanément | Encourage les placements malins, cœur du plaisir |
@@ -61,6 +61,8 @@ Le registre des décisions de design qui ne sont plus à rediscuter, sauf à l'e
 | [Fusion de boutons](../jetons/boutons.md) | 2 boutons, famille libre → 1 ; valeur = somme (**plafonnée à 10**), famille = random entre les deux entrées | Levier "slim" opposé à l'achat ; le plafond évite la fuite en avant maintenant que la valeur est un pur levier de score |
 | [Sélection de fusion](../jetons/boutons.md) | Tirage random de 8-10 boutons du pool, pas accès libre à tout le deck | Cohérent avec le shop RNG-forward ; évite que la fusion devienne un calcul d'optimisation |
 | [Accès à la fusion](../jetons/boutons.md) | **Gaté** derrière l'achat d'un item "Dés à coudre", une fusion par achat | Sans plafond, la fusion était trop facile à spammer pour gonfler les chiffres sans limite |
+| [Outils de deck (session 16)](../jetons/boutons.md) | Le Dés à coudre généralise la Fusion en 9 actions pondérées par rareté (Augmenter/Réduire, 4× Changer de famille, Scinder, Fusionner, Suppression) — 3 tirées, actions et 8 cibles affichées ensemble, sélectionner des boutons active/désactive les actions, cliquer une action l'applique direct | Comble un trou repéré en remplissant la Sheet des Badges (rien ne touchait au deck/aux jetons) ; voir [Brainstorm](../../brainstorms/brainstorm-outils-deck.md) |
+| [Suppression et Scinder (session 16)](../jetons/boutons.md) | Suppression = Rare (le plus fort, vu le sans-reshuffle qui améliore les probas de tout le tirage restant). Scinder = uniquement les valeurs paires, split exact moitié-moitié | Suppression casse la logique "no RNG punitif" dans l'autre sens (avantage le joueur au lieu de le pénaliser), d'où sa rareté ; Scinder pair-only évite une répartition arbitraire sur les valeurs impaires |
 | [Inspecteur de deck](../manche/inspecteur-deck.md) | Comptes agrégés visibles, ordre de tirage caché | Le seul-passage-sans-reshuffle serait punitif sans lui ; révéler l'ordre tuerait la tension du stream |
 
 ## Badges
@@ -72,6 +74,7 @@ Le registre des décisions de design qui ne sont plus à rediscuter, sauf à l'e
 | [Archi](../badges/principe.md) | Option B — un script par badge | Extensible sans toucher au core |
 | [État persistant des Badges](../badges/triggers.md) | `RunManager.get_badge_state`/`set_badge_state` (clé libre par badge, reset chaque manche) | Débloque les Badges à compteur (Régularité, Un Pour Tous) malgré `BadgeEffect` instancié à neuf à chaque dispatch |
 | [Indicateur de progression](../badges/badges-implementes.md) | `BadgeEffect.get_progress_text()`, virtuelle, affichée au survol dans `BadgesUI` | Un Badge à compteur illisible sans savoir où on en est |
+| [Trigger `on_round_end` (session 16)](../badges/triggers.md) | Nouveau 6e trigger, branché sur `TurnController.round_won`. `BadgeManager._dispatch` retourne le detail des mouches ajoutées par badge (diff avant/après chaque effet) | Premier consommateur : Pourboire, deplacé de `on_round_start` pour apparaître sur l'écran de récompense de fin de manche (YouWinUI) plutôt qu'en silence au début |
 
 ## Shop
 

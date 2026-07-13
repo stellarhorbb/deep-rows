@@ -44,9 +44,7 @@ func describe() -> String:
 	if rule_desc != "":
 		text += ", " + rule_desc
 
-	if shape == &"line":
-		text += "\nMulti direction : v x1 / h x1.5 / d x2"
-	elif score_multiplier > 1.0:
+	if score_multiplier > 1.0:
 		text += "\nMultiplicateur fixe x%.1f" % score_multiplier
 
 	return text

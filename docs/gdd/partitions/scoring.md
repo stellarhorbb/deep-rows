@@ -4,11 +4,9 @@
 
 ## Multiplicateur fixe par Partition (révisé session 16)
 
-**Décidé, pas encore implémenté** : chaque Partition — lignes comprises — a désormais un **multiplicateur fixe défini sur sa resource `.tres`**, calibré selon la difficulté de placement de sa figure (taille, contrainte de la règle, complexité géométrique sous gravité), peu importe la direction dans laquelle elle se résout. Voir [Catalogue implémenté](catalogue-implemente.md) pour le tableau de tiers et les valeurs cibles.
+Chaque Partition — lignes comprises — a un **multiplicateur fixe défini sur sa resource `.tres`**, calibré selon la difficulté de placement de sa figure (taille, contrainte de la règle, complexité géométrique sous gravité), peu importe la direction dans laquelle elle se résout. Voir [Catalogue implémenté](catalogue-implemente.md) pour le tableau de tiers et les valeurs.
 
-Ancien système (encore actif dans le code aujourd'hui, à remplacer) : pour les lignes, c'était **la direction du match** qui déterminait le multiplicateur (Verticale x1, Horizontale x1.5, Diagonale x2), pas la longueur — abandonné car cet axe supplémentaire rendait la formule illisible une fois combiné à tous les autres multiplicateurs, et parce que les rainbows/Fibonacci se sont révélés moins durs à l'usage que prévu, indépendamment de leur direction de résolution.
-
-Carrés, losanges et toutes les autres formes gardent le même principe qu'avant : un multiplicateur défini dans leur resource `.tres`.
+Ancien système (retiré session 16) : pour les lignes, c'était **la direction du match** qui déterminait le multiplicateur (Verticale x1, Horizontale x1.5, Diagonale x2), pas la longueur — abandonné car cet axe supplémentaire rendait la formule illisible une fois combiné à tous les autres multiplicateurs, et parce que les rainbows/Fibonacci se sont révélés moins durs à l'usage que prévu, indépendamment de leur direction de résolution.
 
 ### Losange — deux bases de score différentes (session 12)
 

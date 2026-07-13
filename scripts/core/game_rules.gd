@@ -15,11 +15,6 @@ const MIN_MATCH_SIZE: int = 3
 # jetons), ce n'est pas un combo : seule la mieux payee compte, comme avant.
 const PATTERN_COMBO_MULTIPLIER: float = 2.0
 
-# Multiplicateurs de direction (lignes uniquement)
-const LINE_MULT_VERTICAL: float = 1.0
-const LINE_MULT_HORIZONTAL: float = 1.5
-const LINE_MULT_DIAGONAL: float = 2.0
-
 # Cascade — x2 par niveau (pow(2, cascade_level))
 const CASCADE_MULTIPLIER_BASE: float = 2.0
 
@@ -58,9 +53,25 @@ const MAX_BADGE_SLOTS: int = 5
 # Recompense par manche gagnee (fixe pour l'instant)
 const FLIES_PER_ROUND_WON: int = 10
 
+# Bonus de mouches en fin de manche selon les jetons restants dans le deck au
+# moment de la victoire. Palier exclusif (pas cumulatif) : seul le palier le
+# plus haut atteint s'applique.
+const FLIES_BONUS_HIGH_REMAINING: int = 20
+const FLIES_BONUS_HIGH: int = 5
+const FLIES_BONUS_LOW_REMAINING: int = 10
+const FLIES_BONUS_LOW: int = 2
+
 # Delai avant transition en fin de manche (shop / victoire / defaite) pour
 # laisser le temps d'integrer le dernier coup.
 const ROUND_END_DELAY: float = 2.0
+
+
+static func get_round_end_flies_bonus(remaining: int) -> int:
+	if remaining >= FLIES_BONUS_HIGH_REMAINING:
+		return FLIES_BONUS_HIGH
+	if remaining >= FLIES_BONUS_LOW_REMAINING:
+		return FLIES_BONUS_LOW
+	return 0
 
 # Modificateurs de cellules
 # Cle stockee dans le dict grid_modifiers : Vector2i -> Array[StringName]
@@ -151,11 +162,17 @@ const PACK_PRICE_BUTTON: int = 4
 # Shop — boutons a l'unite
 const BUTTON_UNIT_PRICE: int = 3
 
-# Fusion — desormais gatee derriere l'achat d'un "Des a coudre" (slot au meme
-# titre que les autres categories), une seule fusion autorisee par achat.
-# Remplace l'ancien FUSION_PRICE (bouton permanent, spammable).
+# Outils de deck ("Des a coudre") — generalise l'ancienne Fusion seule
+# (session 16, voir docs/brainstorms/brainstorm-outils-deck.md). Gate derriere
+# l'achat d'un "Des a coudre" (slot au meme titre que les autres categories) :
+# un achat = tirage de DECK_TOOL_ACTION_DRAW_SIZE actions distinctes ponderees
+# par rarete (GameRules.RARITY_WEIGHTS), le joueur en choisit 1, puis cible
+# DECK_TOOL_TARGET_DRAW_SIZE boutons tires du pool (meme principe RNG-forward
+# que l'ancienne selection de fusion). Remplace l'ancien FUSION_PRICE (bouton
+# permanent, spammable).
 const DES_A_COUDRE_PRICE: int = 6
-const FUSION_DRAW_SIZE: int = 8
+const DECK_TOOL_ACTION_DRAW_SIZE: int = 3
+const DECK_TOOL_TARGET_DRAW_SIZE: int = 8
 
 # Shop — reroll (prix croissant, reset a chaque nouvelle visite)
 const REROLL_BASE_PRICE: int = 2
@@ -200,13 +217,6 @@ static func get_previous_pattern_threshold(level: int) -> int:
 	if level <= 1:
 		return 0
 	return PATTERN_LEVEL_THRESHOLDS[level - 2]
-
-
-static func get_direction_multiplier(direction: StringName) -> float:
-	match direction:
-		&"horizontal": return LINE_MULT_HORIZONTAL
-		&"diagonal":   return LINE_MULT_DIAGONAL
-		_:             return LINE_MULT_VERTICAL  # vertical ou non specifie
 
 
 static func get_modifier_multiplier(type: StringName) -> float:

@@ -1,7 +1,7 @@
-# Session 16 — Google Sheet, refonte du mult des Partitions, structure du run (biomes/boss/mode infini)
+# Session 16 — Google Sheet, refonte du mult des Partitions, structure du run, implémentation (you-win, Vertige/Pourboire, outils de deck)
 
 **Date** : 2026-07-13
-**Thème** : Le user a rempli la Google Sheet (Partitions + Badges), ce qui a lancé une discussion de balancing (Vertige, Pourboire) puis une refonte du scoring des Partitions, puis un gros chantier de design sur la structure du run (biomes, boss, mode infini). Session très orientée discussion/GDD, aucun code touché.
+**Thème** : Grosse session en deux temps. D'abord discussion/GDD pure (Sheet, balancing, refonte du mult des Partitions, structure du run biomes/boss/mode infini) — voir sections ci-dessous, commitée en premier. Puis implémentation concrète : le mult des Partitions en code, l'écran de récompense "you win", Vertige/Pourboire, et un gros chantier de généralisation de la Fusion en rubrique d'outils de deck ("Dés à coudre"). Plus deux bugs trouvés et corrigés en testant.
 
 ---
 
@@ -51,6 +51,44 @@ Douze fichiers touchés : `scoring.md`, `catalogue-implemente.md`, `formes.md`, 
 
 Rien touché côté code/`.tres` — tout ce chantier reste au stade GDD, l'implémentation est la prochaine étape.
 
+## Implémentation de la refonte du mult des Partitions
+
+`cascade_resolver.gd` unifié : `shape_mult` vient désormais uniquement de `score_multiplier` du tag, pour toutes les formes (plus de branche direction pour les lignes). Code mort retiré (`GameRules.get_direction_multiplier`, `LINE_MULT_*`). 8 `.tres` mis à jour avec les nouvelles valeurs de tier.
+
+**Vérification post-implémentation contre la Sheet** (bon réflexe suggéré par le user) : deux vraies divergences trouvées entre ce qu'on avait discuté en chat et ce que le user avait effectivement tapé dans la Sheet — Carré (poker) à 2.5 pas 2.0, Diamond Rainbow à 2.5 pas 2.0 (tier "pas encore tranché" qu'on avait laissé ouvert). Corrigées dans le code et les docs. Diagnostic au passage : certaines valeurs de la Sheet s'affichaient comme des dates (`1,5` lu comme "1 mai") à cause d'un souci de formatage de cellule Google Sheets, pas une erreur du user.
+
+Deux bugs UI remontés en même temps par `pattern_data.gd`/`tags_ui.gd` : le tooltip et le label en jeu affichaient encore l'ancien "Multi direction : v x1/h x1.5/d x2" pour toutes les lignes peu importe leur vraie valeur — corrigés pour afficher le mult fixe comme les autres formes.
+
+## Vertige et Pourboire
+
+- **Vertige** (`effect_vertige.gd`) : seuil `cascade_level >= 1` → `>= 2`, valeur 5 → 10.
+- **Pourboire** : nouveau trigger `on_round_end` ajouté (`badge_data.gd`, `badge_manager.gd` — `_dispatch` retourne maintenant `{label_badge: mouches}` par diff avant/après chaque effet). `badge_pourboire.tres` basculé sur ce trigger, même valeur (+3).
+
+## Écran "you win" (YouWinUI)
+
+Nouveau `scripts/ui/you_win_ui.gd` + noeuds dans `game.tscn`, même principe d'overlay que `ResolutionBanner` (le layout de jeu reste visible derrière). Décompose base (10) + bonus jetons restants (palier exclusif : ≥20 restants = +5, ≥10 = +2, `GameRules.get_round_end_flies_bonus`) + bonus badges `on_round_end`, bouton ENCAISSER qui débloque la suite vers le shop.
+
+Détail demandé par le user : le compteur de mouches affiché en haut à droite ne doit visuellement bouger qu'au clic sur ENCAISSER, pas avant (pour ne pas spoiler le total pendant que le détail s'affiche) — la mutation réelle des mouches reste immédiate (source de vérité simple), seule l'écoute du signal `flies_changed` est suspendue puis resynchronisée manuellement au clic.
+
+## Outils de deck — généralisation de la Fusion ("Dés à coudre")
+
+Parti d'un constat en lisant la Sheet des Badges : trois rubriques existent (économie/grille/multi) mais rien ne touche au deck/aux jetons. Généralisation de la Fusion en 9 actions pondérées par rareté, façon Tarot Balatro — voir [brainstorm-outils-deck.md](../brainstorms/brainstorm-outils-deck.md) pour la genèse complète et le raisonnement détaillé (pourquoi maintenant malgré peu de Badges deck-aware, pourquoi Suppression est Rare, pourquoi Scinder est pair-only, pourquoi le prix reste unique par paquet).
+
+Pool final : Augmenter/Réduire (+1/-1, Common), Changer vers Coral/Shell/Rust/Ink (4 actions distinctes, Common), Scinder et Fusionner (Uncommon — Fusion nerfée : n'est plus garantie par achat), Suppression (Rare). Duplication et jeton arc-en-ciel mis de côté (tier Epic vide).
+
+Implémenté : `scripts/data/deck_tool_data.gd`, 9 `.tres` dans `resources/deck_tools/`, `RunManager` (5 nouvelles méthodes de manipulation du pool), `ShopManager` (chargement du pool, tirage pondéré), `ShopUI`.
+
+**Itération UX en cours de test** : premier jet en 2 écrans (choisir l'action, puis voir les cibles). Le user a fait remarquer après un 1er test que voir cibles et actions en même temps guide le choix et évite de choisir une action sans cible valide dans le tirage — refondu en un seul panneau : candidats et actions affichés ensemble, sélectionner des boutons active/désactive les actions selon leur validité, cliquer une action activée l'applique direct (plus de confirmation séparée).
+
+## Bugs trouvés en testant
+
+- **Crash à l'achat du Dés à coudre** : `_tool_choices` typé `Array[DeckToolData]` alors que `draw_deck_tool_choices()` retourne un `Array` générique (même piège potentiel que partout ailleurs où `_weighted_sample` est utilisé, mais les autres call sites utilisaient déjà un `Array` non typé côté appelant). Corrigé + nettoyage de 3 warnings au passage (division entière, UID manquant, paramètre inutilisé préexistant).
+- **Touche Tab plus accessible en jeu pour le deck inspector** : pas causé par cette session — remonte à l'introduction du Shell UI persistant (session antérieure). Root cause : Godot, quand rien n'a le focus, donne le focus clavier au premier contrôle "focusable" trouvé dans la scène dès qu'on appuie sur Tab, avant que l'evenement atteigne `_unhandled_input`. Les boutons VENDRE persistants de `TagsUI`/`BadgesUI` (créés une fois, visibles dès qu'une Partition/Badge est équipée — donc quasi tout de suite) et `DeckButton` dans `shell.tscn` étaient tous focusables par défaut. Fix : `focus_mode = 0` sur les quatre (DeckButton, DeckInspectorUI/CloseButton, sell buttons de TagsUI et BadgesUI) — le clic souris reste inchangé, mais plus aucun ne vole le focus clavier.
+
+## GDD mis à jour (2e passe, post-implémentation)
+
+`badges-implementes.md` (Vertige/Pourboire, 6e trigger), `boutons.md` (section Fusion réécrite en outils de deck), `monnaies.md` (nouvelles sources de mouches + YouWinUI), `decisions-tranchees.md` (outils de deck, trigger `on_round_end`), `questions-ouvertes.md` (outils de deck marqués implémentés), `brainstorm-outils-deck.md` (statut implémenté + révision UX documentée).
+
 ## Prochaine étape
 
-Dans l'ordre convenu avec le user : commit de cette session, puis implémentation de la refonte du mult des Partitions (code + `.tres`), puis Vertige/Pourboire (Pourboire nécessite le nouveau trigger `on_round_end` et l'écran "you win").
+Le user continue à jouer/tester. Rien de spécifique convenu pour la prochaine session — probablement plus de contenu (Badges/Partitions) ou reprise du chantier biome/boss selon l'envie du user.

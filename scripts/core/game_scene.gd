@@ -11,6 +11,7 @@ extends Node2D
 @onready var message_display: MessageDisplay = $MessageDisplay
 @onready var input_handler: InputHandler = $InputHandler
 @onready var resolution_banner: ResolutionBanner = $ResolutionBanner
+@onready var you_win_ui: YouWinUI = $YouWinUI
 @onready var score_label: Label = $ScoreLabel
 @onready var target_label: Label = $TargetLabel
 @onready var zone_label: Label = $ZoneLabel
@@ -199,12 +200,24 @@ func _on_round_won(final_score: int, target: int) -> void:
 		SceneRouter.go_to_end_screen()
 		return
 
-	# Manche gagnee (hors derniere) : recompense + transition vers shop
-	RunService.run_manager.add_flies(GameRules.FLIES_PER_ROUND_WON)
+	# Manche gagnee (hors derniere) : recompense detaillee (base + bonus jetons
+	# restants + bonus badges on_round_end) puis transition vers le shop apres
+	# que le joueur ait clique "ENCAISSER" sur YouWinUI. Le compteur mouches
+	# (flies_label) ne doit visuellement bouger qu'a ce clic, pas avant — on
+	# suspend l'ecoute de flies_changed pendant que le detail s'affiche pour
+	# eviter de spoiler le total, puis on resynchronise l'affichage a la main.
+	var base_flies: int = GameRules.FLIES_PER_ROUND_WON
+	var token_bonus: int = GameRules.get_round_end_flies_bonus(deck_manager.get_remaining())
+
+	RunService.run_manager.flies_changed.disconnect(_on_flies_changed)
+	RunService.run_manager.add_flies(base_flies + token_bonus)
+	var badge_breakdown: Dictionary = RunService.badge_manager.dispatch_round_end()
+
 	RunService.game_flow = RunService.GameFlow.SHOPPING
-	message_display.show_message("YOU WIN", &"win")
-	await get_tree().create_timer(GameRules.ROUND_END_DELAY).timeout
-	message_display.clear_message()
+	await you_win_ui.show_reward(base_flies, token_bonus, badge_breakdown)
+
+	RunService.run_manager.flies_changed.connect(_on_flies_changed)
+	_on_flies_changed(RunService.run_manager.get_flies())
 	SceneRouter.go_to_shop()
 
 

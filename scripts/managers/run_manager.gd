@@ -347,9 +347,10 @@ func add_button(family: TokenData.Family, value: int) -> void:
 	button_pool_changed.emit()
 
 
-## Tire n candidats au hasard dans le pool pour la fusion, avec leur index
-## d'origine (necessaire pour fuse_buttons ensuite). Ne mute rien.
-func get_fusion_candidates(n: int) -> Array[Dictionary]:
+## Tire n candidats au hasard dans le pool pour un outil de deck (Fusion,
+## Augmenter, Scinder...), avec leur index d'origine (necessaire pour les
+## methodes de mutation ensuite). Ne mute rien.
+func get_deck_tool_candidates(n: int) -> Array[Dictionary]:
 	var indices: Array[int] = []
 	for i in range(_button_pool.size()):
 		indices.append(i)
@@ -362,7 +363,7 @@ func get_fusion_candidates(n: int) -> Array[Dictionary]:
 	return picked
 
 
-## Fusionne 2 boutons possedes (index dans le pool, cf. get_fusion_candidates).
+## Fusionne 2 boutons possedes (index dans le pool, cf. get_deck_tool_candidates).
 ## Valeur = somme des deux. Famille = tiree au hasard entre les deux entrees
 ## (donc deterministe si les deux boutons sont deja de la meme famille).
 func fuse_buttons(index_a: int, index_b: int) -> bool:
@@ -383,6 +384,73 @@ func fuse_buttons(index_a: int, index_b: int) -> bool:
 	_button_pool.remove_at(min(index_a, index_b))
 	_button_pool.append(TokenData.make_base(result_family, result_value))
 
+	button_pool_changed.emit()
+	return true
+
+
+## Augmenter : +1 sur la valeur d'un bouton possede (index dans le pool, cf.
+## get_deck_tool_candidates). Refuse si deja au plafond (GameRules.MAX_BUTTON_VALUE).
+func increase_button_value(index: int) -> bool:
+	if index < 0 or index >= _button_pool.size():
+		return false
+	var token: TokenData = _button_pool[index]
+	if token.value >= GameRules.MAX_BUTTON_VALUE:
+		return false
+	_button_pool[index] = TokenData.make_base(token.family, token.value + 1)
+	button_pool_changed.emit()
+	return true
+
+
+## Reduire : -1 sur la valeur d'un bouton possede. Refuse si deja au plancher
+## (GameRules.TOKEN_MIN_VALUE).
+func decrease_button_value(index: int) -> bool:
+	if index < 0 or index >= _button_pool.size():
+		return false
+	var token: TokenData = _button_pool[index]
+	if token.value <= GameRules.TOKEN_MIN_VALUE:
+		return false
+	_button_pool[index] = TokenData.make_base(token.family, token.value - 1)
+	button_pool_changed.emit()
+	return true
+
+
+## Changer de famille : recolore un bouton possede vers la famille donnee.
+## Refuse si le bouton est deja de cette famille (rien a faire).
+func change_button_family(index: int, family: TokenData.Family) -> bool:
+	if index < 0 or index >= _button_pool.size():
+		return false
+	var token: TokenData = _button_pool[index]
+	if token.family == family:
+		return false
+	_button_pool[index] = TokenData.make_base(family, token.value)
+	button_pool_changed.emit()
+	return true
+
+
+## Scinder : inverse de la Fusion, uniquement sur les valeurs paires. 1 bouton
+## -> 2 boutons de meme famille, valeur = moitie chacun (ex : 6 -> 3+3).
+func split_button(index: int) -> bool:
+	if index < 0 or index >= _button_pool.size():
+		return false
+	var token: TokenData = _button_pool[index]
+	if token.value % 2 != 0:
+		return false
+	@warning_ignore("integer_division")
+	var half: int = token.value / 2
+	_button_pool.remove_at(index)
+	_button_pool.append(TokenData.make_base(token.family, half))
+	_button_pool.append(TokenData.make_base(token.family, half))
+	button_pool_changed.emit()
+	return true
+
+
+## Suppression : retire un bouton possede du pool, jamais remplace. Le plus
+## fort des outils de deck vu le sans-reshuffle (ameliore les probas de
+## tirage de tout ce qui reste pour le reste de la manche).
+func remove_button(index: int) -> bool:
+	if index < 0 or index >= _button_pool.size():
+		return false
+	_button_pool.remove_at(index)
 	button_pool_changed.emit()
 	return true
 

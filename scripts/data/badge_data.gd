@@ -10,7 +10,7 @@ enum Rarity { COMMON, UNCOMMON, RARE, EPIC }
 @export var description: String = ""
 @export var price: int = 3
 @export var rarity: Rarity = Rarity.COMMON
-## Trigger : &"on_round_start" | &"on_token_drop" | &"on_cascade_step" | &"on_turn_resolved" | &"on_last_breath"
+## Trigger : &"on_round_start" | &"on_token_drop" | &"on_cascade_step" | &"on_turn_resolved" | &"on_last_breath" | &"on_round_end"
 @export var trigger: StringName = &"on_round_start"
 ## Script derive de BadgeEffect. Instancie a chaque dispatch par BadgeManager.
 @export var effect_script: GDScript = null

@@ -96,6 +96,7 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
   - `brainstorm-univers.md` — source de vérité sur l'univers et le ton
   - `brainstorm-pattern-tags.md` — pool de partitions à piocher
   - `brainstorm-badges.md` — triggers × effets pour le catalogue
+  - `brainstorm-outils-deck.md` — généralisation de la Fusion en rubrique "Dés à coudre" (session 16)
 - **Base de contenu** — [Google Sheet](https://docs.google.com/spreadsheets/d/1JMEQf2W6H8fMZ24D63-jRQrJKz5424kR7Exyo4xvM_0/edit) (onglets Partitions/Badges/Jetons spéciaux/Progression), source de vérité pour les données catalogue depuis le 2026-07-10 — le `.tres` doit suivre en cas de divergence
 - **Pitch Discord** — `docs/simple-concept.md` (baromètre de complexité)
 - **Logs de sessions** — `docs/logs/`

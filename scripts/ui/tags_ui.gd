@@ -46,6 +46,7 @@ func _create_sell_buttons() -> void:
 		var btn: Button = Button.new()
 		btn.text = "VENDRE"
 		btn.visible = false
+		btn.focus_mode = Control.FOCUS_NONE
 		btn.pressed.connect(_on_sell_pressed.bind(i))
 		add_child(btn)
 		_sell_buttons.append(btn)
@@ -75,19 +76,6 @@ func _draw() -> void:
 			label_color,
 		)
 	y_offset += header_font_size + header_gap
-
-	# Legende direction (pour les lignes)
-	if _font != null:
-		draw_string(
-			_font,
-			Vector2(0.0, y_offset + 14),
-			"LIGNE : v x1  h x1.5  d x2",
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1,
-			14,
-			Color(label_color, 0.55),
-		)
-	y_offset += 14 + header_gap + 2.0
 
 	# Slots
 	var tags: Array[PatternData] = []
@@ -181,18 +169,14 @@ func _format_tag_label(tag: PatternData) -> String:
 		&"fibonacci": rule_str = "FIBO"
 		_:            rule_str = ""
 
-	# Lines : pas de multiplicateur fixe affiche (varie selon la direction)
-	if tag.shape == &"line":
-		var line_label: String = shape_str
-		if rule_str != "":
-			line_label += " " + rule_str
-		return line_label + " " + str(tag.min_size)
-
-	# Autres formes (square, diamond, plus, cross) : multiplicateur fixe visible
+	# Multiplicateur fixe visible pour toutes les formes, lignes comprises
+	# depuis la session 16 (la direction ne joue plus sur le score).
 	var raw_mult: String = _format_multiplier(tag.score_multiplier)
 	var label: String = shape_str
 	if rule_str != "":
 		label += " " + rule_str
+	if tag.shape == &"line":
+		label += " " + str(tag.min_size)
 	return label + ("  " + raw_mult if raw_mult != "" else "")
 
 

@@ -14,9 +14,14 @@ Les grenouilles mangent des mouches. D'où viennent celles du garçon ? On ne r�
 
 | Source | Montant |
 |---|---|
-| Manche réussie | Fixe de base (`FLIES_PER_ROUND_WON` = 10 actuellement) |
+| Manche réussie (base) | Fixe (`FLIES_PER_ROUND_WON` = 10 actuellement) |
+| Jetons restants en fin de manche (session 16) | Palier exclusif selon `DeckManager.get_remaining()` au moment de la victoire : ≥20 restants = +5, ≥10 = +2, sinon rien (`GameRules.get_round_end_flies_bonus`) |
 | Surplus de score | À designer (bonus selon score au-dessus de la cible ?) |
-| [Badges](../badges/principe.md) | Ex : "Mouches en Cascade" → +3 par cascade secondaire |
+| [Badges](../badges/principe.md) | Ex : "Mouches en Cascade" → +3 par cascade secondaire. Depuis la session 16, les Badges `on_round_end` (ex : Pourboire) contribuent aussi à la recompense de fin de manche |
+
+### Écran de récompense (YouWinUI, session 16)
+
+En fin de manche (hors dernière manche du run), un écran dédié décompose la récompense — base, bonus jetons restants, bonus par Badge — avant un bouton **ENCAISSER** qui débloque la suite vers le shop. Le compteur de mouches affiché en jeu ne bouge visuellement qu'au clic sur ce bouton (la mutation réelle est immédiate, seul l'affichage est retardé, pour ne pas spoiler le total avant que le joueur ait vu le détail).
 
 ### Dépenses
 

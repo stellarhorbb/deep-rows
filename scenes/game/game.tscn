@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://hx2tnsunf5t6" path="res://scripts/ui/input_handler.gd" id="5_input"]
 [ext_resource type="FontFile" uid="uid://dryqbsw3ute3w" path="res://assets/fonts/LondrinaSolid-Black.ttf" id="6_font_black"]
 [ext_resource type="Script" uid="uid://1w2ub5mjkgkt" path="res://scripts/ui/resolution_banner.gd" id="10_resolution_banner"]
+[ext_resource type="Script" uid="uid://dot2uvawoneoi" path="res://scripts/ui/you_win_ui.gd" id="11_you_win_ui"]
 
 [node name="Game" type="Node2D" unique_id=1117591923]
 script = ExtResource("1_game")
@@ -114,6 +115,99 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 color = Color(0.08, 0.08, 0.12, 0.85)
+
+[node name="YouWinUI" type="Control" parent="." unique_id=1000000300]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_left = 610.0
+offset_top = 250.0
+offset_right = 1310.0
+offset_bottom = 830.0
+script = ExtResource("11_you_win_ui")
+
+[node name="Background" type="ColorRect" parent="YouWinUI" unique_id=1000000301]
+show_behind_parent = true
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.08, 0.08, 0.12, 0.9)
+
+[node name="VBox" type="VBoxContainer" parent="YouWinUI" unique_id=1000000302]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="YouWinUI/VBox" unique_id=1000000303]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 40
+text = "YOU WIN"
+horizontal_alignment = 1
+
+[node name="BaseLabel" type="Label" parent="YouWinUI/VBox" unique_id=1000000304]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.886, 0.718, 0.078, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 24
+text = "BASE : +10"
+horizontal_alignment = 1
+
+[node name="BonusLabel1" type="Label" parent="YouWinUI/VBox" unique_id=1000000305]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.306, 0.804, 0.769, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+
+[node name="BonusLabel2" type="Label" parent="YouWinUI/VBox" unique_id=1000000306]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.306, 0.804, 0.769, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+
+[node name="BonusLabel3" type="Label" parent="YouWinUI/VBox" unique_id=1000000307]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.306, 0.804, 0.769, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+
+[node name="BonusLabel4" type="Label" parent="YouWinUI/VBox" unique_id=1000000308]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.306, 0.804, 0.769, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+
+[node name="TotalLabel" type="Label" parent="YouWinUI/VBox" unique_id=1000000309]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.941, 0.902, 0.784, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 32
+text = "TOTAL : +10 MOUCHES"
+horizontal_alignment = 1
+
+[node name="CollectButton" type="Button" parent="YouWinUI/VBox" unique_id=1000000310]
+custom_minimum_size = Vector2(220, 60)
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 24
+text = "ENCAISSER"
 
 [node name="InputHandler" type="Node2D" parent="." unique_id=1018510731]
 script = ExtResource("5_input")

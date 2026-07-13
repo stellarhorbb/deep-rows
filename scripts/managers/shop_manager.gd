@@ -64,8 +64,24 @@ const BADGE_PATHS: Array[String] = [
 	"res://resources/badges/badge_petites_mains.tres",
 ]
 
-## Categories tirables pour un pack (pas de "pack de Des a coudre" — ce n'est
-## pas un tirage-et-choix-1, juste un deblocage d'action).
+## Outils de deck achetables (DeckToolData) — voir docs/brainstorms/brainstorm-outils-deck.md.
+## Duplication et jeton arc-en-ciel volontairement absents (tier Epic vide,
+## mis de cote pour plus tard).
+const DECK_TOOL_PATHS: Array[String] = [
+	"res://resources/deck_tools/increase.tres",
+	"res://resources/deck_tools/decrease.tres",
+	"res://resources/deck_tools/change_coral.tres",
+	"res://resources/deck_tools/change_shell.tres",
+	"res://resources/deck_tools/change_rust.tres",
+	"res://resources/deck_tools/change_ink.tres",
+	"res://resources/deck_tools/split.tres",
+	"res://resources/deck_tools/fuse.tres",
+	"res://resources/deck_tools/remove.tres",
+]
+
+## Categories tirables pour un pack (pas de "pack de Des a coudre" — le
+## Des a coudre a deja son propre tirage-et-choix-1 sur les outils de deck,
+## voir draw_deck_tool_choices).
 const PACK_CATEGORIES: Array[String] = ["tag", "badge", "special", "button"]
 
 ## Categories tirables pour un slot unitaire (visible directement).
@@ -76,6 +92,7 @@ const UNITAIRE_CATEGORIES: Array[String] = ["tag", "badge", "special", "button",
 var _all_tags: Array[PatternData] = []
 var _all_specials: Array[SpecialItem] = []
 var _all_badges: Array[BadgeData] = []
+var _all_deck_tools: Array[DeckToolData] = []
 
 ## Deux rangees separees. Formats possibles pour un slot (Dictionary) :
 ##   {"format": "unitaire", "category": String, "item": Resource|TokenData}
@@ -108,6 +125,12 @@ func _load_pools() -> void:
 		if badge != null:
 			_all_badges.append(badge)
 
+	_all_deck_tools.clear()
+	for path in DECK_TOOL_PATHS:
+		var tool: DeckToolData = load(path) as DeckToolData
+		if tool != null:
+			_all_deck_tools.append(tool)
+
 
 ## A appeler a l'ouverture du shop. Regenere les DEUX rangees.
 func regenerate_offer(run_manager: RunManager) -> void:
@@ -121,7 +144,7 @@ func reroll_unitaires(run_manager: RunManager) -> void:
 	_regenerate_unitaires(run_manager)
 
 
-func _regenerate_packs(run_manager: RunManager) -> void:
+func _regenerate_packs(_run_manager: RunManager) -> void:
 	_pack_slots.clear()
 	for i in range(GameRules.SHOP_PACK_SLOT_COUNT):
 		var category: String = PACK_CATEGORIES[randi() % PACK_CATEGORIES.size()]
@@ -250,6 +273,8 @@ static func get_label(item: Variant) -> String:
 		return (item as SpecialItem).label
 	if item is BadgeData:
 		return (item as BadgeData).label
+	if item is DeckToolData:
+		return (item as DeckToolData).label
 	if item is TokenData:
 		var token: TokenData = item as TokenData
 		return "%s %d" % [TokenData.family_label(token.family), token.value]
@@ -264,6 +289,8 @@ static func get_description(item: Variant) -> String:
 		return (item as SpecialItem).description
 	if item is BadgeData:
 		return (item as BadgeData).description
+	if item is DeckToolData:
+		return (item as DeckToolData).description
 	return ""
 
 
@@ -274,6 +301,8 @@ static func get_rarity(item: Variant) -> int:
 		return (item as PatternData).rarity
 	if item is BadgeData:
 		return (item as BadgeData).rarity
+	if item is DeckToolData:
+		return (item as DeckToolData).rarity
 	return -1
 
 
@@ -398,7 +427,7 @@ func choose_from_pack(item: Variant, run_manager: RunManager) -> void:
 		purchased.emit(item)
 
 
-## --- Des a coudre (gate la fusion) ---
+## --- Des a coudre (gate un outil de deck) ---
 
 func can_purchase_des_a_coudre(run_manager: RunManager) -> bool:
 	return run_manager.get_flies() >= GameRules.DES_A_COUDRE_PRICE
@@ -408,3 +437,10 @@ func purchase_des_a_coudre(run_manager: RunManager) -> bool:
 	if not can_purchase_des_a_coudre(run_manager):
 		return false
 	return run_manager.spend_flies(GameRules.DES_A_COUDRE_PRICE)
+
+
+## Tire DECK_TOOL_ACTION_DRAW_SIZE outils de deck distincts, pondere par
+## rarete (meme mecanisme que l'ouverture d'un pack). A appeler une fois le
+## Des a coudre paye, voir ShopUI._on_des_a_coudre_pressed.
+func draw_deck_tool_choices() -> Array:
+	return _weighted_sample(_all_deck_tools, GameRules.DECK_TOOL_ACTION_DRAW_SIZE)

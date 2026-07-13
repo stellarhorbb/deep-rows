@@ -46,12 +46,30 @@ func _on_last_breath() -> void:
 	_dispatch(&"on_last_breath", {})
 
 
-func _dispatch(trigger: StringName, event: Dictionary) -> void:
+## Declenche les badges on_round_end (ex : Pourboire) et retourne le detail
+## des mouches ajoutees par badge, pour l'ecran de fin de manche (voir
+## GameScene._on_round_won / YouWinUI).
+func dispatch_round_end() -> Dictionary:
+	return _dispatch(&"on_round_end", {})
+
+
+## Retourne {label_badge: mouches_ajoutees} pour les badges qui ont augmente
+## les mouches pendant ce dispatch (diff avant/apres chaque effet) — les
+## appelants qui n'en ont pas besoin (tous les autres triggers) ignorent
+## simplement la valeur de retour.
+func _dispatch(trigger: StringName, event: Dictionary) -> Dictionary:
+	var flies_breakdown: Dictionary = {}
 	if run_manager == null:
-		return
+		return flies_breakdown
 	for badge in run_manager.get_equipped_badges():
 		if badge.trigger != trigger:
 			continue
 		var effect: BadgeEffect = badge.make_effect()
-		if effect != null:
-			effect.apply(event, run_manager)
+		if effect == null:
+			continue
+		var flies_before: int = run_manager.get_flies()
+		effect.apply(event, run_manager)
+		var flies_delta: int = run_manager.get_flies() - flies_before
+		if flies_delta > 0:
+			flies_breakdown[badge.label] = (flies_breakdown.get(badge.label, 0) as int) + flies_delta
+	return flies_breakdown

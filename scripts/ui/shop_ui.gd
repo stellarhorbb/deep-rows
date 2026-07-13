@@ -2,7 +2,9 @@
 ## v2 : deux rangees separees, a la Balatro — Packs (nombre fixe, jamais
 ## regeneres par le reroll) et Unitaires visibles (nombre fixe, regeneres a
 ## chaque reroll). "Des a coudre" est une categorie d'unitaire parmi d'autres,
-## gate la Fusion (une seule fusion par achat).
+## gate un outil de deck (session 16 : tirage de 3 outils distincts pondere
+## par rarete, le joueur en choisit 1, generalise l'ancienne Fusion seule —
+## voir docs/brainstorms/brainstorm-outils-deck.md).
 ## Quand le joueur clique "CONTINUER", avance le run et retourne au game.
 class_name ShopUI
 extends Control
@@ -15,10 +17,16 @@ extends Control
 
 @onready var pack_panel: PackPanelUI = $PackPanel
 
-@onready var fusion_panel: Control = $FusionPanel
-@onready var fusion_candidates_container: GridContainer = $FusionPanel/Box/VBox/CandidatesContainer
-@onready var fusion_confirm_button: Button = $FusionPanel/Box/VBox/ConfirmButton
-@onready var fusion_close_button: Button = $FusionPanel/Box/VBox/CloseButton
+## Panneau du Des a coudre : candidats et actions visibles en meme temps
+## (session 16, revu apres un 1er jet en 2 ecrans separes — voir tooltip du
+## user : voir les cibles guide le choix de l'action, et evite de choisir une
+## action qui n'aurait finalement aucune cible valide dans le tirage).
+## Noms de noeuds herites de l'ancienne Fusion seule (session 12), pas
+## renommes dans la scene pour eviter de perturber d'autres references.
+@onready var target_panel: Control = $FusionPanel
+@onready var target_candidates_container: GridContainer = $FusionPanel/Box/VBox/CandidatesContainer
+@onready var tool_actions_container: HBoxContainer = $FusionPanel/Box/VBox/ActionsContainer
+@onready var target_close_button: Button = $FusionPanel/Box/VBox/CloseButton
 
 var _run_manager: RunManager
 var _shop_manager: ShopManager
@@ -30,10 +38,15 @@ var _pack_entries: Array[Dictionary] = []
 var _unitaire_entries: Array[Dictionary] = []
 var _reroll_count: int = 0
 
-var _fusion_candidate_buttons: Array[Button] = []
-var _fusion_selected_indices: Array[int] = []
-var _fusion_candidate_values: Dictionary = {}  # pool_index -> int (valeur du bouton)
-var _fusion_candidate_by_index: Dictionary = {}  # pool_index -> Button
+## Etat du panneau Des a coudre : 3 actions tirees + 8 candidats, tous deux
+## visibles en meme temps. Selectionner des boutons (jusqu'a 2, le max requis
+## par Fusionner) active/desactive les actions selon leur validite — cliquer
+## une action activee l'applique immediatement, pas de confirmation separee.
+var _tool_choices: Array = []
+var _tool_action_buttons: Array[Button] = []
+var _target_candidate_buttons: Array[Button] = []
+var _target_selected_indices: Array[int] = []
+var _target_candidate_tokens: Dictionary = {}  # pool_index -> TokenData
 
 
 func _ready() -> void:
@@ -46,8 +59,7 @@ func _ready() -> void:
 	continue_button.pressed.connect(_on_continue_pressed)
 	reroll_button.pressed.connect(_on_reroll_pressed)
 	pack_panel.item_chosen.connect(_on_pack_item_chosen)
-	fusion_confirm_button.pressed.connect(_on_fusion_confirm_pressed)
-	fusion_close_button.pressed.connect(_on_fusion_close_pressed)
+	target_close_button.pressed.connect(_on_target_close_pressed)
 
 	_reroll_count = 0
 	_shop_manager.regenerate_offer(_run_manager)
@@ -118,8 +130,8 @@ func _make_unitaire_button(entry: Dictionary) -> Button:
 	btn.custom_minimum_size = Vector2(260.0, 140.0)
 
 	if slot["format"] == "des_a_coudre":
-		btn.text = "DÉS À COUDRE\nFusionne 2 boutons\n%d mouches" % slot["price"]
-		btn.tooltip_text = "Débloque une fusion de boutons pour cette visite"
+		btn.text = "DÉS À COUDRE\nManipule ton deck\n%d mouches" % slot["price"]
+		btn.tooltip_text = "Tire 3 outils de deck au hasard, choisis-en un"
 		btn.disabled = not _shop_manager.can_purchase_des_a_coudre(_run_manager)
 		btn.pressed.connect(_on_des_a_coudre_pressed.bind(entry))
 	else:
@@ -208,83 +220,124 @@ func _on_reroll_pressed() -> void:
 	_refresh_reroll_button()
 
 
-# --- Fusion (gatee par Des a coudre) ---
+# --- Outils de deck (gates par Des a coudre) ---
 
+## Tire les 3 actions ET les 8 candidats en meme temps, affiche tout dans le
+## meme panneau — le joueur voit ce qu'il a sous la main avant de choisir
+## quelle action appliquer (voir docs/brainstorms/brainstorm-outils-deck.md).
 func _on_des_a_coudre_pressed(entry: Dictionary) -> void:
 	if not _shop_manager.purchase_des_a_coudre(_run_manager):
 		return
 	entry["consumed"] = true
 	(entry["button"] as Button).disabled = true
-	fusion_panel.visible = true
-	_rebuild_fusion_candidates()
+	_tool_choices = _shop_manager.draw_deck_tool_choices()
+	target_panel.visible = true
+	_rebuild_target_candidates()
+	_rebuild_tool_actions()
 
 
-func _rebuild_fusion_candidates() -> void:
-	for btn in _fusion_candidate_buttons:
+func _rebuild_target_candidates() -> void:
+	for btn in _target_candidate_buttons:
 		btn.queue_free()
-	_fusion_candidate_buttons.clear()
-	_fusion_selected_indices.clear()
-	_fusion_candidate_values.clear()
-	_fusion_candidate_by_index.clear()
+	_target_candidate_buttons.clear()
+	_target_selected_indices.clear()
+	_target_candidate_tokens.clear()
 
-	for candidate in _run_manager.get_fusion_candidates(GameRules.FUSION_DRAW_SIZE):
+	for candidate in _run_manager.get_deck_tool_candidates(GameRules.DECK_TOOL_TARGET_DRAW_SIZE):
 		var pool_index: int = candidate["index"] as int
 		var token: TokenData = candidate["token"] as TokenData
 		var btn: Button = Button.new()
 		btn.text = "%s %d" % [TokenData.family_label(token.family), token.value]
 		btn.toggle_mode = true
-		btn.pressed.connect(_on_fusion_candidate_pressed.bind(pool_index, btn))
-		fusion_candidates_container.add_child(btn)
-		_fusion_candidate_buttons.append(btn)
-		_fusion_candidate_values[pool_index] = token.value
-		_fusion_candidate_by_index[pool_index] = btn
-
-	_update_fusion_confirm_state()
+		btn.pressed.connect(_on_target_candidate_pressed.bind(pool_index, btn))
+		target_candidates_container.add_child(btn)
+		_target_candidate_buttons.append(btn)
+		_target_candidate_tokens[pool_index] = token
 
 
-func _on_fusion_candidate_pressed(pool_index: int, btn: Button) -> void:
+func _rebuild_tool_actions() -> void:
+	for btn in _tool_action_buttons:
+		btn.queue_free()
+	_tool_action_buttons.clear()
+
+	for tool in _tool_choices:
+		var btn: RarityButton = RarityButton.new()
+		btn.text = tool.label
+		btn.tooltip_text = tool.description
+		btn.rarity = tool.rarity
+		btn.pressed.connect(_on_tool_action_pressed.bind(tool))
+		tool_actions_container.add_child(btn)
+		_tool_action_buttons.append(btn)
+
+	_refresh_tool_action_states()
+
+
+## Selection libre : aucune contrainte a la selection elle-meme (contrairement
+## au 1er jet), seules les actions se grisent/degrisent en fonction de ce qui
+## est selectionne. Jusqu'a 2 boutons (le max requis par Fusionner).
+func _on_target_candidate_pressed(pool_index: int, btn: Button) -> void:
 	if btn.button_pressed:
-		if _fusion_selected_indices.size() >= 2:
+		if _target_selected_indices.size() >= 2:
 			btn.button_pressed = false
 			return
-		_fusion_selected_indices.append(pool_index)
+		_target_selected_indices.append(pool_index)
 	else:
-		_fusion_selected_indices.erase(pool_index)
-	_update_fusion_confirm_state()
-	_update_fusion_candidate_availability()
+		_target_selected_indices.erase(pool_index)
+	_refresh_tool_action_states()
 
 
-## Des qu'un premier bouton est selectionne, grise les candidats dont la somme
-## depasserait GameRules.MAX_BUTTON_VALUE — empeche de choisir une combinaison
-## qui serait de toute facon plafonnee au moment de fusionner.
-func _update_fusion_candidate_availability() -> void:
-	if _fusion_selected_indices.size() != 1:
-		for pool_index in _fusion_candidate_by_index:
-			(_fusion_candidate_by_index[pool_index] as Button).disabled = false
-		return
+## Une action n'est activable que si le nombre de boutons selectionnes
+## correspond exactement a son besoin (1, ou 2 pour Fusionner) ET que la
+## selection respecte sa contrainte (parite pour Scinder, plafond/plancher
+## pour Augmenter/Reduire, famille differente pour Changer, somme <= 10 pour
+## Fusionner).
+func _refresh_tool_action_states() -> void:
+	var selected_tokens: Array[TokenData] = []
+	for idx in _target_selected_indices:
+		selected_tokens.append(_target_candidate_tokens[idx] as TokenData)
 
-	var selected_value: int = _fusion_candidate_values.get(_fusion_selected_indices[0], 0) as int
-	for pool_index in _fusion_candidate_by_index:
-		var btn: Button = _fusion_candidate_by_index[pool_index] as Button
-		if pool_index == _fusion_selected_indices[0]:
-			btn.disabled = false
-			continue
-		var candidate_value: int = _fusion_candidate_values.get(pool_index, 0) as int
-		btn.disabled = selected_value + candidate_value > GameRules.MAX_BUTTON_VALUE
+	for i in range(_tool_choices.size()):
+		(_tool_action_buttons[i] as Button).disabled = not _is_action_applicable(_tool_choices[i], selected_tokens)
 
 
-func _update_fusion_confirm_state() -> void:
-	fusion_confirm_button.disabled = _fusion_selected_indices.size() != 2
-	fusion_confirm_button.text = "FUSIONNER"
+func _is_action_applicable(tool: DeckToolData, tokens: Array[TokenData]) -> bool:
+	if tokens.size() != tool.target_count():
+		return false
+	match tool.action:
+		DeckToolData.Action.DECREASE:
+			return tokens[0].value > GameRules.TOKEN_MIN_VALUE
+		DeckToolData.Action.INCREASE:
+			return tokens[0].value < GameRules.MAX_BUTTON_VALUE
+		DeckToolData.Action.SPLIT:
+			return tokens[0].value % 2 == 0
+		DeckToolData.Action.CHANGE_FAMILY:
+			return tokens[0].family != tool.target_family
+		DeckToolData.Action.FUSE:
+			return tokens[0].value + tokens[1].value <= GameRules.MAX_BUTTON_VALUE
+		DeckToolData.Action.REMOVE:
+			return true
+	return false
 
 
-## Deja payee a l'achat du Des a coudre — une seule fusion, puis fermeture.
-func _on_fusion_confirm_pressed() -> void:
-	if _fusion_selected_indices.size() != 2:
-		return
-	_run_manager.fuse_buttons(_fusion_selected_indices[0], _fusion_selected_indices[1])
-	fusion_panel.visible = false
+## Cliquer une action activee l'applique immediatement — pas de confirmation
+## separee, le clic sur l'action EST la confirmation. Deja paye a l'achat du
+## Des a coudre, un seul outil applique puis fermeture.
+func _on_tool_action_pressed(tool: DeckToolData) -> void:
+	match tool.action:
+		DeckToolData.Action.INCREASE:
+			_run_manager.increase_button_value(_target_selected_indices[0])
+		DeckToolData.Action.DECREASE:
+			_run_manager.decrease_button_value(_target_selected_indices[0])
+		DeckToolData.Action.CHANGE_FAMILY:
+			_run_manager.change_button_family(_target_selected_indices[0], tool.target_family)
+		DeckToolData.Action.SPLIT:
+			_run_manager.split_button(_target_selected_indices[0])
+		DeckToolData.Action.REMOVE:
+			_run_manager.remove_button(_target_selected_indices[0])
+		DeckToolData.Action.FUSE:
+			_run_manager.fuse_buttons(_target_selected_indices[0], _target_selected_indices[1])
+	target_panel.visible = false
 
 
-func _on_fusion_close_pressed() -> void:
-	fusion_panel.visible = false
+func _on_target_close_pressed() -> void:
+	target_panel.visible = false
