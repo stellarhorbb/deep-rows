@@ -14,7 +14,7 @@ Depuis la session 12, l'accès à la fusion est gaté par l'achat d'un item **D�
 
 ## 3. Partitions level up (par le jeu)
 
-Les [Partitions](../partitions/principe.md) montent en niveau par le score cumulé. Une Partition **Forte** (lv.3) score beaucoup plus qu'une **Pianissimo** (lv.1), même avec les mêmes boutons. Source principale de scaling organique. Voir [Level up](../partitions/level-up.md).
+Les [Partitions](../partitions/principe.md) montent en niveau par le score cumulé. Une Partition **Forte** (lv.3) score beaucoup plus qu'une **Pianissimo** (lv.1), même avec les mêmes boutons. Source principale de scaling organique. Au-delà de Maestro (lv.5), le niveau continue en "dan" sans plafond (session 16) — c'est ce prolongement qui porte le scaling de fin de partie en [mode infini](structure-run.md#mode-infini). Voir [Level up](../partitions/level-up.md).
 
 ## 4. Badges accumulées (shop)
 

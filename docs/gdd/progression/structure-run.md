@@ -4,27 +4,49 @@
 
 **Implémenté aujourd'hui** : un [écran de sélection de Partition](../partitions/principe.md) au tout début de la run (et après chaque fin de run) — 3 Partitions tirées au hasard dans tout le catalogue, le joueur en choisit 2, gratuites.
 
-**Pas encore implémenté** (vision d'origine, toujours valable comme direction) :
-1. **Choix de la [grille](../grille/format.md)** — la "classe" qui définit la forme de jeu. La grille est actuellement fixe (7×7) pour tout le monde.
-2. **Choix du pack de [boutons](../jetons/boutons.md)** — la fondation qui définirait le contenu du deck. Le pool de départ est actuellement généré aléatoirement, sans choix du joueur.
+**Pas encore implémenté, direction revue en session 16** : le **choix du pack de [boutons](../jetons/boutons.md)** devient LE choix structurant de départ façon "deck" Balatro (Red Deck, Checkered Deck...) — le joueur pioche parmi les packs qu'il a débloqués au Shore (Polyvalent, Mono-famille, Escalier...), fixe pour tout le run une fois choisi. Le pool de départ est aujourd'hui généré aléatoirement, sans choix du joueur — à remplacer par cette sélection.
 
-Ces deux choix, une fois implémentés, seraient **fixes pour le run**. Tout le reste se construit autour.
+La **grille**, elle, sort de ce choix de départ : elle est désormais liée au [biome](#biomes) traversé, pas un choix fait une fois pour tout le run. Voir [Format de la grille](../grille/format.md).
 
 ## Dimensions
 
-`ROUNDS_PER_ZONE = 3`, `ZONES_PER_RUN = 4` dans `game_rules.gd` → **12 manches par run complet**, ~30-40 min cible.
+**Chantier en cours (session 16), pas figé** : `ROUNDS_PER_ZONE = 3`, `ZONES_PER_RUN = 4` dans `game_rules.gd` donnent aujourd'hui **12 manches par run complet**, ~30-40 min cible. Cette valeur va probablement bouger avec l'introduction d'une manche boss par zone (voir [Boss de zone](#boss-de-zone) — exemple utilisé en discussion : 5 manches/zone dont 1 boss, soit 20 manches/run). Pas de nombre final tant que le [score cible](../manche/score-cible.md) et le [level up des Partitions](../partitions/level-up.md) n'ont pas été recalibrés avec cette échelle en tête.
+
+## Biomes
+
+Les 4 zones deviennent des **biomes à forte identité**, traversés dans un **ordre fixe** (jamais aléatoire) — cohérent avec le pilier narratif ["la descente"](../univers/pitch.md) : la zone 1 doit rester familière, la zone finale totalement étrangère, ce qui n'a de sens que si la position dans la séquence est stable d'une run à l'autre. Modèle explicitement cité : Hades (Tartare → Asphodèle → Élysée → Styx, toujours dans cet ordre, mais contenu de chaque salle randomisé à l'intérieur).
+
+Chaque biome introduit du contenu débloqué **une seule fois, pour toujours** (toutes les runs suivantes, pas juste celle en cours) — trois niveaux :
+
+1. **Générique** — disponible dès le début de n'importe quelle run, aucun unlock requis
+2. **Thématique/biome** — débloqué en atteignant le biome pour la première fois (ex : la zone des araignées introduit un Badge "soie"). Rejoint alors le pool du shop pour le reste de cette run et toutes les suivantes
+3. **Achievement/Découverte** — débloqué par un exploit précis en jeu, peu importe le biome (ex : faire 5 cascades d'affilée débloque un jeton spécial rare et puissant). Prolonge le pilier "Découvertes" déjà noté dans [Shore — unlocks](../shore/unlocks.md)
+
+L'identité du biome se porte sur l'artwork, le contenu débloqué (Badges/Partitions/Spéciaux thématiques) et sur sa **grille propre** — pas sur le malus de boss, qui reste volontairement global (voir ci-dessous).
+
+## Boss de zone
+
+Chaque biome se referme sur une **manche boss**, avec une contrainte tirée dans un **pool global et aléatoire** (façon Balatro), pas un pool spécifique au biome — pour garder la surprise "chaque run est différente" tout en laissant l'identité du biome se construire ailleurs. Justification narrative gratuite : l'[Entity](../univers/personnages/entity.md) est persistante sur toute la run et ne joue pas un biome en particulier — le malus de boss, c'est elle qui intervient, d'où qu'elle soit.
+
+Contraintes encore à inventer (pistes en vrac, non tranchées) : une famille qui ne score plus ce tour-là, une Partition équipée désactivée au hasard, une grille avec deux fois plus de trous, un deck sans jetons spéciaux...
+
+## Mode infini
+
+Après le boss de la zone 4, l'écran "you win" propose une **option de continuer** en mode infini (façon Balatro après l'Ante 8) — un biome spécial, minimaliste/abstrait ("Cosmos", nom provisoire, lien thématique avec l'univers encore à trouver), qui remplace la fin de la descente par une chute sans fond. Difficulté croissante jusqu'à un game over inévitable.
+
+C'est le terrain où les [dan sans plafond du level up](../partitions/level-up.md#au-delà-de-maestro--les-dan-piste-décidée-session-16) et une courbe de [score cible](../manche/score-cible.md) exponentielle (question ouverte depuis longtemps) trouvent enfin une vraie raison d'être — dans la campagne fixe à durée bornée, ces deux systèmes ne servent presque jamais ; dans un mode qui continue tant que le joueur tient, ils deviennent le cœur du scaling de fin de partie.
 
 ## Arborescence
 
 ```
 Début de run
-  ├── Choix grille
-  ├── Choix pack de boutons
+  ├── Choix du pack de boutons (débloqués au Shore)
   │
-  ├── Zone 1  (3 manches + shop entre chaque)
-  ├── Zone 2
-  ├── Zone 3
-  ├── Zone 4
+  ├── Biome 1  (N manches + shop entre chaque, boss en dernière manche)
+  ├── Biome 2
+  ├── Biome 3
+  ├── Biome 4 (boss) → "You win"
+  │     └── Option : continuer en mode infini (Cosmos) → jusqu'au game over
   │
   └── Fin de run → Victoire ou Game Over → The Shore (meta-progression)
 ```

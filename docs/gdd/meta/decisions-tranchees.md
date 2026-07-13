@@ -30,10 +30,10 @@ Le registre des décisions de design qui ne sont plus à rediscuter, sauf à l'e
 | Question | Décision | Raison |
 |---|---|---|
 | [Pattern Tags](../partitions/principe.md) | **Partitions musicales** (nom thématique) | Vendues par les grenouilles, géométrie dessinée |
-| [Level up Partitions](../partitions/level-up.md) | **Pianissimo → Piano → Forte → Fortissimo → Maestro** | Cohérent avec grenouilles orchestre |
+| [Level up Partitions](../partitions/level-up.md) | **Pianissimo → Piano → Forte → Fortissimo → Maestro**, puis des "dan" sans plafond au-delà de Maestro (session 16, formule des incréments pas encore tranchée) | Cohérent avec grenouilles orchestre. Le plafond dur à Maestro payait mal un investissement proche du budget de score d'un run entier ; les dan donnent une vraie destination au [mode infini](../progression/structure-run.md#mode-infini) |
 | Minimum pour scorer | 3 connectés | Les paires sont trop faciles |
 | Slots de Partitions | 4 max | Force à choisir quoi résoudre |
-| [Scoring lignes](../partitions/scoring.md) | Multi par direction (v=x1, h=x1.5, d=x2) | Punit le stacking vertical sans l'interdire |
+| [Scoring lignes](../partitions/scoring.md) | **Révisé session 16** : multiplicateur fixe par Partition (décidé, pas encore implémenté), remplace l'ancien multi par direction (v=x1, h=x1.5, d=x2) | L'axe directionnel en plus de cascade/modifiers/rule/level up/global/value bonus rendait la formule illisible et compliquait le balancing (calibrer un mult sur 3 valeurs au lieu d'une) |
 | [Scoring autres formes](../partitions/scoring.md) | Multi fixe sur la Partition | Chaque forme a son ratio risque/récompense |
 | [Modifiers de cellules](../grille/modifiers-cellules.md) | 4 types (HALF, BOOST, DOUBLE, TRIPLE), plusieurs sources prévues | Couche séparée, extensible. HOB-11 pour l'override |
 | Jeton scorant plusieurs Partitions | **Oui**, un même jeton peut valider plusieurs formes simultanément | Encourage les placements malins, cœur du plaisir |
@@ -89,10 +89,15 @@ Le registre des décisions de design qui ne sont plus à rediscuter, sauf à l'e
 | Question | Décision | Raison |
 |---|---|---|
 | [Entity](../univers/personnages/entity.md) | [Jeton entity-skull](../jetons/entity-skull.md) tous les 6 tours | Perturbe sans jouer, brise le stacking pur |
-| Manches par zone | 3 | Bon rythme au proto |
-| Zones par run | 4 | 12 manches totales, run complet en ~30-40 min |
-| Pack de boutons | Fixe pour le run, améliorable | Comme une classe, garde son identité |
+| Manches par zone | 3 aujourd'hui, **chantier session 16** (probablement plus, avec une manche boss incluse) | Bon rythme au proto, mais l'ajout d'un boss par zone remet ce chiffre en question |
+| Zones par run | 4, deviennent des **biomes** à forte identité (session 16) | 12 manches totales au format actuel, run complet en ~30-40 min — chiffre pas figé, voir ligne ci-dessus |
+| [Ordre des biomes](../progression/structure-run.md#biomes) | **Fixe**, jamais aléatoire (session 16) | Cohérent avec le pilier narratif "la descente" (zone 1 familière → zone finale totalement étrangère) — n'a de sens que si la position dans la séquence est stable. Modèle Hades : ordre macro fixe, contenu randomisé à l'intérieur |
+| [Boss de zone](../progression/structure-run.md#boss-de-zone) | Manche qui referme chaque biome, contrainte tirée d'un **pool global et aléatoire** (pas spécifique au biome), façon Balatro (session 16) | Garde la surprise "chaque run est différente" ; justifié narrativement par l'Entity, persistante sur toute la run et pas rattachée à un biome |
+| [Grille](../grille/format.md) | Liée au **biome** traversé, pas un choix de départ (session 16, revient sur la vision d'origine "grille = classe") | Le rôle de "classe" façon Balatro est repris par le pack de boutons ; la grille sert l'identité de lieu, découverte en progressant |
+| Pack de boutons | Fixe pour le run, améliorable. Devient le **vrai choix de départ façon "deck" Balatro** (session 16), choisi parmi les packs débloqués au Shore | Comme une classe, garde son identité — résout l'ancienne question ouverte "decks de départ façon Balatro" |
+| [Mode infini](../progression/structure-run.md#mode-infini) | Optionnel, proposé après le boss de la zone 4 ("you win" → continuer), difficulté croissante jusqu'au game over inévitable (session 16) | Donne une vraie destination aux systèmes sans plafond (dan de level up, courbe de score cible exponentielle) qui servent peu dans une campagne à durée bornée |
 | [The Shore](../shore/principe.md) | Meta-progression (unlocks), nom placeholder | Plus simple que du craft pendant le run |
+| [Contenu débloqué par biome](../shore/unlocks.md) | Trois niveaux d'accès — générique (dispo dès le départ), thématique/biome (débloqué en atteignant le biome, permanent ensuite), achievement/découverte (débloqué par un exploit, permanent ensuite) (session 16) | Prolonge le pilier "Découvertes" déjà envisagé pour le Shore ; donne un sens à la progression dans les biomes au-delà du pur score |
 
 ## Liens
 

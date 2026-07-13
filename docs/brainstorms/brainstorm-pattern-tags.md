@@ -170,6 +170,21 @@ Requiert de mettre a jour la decision verrouillee dans `CLAUDE.md`. Toutes ces f
 
 ---
 
+## Piste — Partition a roulette sur l'Entity (session 15)
+
+Idee du user, en miroir direct de [Diamond Rock](../gdd/jetons/rocks.md) (session 15) : au lieu d'un losange de Rocks autour d'un centre scorable, une forme faite de jetons **Entity** (les jetons skull laches par l'Entity, `TokenData.Kind.ENTITY`) qui declenche une roulette de valeurs quand elle se ferme. Exemple donne : 3 skulls alignes.
+
+Objectif de sensation : donner un usage positif a l'Entity plutot que purement subie, symetrique a ce que Diamond Rock fait deja pour les Rocks (transformer une contrainte du plateau en opportunite de score).
+
+**Ce qu'il faut techniquement** (par analogie avec Diamond Rock, voir session 15 dans les logs) :
+- Un chemin de detection dedie dans `PatternMatcher` — `is_scorable()` rejette tout jeton `ENTITY` par nature (comme `ROCK`), donc aucune forme existante ne peut matcher dessus sans un garde-fou explicite comme celui ajoute pour Diamond Rock
+- Reflechir a ce qui est "recolte" : contrairement au Rock (ou le centre scorable est recolte, les rocks autour restent), ici la figure c'est directement les Entity — faut-il un centre separe (et donc le meme risque "centre deja occupe" que sur Diamond Rock), ou juste N jetons Entity alignes qui disparaissent directement ?
+- Le roll de valeurs peut reutiliser `ResolutionBanner.play_roll_announcement` tel quel (deja generique, prend `result`/`min_value`/`max_value`)
+
+A trancher avant de coder : quelle forme exacte (ligne de 3 ? diamant comme Rock ? autre ?), qu'est-ce qui disparait vs qu'est-ce qui reste, et la valeur de base du roll (voir aussi la question ouverte sur le scaling du score de Diamond Rock dans `questions-ouvertes.md` — probablement le meme genre de calibrage a faire ici).
+
+---
+
 ## Questions ouvertes
 
 - **Autorise-t-on les formes au-dela des lignes et 2x2 ?** La decision verrouillee dans `CLAUDE.md` les interdit toutes. L'esprit de la regle visait les chaines libres (L, T, zigzag) pour leur manque d'identite, pas les geometries specifiques et reconnaissables. A trancher si on veut developper les Pyramides, 3x3, etc.

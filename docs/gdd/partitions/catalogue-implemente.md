@@ -4,27 +4,48 @@
 
 Les labels affichés en jeu ne montrent plus "FAMILY" (redondant, quasi tout le catalogue actif est en rule `family`) — nettoyé en session 13, voir `TagsUI._format_tag_label`. Depuis la session 14, `_format_tag_label` distingue aussi `value`/`rainbow`/`fibonacci` (sinon Brelan et Line 3 auraient affiché le même libellé en jeu).
 
-| Partition | Forme | Règle | Taille min | Direction | Mult | Prix |
-|---|---|---|---|---|---|---|
-| Line 4 | Ligne | Famille | 4 | any | direction | 6 |
-| Line 3 | Ligne | Famille | 3 | any | direction | 6 |
-| Line 5 | Ligne | Famille | 5 | any | direction | 10 |
-| Square 4 | Carré 2×2 | Famille | 4 | — | ×2 fixe | 8 |
-| Diamond Rock | Losange | 4 rocks autour d'un centre scorable | 4 | — | ×4 fixe (sur centre + roll casino 1-5) | 12 |
-| Diamond | Losange | 4 jetons même famille, centre indifférent | 4 | — | ×2.5 fixe (somme des 4) | 10 |
-| Plus | Croix orthogonale | Famille (centre inclus) | 5 | any | ×3 fixe | 10 |
-| Cross | Croix diagonale | Famille (centre inclus) | 5 | any | ×3 fixe | 12 |
-| Ring | Cadre 3×3 | Famille (centre indifférent) | 8 | any | ×5 fixe | 15 |
-| T | Tétromino | Famille (orientation libre) | 4 | any | ×2 fixe | 7 |
-| Square Rainbow | Carré 2×2 | 4 familles distinctes | 4 | — | ×3 fixe | 12 |
-| Diamond Rainbow | Losange | 4 familles distinctes, centre indifférent | 4 | — | ×3.5 fixe (somme des 4) | 14 |
-| Line 4 Rainbow | Ligne | 4 familles distinctes | 4 | any | direction | 10 |
-| Suite | Ligne | Valeurs consécutives (any sens) | 3 | any | direction | 14 |
-| Brelan | Ligne | Même valeur | 3 | any | direction | 6 |
-| Carré | Ligne | Même valeur (clin d'œil poker, pas la forme carrée) | 4 | any | direction | 8 |
-| Fibonacci | Ligne | 1, 1, 2, 3 (dans un sens ou l'autre) | 4 | any | direction | 14 |
+| Partition       | Forme             | Règle                                               | Taille min | Direction | Mult                                   | Prix |
+| --------------- | ----------------- | --------------------------------------------------- | ---------- | --------- | -------------------------------------- | ---- |
+| Line 4          | Ligne             | Famille                                             | 4          | any       | direction                              | 6    |
+| Line 3          | Ligne             | Famille                                             | 3          | any       | direction                              | 6    |
+| Line 5          | Ligne             | Famille                                             | 5          | any       | direction                              | 10   |
+| Square 4        | Carré 2×2         | Famille                                             | 4          | —         | ×2 fixe                                | 8    |
+| Diamond Rock    | Losange           | 4 rocks autour d'un centre scorable                 | 4          | —         | ×4 fixe (sur centre + roll casino 1-5) | 12   |
+| Diamond         | Losange           | 4 jetons même famille, centre indifférent           | 4          | —         | ×2.5 fixe (somme des 4)                | 10   |
+| Plus            | Croix orthogonale | Famille (centre inclus)                             | 5          | any       | ×3 fixe                                | 10   |
+| Cross           | Croix diagonale   | Famille (centre inclus)                             | 5          | any       | ×3 fixe                                | 12   |
+| Ring            | Cadre 3×3         | Famille (centre indifférent)                        | 8          | any       | ×5 fixe                                | 15   |
+| T               | Tétromino         | Famille (orientation libre)                         | 4          | any       | ×2 fixe                                | 7    |
+| Square Rainbow  | Carré 2×2         | 4 familles distinctes                               | 4          | —         | ×2 fixe                                | 12   |
+| Diamond Rainbow | Losange           | 4 familles distinctes, centre indifférent           | 4          | —         | ×2 fixe (somme des 4)                  | 12   |
+| Line 4 Rainbow  | Ligne             | 4 familles distinctes                               | 4          | any       | direction                              | 10   |
+| Suite           | Ligne             | Valeurs consécutives (any sens)                     | 3          | any       | direction                              | 14   |
+| Brelan          | Ligne             | Même valeur                                         | 3          | any       | direction                              | 6    |
+| Carré           | Ligne             | Même valeur (clin d'œil poker, pas la forme carrée) | 4          | any       | direction                              | 8    |
+| Fibonacci       | Ligne             | 1, 1, 2, 3 (dans un sens ou l'autre)                | 4          | any       | direction                              | 14   |
 
-Pour les lignes "any direction", le multiplicateur est celui de la direction du match au moment de la résolution — vrai aussi pour Rainbow/Suite/Brelan/Carré/Fibonacci puisqu'ils vivent tous sur la forme Ligne (voir [Formes](formes.md)).
+Pour les lignes "any direction", le multiplicateur est **encore** celui de la direction du match au moment de la résolution dans le code actuel (vrai aussi pour Rainbow/Suite/Brelan/Carré/Fibonacci puisqu'ils vivent tous sur la forme Ligne, voir [Formes](formes.md)) — mais cet axe est décidé pour disparaître, voir section suivante.
+
+## Prochaine passe de rééquilibrage — mult fixe par Partition (décidée, pas encore implémentée, session 16)
+
+L'axe directionnel (V x1 / H x1.5 / D x2, voir [Scoring](scoring.md)) est jugé trop illisible une fois combiné à tous les autres multiplicateurs (cascade, modifiers, rule, level up, global, value bonus) — remplacé par un **multiplicateur fixe par Partition**, y compris pour les lignes, calibré par tier de difficulté réelle (taille de la figure, contrainte de la règle, complexité de placement sous gravité). Rempli dans la Google Sheet, pas encore répercuté dans `cascade_resolver.gd` (qui écrase encore `score_multiplier` par la direction pour toute forme `line`) ni dans les `.tres` de lignes.
+
+| Tier | Partitions | Mult cible |
+|---|---|---|
+| Amorce | Line 3, Brelan | ×1.5 |
+| Facile | Line 4, Square 4, T, Carré (poker), Line 4 Rainbow, Square Rainbow | ×2 |
+| Medium | Line 5, Suite, Diamond, Number Square (dormant), Fibonacci | ×2.5 |
+| Difficile | Plus | ×3 |
+| Très dur | Cross | ×4 |
+| Extrême | Ring | ×5 |
+| Hors échelle | Diamond Rock, 777 (idée), 9999 (idée) | cas à part, voir ci-dessous |
+
+Notes :
+- **Rainbow revu à la baisse** par rapport à l'intuition initiale : avec seulement `FAMILY_COUNT = 4` familles, obtenir 4 familles *distinctes* est statistiquement plus facile qu'obtenir 4 fois la *même* — Line 4 Rainbow et Square Rainbow rejoignent donc le tier Facile plutôt que Difficile
+- **Fibonacci** pareil : les valeurs 1/2/3 sont courantes (`TOKEN_MIN_VALUE`-`TOKEN_MAX_VALUE` = 1-5, 8 copies chacune dans le deck de base), la contrainte de séquence pèse moins qu'il n'y paraît
+- **Diamond Rainbow** : tier pas encore tranché (candidat Difficile ×3, à confirmer) — voir [Questions ouvertes](../meta/questions-ouvertes.md)
+- **Diamond Rock** reste hors de ce chantier — son score (centre + roll casino) suit sa propre question de recalibrage, voir [Rocks](../jetons/rocks.md) et Questions ouvertes
+- **777/9999** dépendent de la Fusion (valeurs 7 et 9 impossibles autrement que par fusion de deux boutons de base) — signature de fin de run, pool "rare/signature" déjà noté comme non implémenté
 
 ## Rainbow, casino (session 14)
 
@@ -58,7 +79,7 @@ Les Partitions non choisies au démarrage restent achetables plus tard au shop.
 
 ## Catalogue complet (idées + statuts)
 
-Les idées non implémentées sont listées dans `docs/content/partitions.csv` et brassées dans `brainstorm-pattern-tags.md`. Pool cible final : 20-30 Partitions.
+Les idées non implémentées sont listées dans la [Google Sheet](https://docs.google.com/spreadsheets/d/1JMEQf2W6H8fMZ24D63-jRQrJKz5424kR7Exyo4xvM_0/edit) (onglet "partitions", source de vérité pour les données catalogue depuis le 2026-07-10 — le `.tres` doit suivre en cas de divergence) et brassées dans `brainstorm-pattern-tags.md`. Pool cible final : 20-30 Partitions.
 
 ## Liens
 

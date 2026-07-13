@@ -10,14 +10,14 @@ Assez grand pour des cascades intéressantes, assez dense pour que les jetons se
 
 Depuis la session 12, chaque manche démarre avec quelques **trous** générés aléatoirement sur la grille — voir [Grille cabossée](trous.md) pour le détail. Ce n'est pas une variation du format lui-même (toujours 7×7), mais une couche d'imprévisibilité posée par-dessus à chaque manche.
 
-## Le choix de la classe
+## La grille comme identité de biome (revu session 16)
 
-En début de run, le joueur choisit sa grille. Premier choix structurant qui oriente tout le build (équivalent du deck dans Balatro). Chaque grille oriente vers une stratégie :
+Direction revue : la grille n'est plus un choix fait une fois en début de run (ce rôle de "classe" façon Balatro est repris par le [pack de boutons de départ](../progression/structure-run.md#choix-de-départ)). Elle est désormais liée au [biome](../progression/structure-run.md#biomes) traversé — chaque zone a potentiellement sa propre grille, découverte en y entrant, cohérente avec son identité visuelle et narrative plutôt qu'un choix stratégique fait à l'aveugle avant le run. Chaque grille peut quand même orienter vers une stratégie différente :
 - Grille large → builds horizontaux (Partitions horizontales plus faciles)
 - Grille profonde → builds verticaux et cascades monstrueuses
 - Grille à trous → chaos calculé, placements créatifs
 
-**Statut** : pas encore implémenté — la grille est fixe (7×7) pour tout le monde actuellement, aucun choix de classe au démarrage. Noms et layouts à redéfinir selon les zones de l'univers. Les placeholders maritimes du brouillon initial (Abysses, Récif…) ont été écartés avec le pivot vers l'univers halluciné.
+**Statut** : pas encore implémenté — la grille est fixe (7×7) pour tout le monde actuellement, aucune variation par biome. Noms et layouts à redéfinir selon les zones de l'univers. Les placeholders maritimes du brouillon initial (Abysses, Récif…) ont été écartés avec le pivot vers l'univers halluciné.
 
 Clin d'œil : l'idée "Grille à trous → chaos calculé" listée ci-dessus a en partie été réalisée en session 12, mais comme couche universelle à chaque manche plutôt que comme trait permanent d'une classe — voir [Grille cabossée](trous.md).
 

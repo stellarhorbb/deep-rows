@@ -2,27 +2,13 @@
 
 **Score = somme des valeurs × mult forme × mult cascade × mult modifiers × mult règle.**
 
-## Lignes — multiplicateur par direction
+## Multiplicateur fixe par Partition (révisé session 16)
 
-Pour les lignes, c'est **la direction du match** qui détermine le multiplicateur, pas la longueur.
+**Décidé, pas encore implémenté** : chaque Partition — lignes comprises — a désormais un **multiplicateur fixe défini sur sa resource `.tres`**, calibré selon la difficulté de placement de sa figure (taille, contrainte de la règle, complexité géométrique sous gravité), peu importe la direction dans laquelle elle se résout. Voir [Catalogue implémenté](catalogue-implemente.md) pour le tableau de tiers et les valeurs cibles.
 
-| Direction | Multiplicateur |
-|---|---|
-| Verticale | x1 |
-| Horizontale | x1.5 |
-| Diagonale | x2 |
+Ancien système (encore actif dans le code aujourd'hui, à remplacer) : pour les lignes, c'était **la direction du match** qui déterminait le multiplicateur (Verticale x1, Horizontale x1.5, Diagonale x2), pas la longueur — abandonné car cet axe supplémentaire rendait la formule illisible une fois combiné à tous les autres multiplicateurs, et parce que les rainbows/Fibonacci se sont révélés moins durs à l'usage que prévu, indépendamment de leur direction de résolution.
 
-**Conséquence** : empiler une colonne de la même famille fonctionne (x1) mais n'est jamais suffisant pour atteindre la cible. Les patterns diagonaux et horizontaux sont bien plus rentables.
-
-## Autres formes — multiplicateur fixe
-
-Carrés et losanges ont un multiplicateur défini dans leur resource `.tres`.
-
-| Forme | Multiplicateur typique |
-|---|---|
-| Carré Famille | x2 |
-| Losange Rock | x4 |
-| Losange Famille | x2.5 |
+Carrés, losanges et toutes les autres formes gardent le même principe qu'avant : un multiplicateur défini dans leur resource `.tres`.
 
 ### Losange — deux bases de score différentes (session 12)
 

@@ -31,7 +31,7 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
   - [Grenouilles orchestre](univers/personnages/grenouilles-orchestre.md) — tenancières du shop
 
 ### [Grille](grille/)
-- [Format](grille/format.md) — 7×7, choix de grille en début de run (pas encore implémenté)
+- [Format](grille/format.md) — 7×7, liée au biome traversé plutôt qu'un choix de départ (pas encore implémenté, revu session 16)
 - [Grille cabossée](grille/trous.md) — trous aléatoires par manche (session 12)
 - [Gravité et résolution](grille/gravite-resolution.md) — cascades, chaîne d'événements
 - [Modifiers de cellules](grille/modifiers-cellules.md) — HALF / BOOST / DOUBLE / TRIPLE
@@ -49,7 +49,7 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
 - [Axes de règles](partitions/axes-de-regles.md) — famille / chiffre / suite / mixte
 - [Scoring](partitions/scoring.md) — multi direction, cascade, modifiers, rule
 - [Level up](partitions/level-up.md) — Pianissimo → Maestro
-- [Catalogue implémenté](partitions/catalogue-implemente.md) — 6 actives (famille/rock), 4 dormantes (chiffre)
+- [Catalogue implémenté](partitions/catalogue-implemente.md) — 17 actives, 1 dormante, refonte du mult par tier décidée (session 16)
 
 ### [Manche](manche/)
 - [Deck](manche/deck.md) — composition, persistant sur la run, pas de reshuffle
@@ -74,7 +74,7 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
 - [Génération de l'offre](shop/generation-offre.md) — règles de curation
 
 ### [Progression](progression/)
-- [Structure du run](progression/structure-run.md) — 4 zones × 3 manches
+- [Structure du run](progression/structure-run.md) — biomes fixes, boss de zone, mode infini (chantier session 16, longueur pas figée)
 - [Sources de scaling](progression/sources-scaling.md) — les 7 leviers
 - [Monnaies](progression/monnaies.md) — mouches + tickets
 - [Défaite](progression/defaite.md) — conditions, game over
@@ -96,6 +96,6 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
   - `brainstorm-univers.md` — source de vérité sur l'univers et le ton
   - `brainstorm-pattern-tags.md` — pool de partitions à piocher
   - `brainstorm-badges.md` — triggers × effets pour le catalogue
-- **Base de contenu** (dans `docs/content/`) — CSV pour Google Sheets : `badges.csv`, `specials.csv`, `partitions.csv`
+- **Base de contenu** — [Google Sheet](https://docs.google.com/spreadsheets/d/1JMEQf2W6H8fMZ24D63-jRQrJKz5424kR7Exyo4xvM_0/edit) (onglets Partitions/Badges/Jetons spéciaux/Progression), source de vérité pour les données catalogue depuis le 2026-07-10 — le `.tres` doit suivre en cas de divergence
 - **Pitch Discord** — `docs/simple-concept.md` (baromètre de complexité)
 - **Logs de sessions** — `docs/logs/`

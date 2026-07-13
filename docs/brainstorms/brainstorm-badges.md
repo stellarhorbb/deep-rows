@@ -153,6 +153,57 @@ Objectif de sensation vise par le user : un build "stressant dans le bon sens", 
 
 ---
 
+## Piste — archetypes de scaling late game (session 15)
+
+Discussion partie d'un dump d'idees en vrac du user, apres avoir pose la formule complete de scoring (`value_sum × shape_mult × cascade_mult × modifier_mult × rule_mult × level_mult × global_mult × value_bonus_mult`, voir [Scoring](../gdd/partitions/scoring.md)) et remarque qu'aucun Badge actuel ne grossit *en permanence* sur toute la run. Ca recoupe les 4 archetypes classiques de Jokers Balatro — utile comme grille de lecture pour trier les futures idees de Badges.
+
+### 1. Scaling permanent (le seul vrai trou technique)
+
+Des Badges dont l'effet grossit tout seul, pour toute la run, jamais remis a zero (ex Balatro : Constellation, Runaway, Rocket, Hologram). Exemples proposes par le user :
+- Ajoute le nombre de level up de Partition cumules a chaque Partition scoree
+- +0.1 au multi pour chaque special achete
+- +1 de valeur a chaque jeton resolu dans une Partition (a clarifier : bonus sur le Badge lui-meme, pas mutation des jetons du deck — voir la piste "value_bonus_flat" dans les questions ouvertes du GDD)
+
+**Trou technique identifie** : `RunManager._badge_state` existe deja pour des compteurs a Badge, mais explicitement remis a zero chaque manche (Regularite, Un Pour Tous). Aucun etat de Badge ne survit aujourd'hui a une transition de manche. Il faudrait un nouvel etat persistant par Badge sur toute la run (distinct de `_badge_state`) pour que cet archetype existe. Fondateur : sans ca, aucune des 3 idees ci-dessus ne peut marcher.
+
+### 2. Lecture d'etat live (deja faisable avec l'existant)
+
+Des Badges qui lisent l'etat du jeu au moment du trigger, sans rien memoriser. Deja le principe de Dernier Carre (lit le deck restant a chaque tour). Exemples proposes :
+- x1 Mult par slot de Badge vide
+- +5 Mult si moins de 5 boutons restants
+- +0.5 Mult par Badge equipe
+- Les Badges Common ajoutent x1 au multi (lecture recursive de la rarete des autres Badges equipes)
+- Les boutons pairs/impairs ajoutent +1 de valeur quand ils sont dans une Partition resolue (a rapprocher de `value_bonus_multipliers`, mais sur parite plutot que valeur exacte — nouvelle cle de dimension a envisager si l'idee prend)
+
+Zero nouveau systeme necessaire, juste du contenu a ecrire une fois qu'on route dessus.
+
+### 3. Probabilite / casino sur trigger de scoring
+
+Branche directement sur le roll de [Diamond Rock](../gdd/jetons/rocks.md) (session 15). Exemples :
+- 1 chance sur 4 d'ajouter x1 au multi quand un 7 est joue dans une Partition
+- 1 chance sur 2 pour les boutons Ink de donner x1.5 Mult quand ils scorent
+
+Deux implementations possibles : un roll une fois par manche a `on_round_start` (simple, meme mecanique que les autres Badges) ou un roll par jeton scoré individuellement (plus Vegas, demande un nouveau point d'evaluation dans `CascadeResolver._score_group`).
+
+**Garde-fou de design (discute session 15)** : le probabiliste doit rester le payoff d'un **build entier assume**, pas un bonus isole disperse sur n'importe quel build. Si un Badge a chance isole peut faire perdre une run "pour rien" (malchance sur un roll a 50%), ca grince avec la decision verrouillee "defaite brutale et claire, le joueur sait pourquoi il a perdu". Reference Balatro : le voucher "Oops All 6s" double toutes les probabilites des Jokers de chance — ca transforme d'un coup une poignee de Jokers isoles random en un vrai archetype "flambeur" coherent et viable, plutot que du bruit aleatoire disperse. Piste a explorer ici : un Badge/mecanisme equivalent qui ne vaut le coup que si le joueur a commit plusieurs pieces probabilistes ensemble.
+
+### 4. Nouvelle Partition a roulette dediee (pas un Badge — voir brainstorm-pattern-tags.md)
+
+Idee du user : "si l'Entity aligne 3 skulls, on declenche la roulette" — meme famille que Diamond Rock mais sur les jetons Entity plutot que Rock. Notee en detail dans [Pattern Tags — piste Entity](brainstorm-pattern-tags.md#piste--partition-a-roulette-sur-lentity-session-15).
+
+### 5. Badges positionnels — l'ordre comme vrai levier (session 15)
+
+En discutant de la demande "reordonner les Badges equipes" (voir `questions-ouvertes.md`), on a verifie qu'aucun Badge actuel n'a de vrai interet a etre reordonne — les seuls cas ou l'ordre compte aujourd'hui sont des collisions accidentelles sur la meme cle (`rule_multiplier`, `value_bonus_multiplier`, qui ecrasent au lieu de cumuler), pas un design intentionnel.
+
+Le vrai potentiel : des Badges qui referencent explicitement leur position, façon **Blueprint/Brainstorm** de Balatro — un Badge qui copie l'effet du Badge equipe juste a cote de lui (ou le premier/dernier du rang). Exemples a explorer :
+- **"Miroir"** : copie l'effet du Badge equipe immediatement a droite
+- **"Echo"** : double l'effet du Badge equipe immediatement a gauche
+- **"Chef de file"** : le premier Badge du rang voit son effet applique deux fois
+
+Ca transforme le reordonnancement en vrai axe de build ("je mets mon meilleur Badge en position 1, puis Miroir juste apres pour le dupliquer") plutot qu'un outil de rangement accessoire. Necessite que `BadgeManager._dispatch` expose la position/les voisins d'un Badge a son propre `BadgeEffect.apply()` — pas cable aujourd'hui (chaque Badge ne voit que l'event et le RunManager, pas les autres Badges equipes ni sa propre position dans le tableau).
+
+---
+
 ## Notes / questions ouvertes
 
 - Combien de triggers actifs en meme temps un Badge peut-il avoir ? (Un seul ? Plusieurs ANDes ?)

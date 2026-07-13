@@ -2,23 +2,23 @@
 
 **15 Badges actifs** dans le proto (4 batchs). Couvrent les 5 triggers (session 13 : `on_token_drop` a eu son premier consommateur, Dernier Carré).
 
-| Badge | Trigger | Effet | Rareté |
-|---|---|---|---|
-| **Mouches en Cascade** | `on_cascade_step` | +3 mouches par cascade secondaire (level ≥ 1) | Common |
-| **Cellule Triple** | `on_round_start` | Ajoute une cellule TRIPLE aléatoire chaque manche | Uncommon |
-| **Tranchée** | `on_round_start` | Colonnes centrales BOOST (×1.5), colonnes extérieures HALF (×0.5) | Rare |
-| **Famille Unie** | `on_round_start` | Les patterns de rule `family` scorent ×2 | Uncommon |
-| **Cellule Double** | `on_round_start` | Ajoute une cellule DOUBLE aléatoire chaque manche | Common |
-| **Écume** | `on_round_start` | Toute la rangée du bas passe en BOOST (×1.5) | Uncommon |
-| **Pourboire** | `on_round_start` | +5 mouches fixes en début de manche | Common |
-| **Collectionneur** | `on_round_start` | Les patterns de rule `rock` scorent ×2 (symétrique de Famille Unie, pour Diamond Rock) | Uncommon |
-| **Vertige** | `on_turn_resolved` | +8 mouches si une cascade de profondeur 2+ se déclenche ce tour | Common |
-| **Colonne Chanceuse** | `on_round_start` | Une colonne aléatoire entière passe en BOOST (×1.5) | Common |
-| **Bord à Bord** | `on_round_start` | Les 2 colonnes extérieures passent en BOOST (×1.5) — symétrique de Tranchée | Rare |
-| **Un Pour Tous** | `on_turn_resolved` | +2 mouches la 1ère fois qu'une famille donnée score, une fois par manche | Common |
-| **Régularité** | `on_turn_resolved` | 3 tours sans cascade → le prochain pattern résolu est ×1.5 (contrepoids de Vertige) | Uncommon |
-| **Dernier Carré** | `on_token_drop` | Deck ≤ 4 jetons restants → tout ce qui résout ce tour est ×2 | Rare |
-| **Petites Mains** | `on_round_start` | Chaque jeton de valeur 1 dans une figure qui score ajoute +0.5 à son multi (par figure, pas cumulé sur le tour) | Uncommon |
+| Badge                  | Trigger            | Effet                                                                                                           | Rareté   |
+| ---------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------- | -------- |
+| **Mouches en Cascade** | `on_cascade_step`  | +3 mouches par cascade secondaire (level ≥ 1)                                                                   | Common   |
+| **Cellule Triple**     | `on_round_start`   | Ajoute une cellule TRIPLE aléatoire chaque manche                                                               | Uncommon |
+| **Tranchée**           | `on_round_start`   | Colonnes centrales BOOST (×1.5), colonnes extérieures HALF (×0.5)                                               | Rare     |
+| **Famille Unie**       | `on_round_start`   | Les patterns de rule `family` scorent ×2                                                                        | Uncommon |
+| **Cellule Double**     | `on_round_start`   | Ajoute une cellule DOUBLE aléatoire chaque manche                                                               | Common   |
+| **Écume**              | `on_round_start`   | Toute la rangée du bas passe en BOOST (×1.5)                                                                    | Uncommon |
+| **Pourboire**          | `on_round_start`   | +5 mouches fixes en début de manche                                                                             | Common   |
+| **Collectionneur**     | `on_round_start`   | Les patterns de rule `rock` scorent ×2 (symétrique de Famille Unie, pour Diamond Rock)                          | Uncommon |
+| **Vertige**            | `on_turn_resolved` | +8 mouches si une cascade de profondeur 2+ se déclenche ce tour                                                 | Common   |
+| **Colonne Chanceuse**  | `on_round_start`   | Une colonne aléatoire entière passe en BOOST (×1.5)                                                             | Common   |
+| **Bord à Bord**        | `on_round_start`   | Les 2 colonnes extérieures passent en BOOST (×1.5) — symétrique de Tranchée                                     | Rare     |
+| **Un Pour Tous**       | `on_turn_resolved` | +2 mouches la 1ère fois qu'une famille donnée score, une fois par manche                                        | Common   |
+| **Régularité**         | `on_turn_resolved` | 3 tours sans cascade → le prochain pattern résolu est ×1.5 (contrepoids de Vertige)                             | Uncommon |
+| **Dernier Carré**      | `on_token_drop`    | Deck ≤ 4 jetons restants → tout ce qui résout ce tour est ×2                                                    | Rare     |
+| **Petites Mains**      | `on_round_start`   | Chaque jeton de valeur 1 dans une figure qui score ajoute +0.5 à son multi (par figure, pas cumulé sur le tour) | Uncommon |
 
 Chaque Badge = 1 script d'effet (`scripts/badges/effect_*.gd`) + 1 resource (`resources/badges/badge_*.tres`).
 

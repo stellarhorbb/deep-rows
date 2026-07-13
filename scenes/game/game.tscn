@@ -1,12 +1,12 @@
 [gd_scene format=3 uid="uid://ctjitndw30fke"]
 
-[ext_resource type="Script" path="res://scripts/core/game_scene.gd" id="1_game"]
-[ext_resource type="Script" path="res://scripts/ui/grid_visual.gd" id="2_grid"]
-[ext_resource type="Script" path="res://scripts/ui/stream_ui.gd" id="3_stream"]
-[ext_resource type="Script" path="res://scripts/ui/message_display.gd" id="4_message"]
-[ext_resource type="Script" path="res://scripts/ui/input_handler.gd" id="5_input"]
+[ext_resource type="Script" uid="uid://bptq5t14mxq8a" path="res://scripts/core/game_scene.gd" id="1_game"]
+[ext_resource type="Script" uid="uid://c5dalmcwhvyxb" path="res://scripts/ui/grid_visual.gd" id="2_grid"]
+[ext_resource type="Script" uid="uid://d16e451w1avr6" path="res://scripts/ui/stream_ui.gd" id="3_stream"]
+[ext_resource type="Script" uid="uid://c3yrsprjl4std" path="res://scripts/ui/message_display.gd" id="4_message"]
+[ext_resource type="Script" uid="uid://hx2tnsunf5t6" path="res://scripts/ui/input_handler.gd" id="5_input"]
 [ext_resource type="FontFile" uid="uid://dryqbsw3ute3w" path="res://assets/fonts/LondrinaSolid-Black.ttf" id="6_font_black"]
-[ext_resource type="Script" path="res://scripts/ui/resolution_banner.gd" id="10_resolution_banner"]
+[ext_resource type="Script" uid="uid://1w2ub5mjkgkt" path="res://scripts/ui/resolution_banner.gd" id="10_resolution_banner"]
 
 [node name="Game" type="Node2D" unique_id=1117591923]
 script = ExtResource("1_game")
@@ -105,11 +105,11 @@ theme_override_fonts/font = ExtResource("6_font_black")
 theme_override_font_sizes/font_size = 32
 horizontal_alignment = 1
 vertical_alignment = 1
-mouse_filter = 2
 script = ExtResource("10_resolution_banner")
 
 [node name="Background" type="ColorRect" parent="ResolutionBanner" unique_id=1000000201]
 show_behind_parent = true
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
