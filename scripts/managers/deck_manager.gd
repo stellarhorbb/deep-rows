@@ -2,11 +2,21 @@ class_name DeckManager
 extends Node
 
 signal deck_built(size: int)
-signal stream_updated(current: TokenData, hold: TokenData, preview: Array[TokenData])
+signal stream_updated(current: TokenData, hold: Array[TokenData], preview: Array[TokenData])
+
+## Nombre de slots de hold pour la manche — 1 par defaut, augmentable par
+## Badge (ex: "Benediction", +1 slot). Pose par TurnController.start_round
+## juste apres build_context, avant build_deck (voir GameRules.BASE_HOLD_SLOTS).
+var hold_capacity: int = GameRules.BASE_HOLD_SLOTS
+
+## Bonus de taille de preview du stream pour la manche — 0 par defaut,
+## augmentable par Badge (ex: "Visionnaire", +1 jeton visible). Meme timing
+## que hold_capacity.
+var preview_bonus: int = 0
 
 var _deck: Array[TokenData] = []
 var _current: TokenData = null
-var _hold: TokenData = null
+var _hold: Array[TokenData] = []
 
 
 ## button_pool : pool persistant du RunManager (possede pour toute la run).
@@ -15,7 +25,9 @@ var _hold: TokenData = null
 func build_deck(composition: Dictionary, button_pool: Array[TokenData]) -> void:
 	_deck.clear()
 	_current = null
-	_hold = null
+	_hold.clear()
+	for i in range(hold_capacity):
+		_hold.append(null)
 
 	# Jetons de base : copies fraiches du pool possede (persistant pour la run)
 	for source_token in button_pool:
@@ -49,18 +61,36 @@ func advance_stream() -> void:
 	_emit_stream_updated()
 
 
-func do_hold() -> void:
+## slot_index >= 0 (clic sur un slot precis) : stocke/echange avec CE slot.
+## slot_index < 0 (touche clavier, defaut) : vise le premier slot vide, sinon
+## le slot 0 — swap simple, comme avant l'ajout de slots supplementaires.
+func do_hold(slot_index: int = -1) -> void:
 	if _current == null:
 		return
-	if _hold == null:
-		_hold = _current
+	var target: int = slot_index
+	if target < 0:
+		target = _first_empty_hold_slot()
+		if target < 0:
+			target = 0
+	if target < 0 or target >= _hold.size():
+		return
+
+	if _hold[target] == null:
+		_hold[target] = _current
 		_current = null
 		advance_stream()
 	else:
 		var tmp: TokenData = _current
-		_current = _hold
-		_hold = tmp
+		_current = _hold[target]
+		_hold[target] = tmp
 		_emit_stream_updated()
+
+
+func _first_empty_hold_slot() -> int:
+	for i in range(_hold.size()):
+		if _hold[i] == null:
+			return i
+	return -1
 
 
 func consume_current() -> TokenData:
@@ -73,13 +103,25 @@ func get_current() -> TokenData:
 	return _current
 
 
+## Tous les slots de hold (taille = hold_capacity), certains eventuellement
+## vides (null).
+func get_hold_slots() -> Array[TokenData]:
+	return _hold.duplicate()
+
+
+## Premier jeton tenu non-vide, ou null si tous les slots sont vides. Pratique
+## pour le code qui ne se soucie pas de quel slot precisement (ex: verifier
+## qu'un coup legal existe encore).
 func get_hold() -> TokenData:
-	return _hold
+	for h in _hold:
+		if h != null:
+			return h
+	return null
 
 
 func get_preview() -> Array[TokenData]:
 	var preview: Array[TokenData] = []
-	for i in range(GameRules.PREVIEW_SIZE):
+	for i in range(GameRules.PREVIEW_SIZE + preview_bonus):
 		var idx: int = _deck.size() - 1 - i
 		if idx < 0:
 			break
@@ -98,14 +140,24 @@ func get_remaining_tokens() -> Array[TokenData]:
 
 
 func is_exhausted() -> bool:
-	return _deck.size() == 0 and _current == null and _hold == null
+	return _deck.size() == 0 and _current == null and get_hold() == null
 
 
+## Si current est vide, rapatrie le premier jeton tenu non-vide (peu importe
+## le slot) — meme principe qu'avant l'ajout de slots supplementaires.
 func force_hold_to_current() -> void:
-	if _current == null and _hold != null:
-		_current = _hold
-		_hold = null
-		_emit_stream_updated()
+	if _current != null:
+		return
+	var slot: int = -1
+	for i in range(_hold.size()):
+		if _hold[i] != null:
+			slot = i
+			break
+	if slot < 0:
+		return
+	_current = _hold[slot]
+	_hold[slot] = null
+	_emit_stream_updated()
 
 
 func _shuffle() -> void:

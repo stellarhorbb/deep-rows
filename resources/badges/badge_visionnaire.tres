@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BadgeData" format=3 uid="uid://bjt0pehjpycgi"]
+
+[ext_resource type="Script" uid="uid://ct80ym651ovo7" path="res://scripts/data/badge_data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://dybwi8vjr2c3e" path="res://scripts/badges/effect_visionnaire.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"visionnaire"
+label = "VISIONNAIRE"
+description = "+1 jeton visible dans la preview du stream"
+price = 6
+rarity = 2
+effect_script = ExtResource("2_effect")

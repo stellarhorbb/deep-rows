@@ -54,10 +54,11 @@ func _handle_hover(global_pos: Vector2) -> void:
 
 
 func _handle_click(global_pos: Vector2) -> void:
-	# Check clic sur hold
+	# Check clic sur un slot de hold precis
 	var stream_local: Vector2 = stream_ui.get_global_transform().affine_inverse() * global_pos
-	if stream_ui.is_hold_click(stream_local):
-		turn_controller.request_hold()
+	var hold_slot: int = stream_ui.is_hold_click(stream_local)
+	if hold_slot >= 0:
+		turn_controller.request_hold(hold_slot)
 		return
 
 	# Check clic sur grille

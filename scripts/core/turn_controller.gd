@@ -54,6 +54,8 @@ func start_round(round_number: int) -> void:
 	pattern_manager.set_active_tags(context.equipped_tags)
 	grid_manager.set_run_context(context)
 
+	deck_manager.hold_capacity = GameRules.BASE_HOLD_SLOTS + context.hold_slot_bonus
+	deck_manager.preview_bonus = context.preview_size_bonus
 	deck_manager.build_deck(run_manager.get_deck_composition(), run_manager.get_button_pool())
 	deck_manager.advance_stream()
 	_state = State.AWAITING_INPUT
@@ -103,10 +105,10 @@ func notify_special_effect_done() -> void:
 	special_effect_done.emit()
 
 
-func request_hold() -> void:
+func request_hold(slot_index: int = -1) -> void:
 	if _state != State.AWAITING_INPUT:
 		return
-	deck_manager.do_hold()
+	deck_manager.do_hold(slot_index)
 
 
 func get_state() -> State:
@@ -126,6 +128,9 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 
 	# Emet un hook par MATCH event pour les badges on_cascade_step, et
 	# remonte le score de chaque groupe a sa Partition pour le level up.
+	# UPGRADE (ex: Poker Face) : le tirage a deja eu lieu dans CascadeResolver
+	# (avant que le visuel n'anime la montee en valeur) — ici on applique juste
+	# la mutation reelle sur le pool de boutons.
 	for event in timeline:
 		if event["type"] == CascadeResolver.EventType.MATCH:
 			var groups: Array = event["groups"] as Array
@@ -135,6 +140,10 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 				var tag_name: StringName = group.get("tag_name", &"") as StringName
 				run_manager.add_tag_score(tag_name, scores[i] as int)
 			cascade_step_resolved.emit(event["cascade_level"] as int, event["total_earned"] as int)
+		elif event["type"] == CascadeResolver.EventType.UPGRADE:
+			for entry in (event["upgrades"] as Array):
+				var data: Dictionary = entry as Dictionary
+				run_manager.upgrade_matching_button(data["family"] as TokenData.Family, data["value"] as int)
 
 	turn_resolved.emit(timeline)
 
@@ -172,16 +181,19 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 	awaiting_input.emit()
 
 
-## Verifie si le jeton courant ou celui au hold a au moins une colonne
-## jouable. Utilise pour detecter un plateau bloque (voir _on_resolution_complete).
+## Verifie si le jeton courant ou l'un des jetons tenus (voir hold_capacity,
+## potentiellement plusieurs slots depuis "Benediction") a au moins une
+## colonne jouable. Utilise pour detecter un plateau bloque (voir
+## _on_resolution_complete).
 func _has_legal_move() -> bool:
 	var current: TokenData = deck_manager.get_current()
-	var hold: TokenData = deck_manager.get_hold()
+	var held: Array[TokenData] = deck_manager.get_hold_slots()
 	for col in range(GameRules.COLS):
 		if current != null and grid_manager.can_play_token(current, col, 0):
 			return true
-		if hold != null and grid_manager.can_play_token(hold, col, 0):
-			return true
+		for hold in held:
+			if hold != null and grid_manager.can_play_token(hold, col, 0):
+				return true
 	return false
 
 

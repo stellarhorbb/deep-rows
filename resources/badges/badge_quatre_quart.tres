@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BadgeData" format=3 uid="uid://du5pgfeekivem"]
+
+[ext_resource type="Script" uid="uid://ct80ym651ovo7" path="res://scripts/data/badge_data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://ch5cil40frvg" path="res://scripts/badges/effect_quatre_quart.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"quatre_quart"
+label = "QUATRE QUART"
+description = "Chaque Partition de 4 jetons scorée ajoute +1 point, cumulé sur toute la run"
+price = 5
+rarity = 1
+trigger = &"on_turn_resolved"
+effect_script = ExtResource("2_effect")

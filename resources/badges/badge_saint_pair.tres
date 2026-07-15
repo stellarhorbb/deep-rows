@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BadgeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/badge_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/badges/effect_saint_pair.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"saint_pair"
+label = "SAINT PAIR"
+description = "Les jetons de valeur paire qui scorent recomptent leur valeur une deuxième fois"
+trigger = &"on_round_start"
+price = 5
+rarity = 1
+effect_script = ExtResource("2_effect")

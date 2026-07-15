@@ -29,6 +29,7 @@ const ROUND_START_HOLES_MAX: int = 8
 
 # Stream
 const PREVIEW_SIZE: int = 3
+const BASE_HOLD_SLOTS: int = 1
 
 # Scoring
 const BASE_TARGET: int = 60
@@ -108,9 +109,11 @@ const DIAMOND_ROCK_ROLL_MAX: int = 5
 
 ## Poids de tirage par rarete au shop (unitaires + packs, Tags et Badges
 ## uniquement — Speciaux et boutons n'ont pas de champ rarity). Index = valeur
-## de l'enum Rarity (COMMON/UNCOMMON/RARE/EPIC), commune a PatternData.Rarity
-## et BadgeData.Rarity (memes valeurs 0-3). Voir ShopManager._weighted_pick.
-const RARITY_WEIGHTS: Array[float] = [10.0, 5.0, 2.0, 1.0]
+## de l'enum Rarity. PatternData.Rarity s'arrete a EPIC (0-3) ; BadgeData.Rarity
+## ajoute LEGENDARY (4, session 17) pour une poignee de Badges tres puissants
+## debloques au Shore — poids volontairement infime, un Partition n'atteint
+## jamais cet index. Voir ShopManager._weighted_pick.
+const RARITY_WEIGHTS: Array[float] = [10.0, 5.0, 2.0, 1.0, 0.1]
 
 ## Couleurs et noms par rarete, pour le badge colore affiche dans les tooltips
 ## (voir RarityTooltip). Meme indexation que RARITY_WEIGHTS.
@@ -119,8 +122,9 @@ const RARITY_COLORS: Array[Color] = [
 	Color("4caf7d"), # UNCOMMON
 	Color("4a90d9"), # RARE
 	Color("b06fd9"), # EPIC
+	Color("e8b923"), # LEGENDARY
 ]
-const RARITY_NAMES: Array[String] = ["COMMON", "UNCOMMON", "RARE", "EPIC"]
+const RARITY_NAMES: Array[String] = ["COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY"]
 
 # Deck de depart structure : x copies de chaque (famille, valeur) possible,
 # plutot qu'un tirage purement aleatoire — garantit une repartition egale

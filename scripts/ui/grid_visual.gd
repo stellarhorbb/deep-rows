@@ -25,6 +25,11 @@ signal group_score_revealed(amount: int)
 @export var remove_duration: float = 0.25
 @export var gravity_duration: float = 0.18
 @export var cascade_pause: float = 0.15
+@export var upgrade_hold_duration: float = 0.6
+@export var upgrade_fade_duration: float = 0.3
+@export var upgrade_pause: float = 0.2
+@export var rockify_flash_duration: float = 0.25
+@export var rockify_pause: float = 0.15
 
 @export var grid_manager: GridManager
 @export var badges_ui: BadgesUI
@@ -119,6 +124,13 @@ func sync_sprites() -> void:
 				_create_sprite(cell, token)
 
 
+## Remplace le sprite d'une cellule par celui du nouveau jeton (ex: Badge
+## "Récif vivant" qui transforme un jeton en rock). _create_sprite supprime
+## deja l'ancien sprite avant d'en creer un nouveau.
+func replace_sprite(cell: Vector2i, token: TokenData) -> void:
+	_create_sprite(cell, token)
+
+
 ## Rebuild complet — detruit tous les sprites et les recree depuis l'etat de la grille.
 ## A utiliser apres un special qui deplace des jetons (Fantome, Maree).
 func rebuild_sprites() -> void:
@@ -170,8 +182,14 @@ func play_timeline(timeline: Array[Dictionary]) -> void:
 		if event_type == CascadeResolver.EventType.MATCH:
 			await _animate_match(event)
 
+		elif event_type == CascadeResolver.EventType.UPGRADE:
+			await _animate_upgrade(event)
+
 		elif event_type == CascadeResolver.EventType.REMOVE:
 			await _animate_remove(event)
+
+		elif event_type == CascadeResolver.EventType.ROCKIFY:
+			await _animate_rockify(event)
 
 		elif event_type == CascadeResolver.EventType.GRAVITY:
 			await _animate_gravity(event)
@@ -362,6 +380,65 @@ func _animate_match(event: Dictionary) -> void:
 			group_score_revealed.emit(combo_bonus)
 	else:
 		await get_tree().create_timer(match_highlight_duration * 0.5).timeout
+
+
+## Anime les jetons qui viennent de gagner +1 de valeur (ex: "Poker Face") —
+## joue juste avant _animate_remove dans la timeline, pour montrer la montee
+## en valeur avant que le jeton ne disparaisse. Le label numerique n'existe
+## que si GameRules.DEBUG_SHOW_TOKEN_VALUE est actif (voir _add_value_label,
+## la valeur des jetons n'est pas encore representee visuellement en dehors
+## de ce mode) — le flash dore, lui, joue toujours. Tenu quelques instants
+## (upgrade_hold_duration) avant de s'estomper en fondu, pour laisser le temps
+## de le voir (retour de playtest : trop rapide en instantane).
+func _animate_upgrade(event: Dictionary) -> void:
+	var upgrades: Array = event.get("upgrades", []) as Array
+	if upgrades.is_empty():
+		return
+
+	for entry in upgrades:
+		var data: Dictionary = entry as Dictionary
+		var cell: Vector2i = data["cell"] as Vector2i
+		if not _token_sprites.has(cell):
+			continue
+		var sprite: Sprite2D = _token_sprites[cell] as Sprite2D
+		for child in sprite.get_children():
+			if child is Label:
+				(child as Label).text = str((data["value"] as int) + 1)
+		sprite.modulate = Color(2.5, 2.0, 0.4, 1.0)
+
+	await get_tree().create_timer(upgrade_hold_duration).timeout
+
+	var fade_tween: Tween = create_tween().set_parallel(true)
+	for entry in upgrades:
+		var cell: Vector2i = (entry as Dictionary)["cell"] as Vector2i
+		if _token_sprites.has(cell):
+			fade_tween.tween_property(_token_sprites[cell] as Sprite2D, "modulate", Color.WHITE, upgrade_fade_duration)
+	await fade_tween.finished
+
+	await get_tree().create_timer(upgrade_pause).timeout
+
+
+## Anime les jetons qui viennent de "se petrifier" (ex: "Récif vivant") — joue
+## apres _animate_remove : le reste du groupe a deja disparu, celui-la se
+## transforme en rock a la place. Flash grise puis swap du sprite (reutilise
+## replace_sprite, meme fonction que _create_sprite).
+func _animate_rockify(event: Dictionary) -> void:
+	var cells: Array = event.get("cells", []) as Array
+	if cells.is_empty():
+		return
+
+	for cell_key in cells:
+		var cell: Vector2i = cell_key as Vector2i
+		if _token_sprites.has(cell):
+			(_token_sprites[cell] as Sprite2D).modulate = Color(0.5, 0.5, 0.55, 1.0)
+
+	await get_tree().create_timer(rockify_flash_duration).timeout
+
+	for cell_key in cells:
+		var cell: Vector2i = cell_key as Vector2i
+		replace_sprite(cell, TokenData.make_rock())
+
+	await get_tree().create_timer(rockify_pause).timeout
 
 
 func _animate_remove(event: Dictionary) -> void:

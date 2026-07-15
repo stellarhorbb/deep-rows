@@ -23,6 +23,11 @@ func _ready() -> void:
 	tags_ui.setup()
 	badges_ui.run_manager = RunService.run_manager
 	badges_ui.setup()
+	# Tilt sur le slot d'un Badge des qu'il ajoute des mouches (Vertige,
+	# Pourboire, Un Pour Tous, Mouches en Cascade...) — ces Badges ne passent
+	# jamais par la banniere de resolution (qui tilte deja les Badges de score),
+	# ils n'avaient donc aucun feedback visuel avant (session 17).
+	RunService.badge_manager.badge_triggered.connect(badges_ui.tilt_badge)
 
 	deck_button.pressed.connect(deck_inspector_ui.toggle)
 	# Pas de manche active tant que GameScene n'a pas cable son deck_manager

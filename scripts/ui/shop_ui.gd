@@ -38,6 +38,12 @@ var _pack_entries: Array[Dictionary] = []
 var _unitaire_entries: Array[Dictionary] = []
 var _reroll_count: int = 0
 
+## Reroll gratuit de cette visite, offert par le badge "Econome" — consomme au
+## premier reroll, peu importe lequel (unitaires). Reinitialise a chaque
+## nouvelle visite du shop (_ready), le seul endroit qui sait de facon fiable
+## qu'une visite commence (aucun signal shop_entered/shop_opened aujourd'hui).
+var _free_reroll_available: bool = false
+
 ## Etat du panneau Des a coudre : 3 actions tirees + 8 candidats, tous deux
 ## visibles en meme temps. Selectionner des boutons (jusqu'a 2, le max requis
 ## par Fusionner) active/desactive les actions selon leur validite — cliquer
@@ -62,6 +68,7 @@ func _ready() -> void:
 	target_close_button.pressed.connect(_on_target_close_pressed)
 
 	_reroll_count = 0
+	_free_reroll_available = _run_manager.has_badge(&"econome")
 	_shop_manager.regenerate_offer(_run_manager)
 	_refresh_flies()
 	_rebuild_packs()
@@ -203,16 +210,24 @@ func _on_continue_pressed() -> void:
 # --- Reroll (uniquement la rangee des unitaires, les packs restent fixes) ---
 
 func _reroll_price() -> int:
+	if _free_reroll_available:
+		return 0
 	return GameRules.REROLL_BASE_PRICE + _reroll_count * GameRules.REROLL_INCREMENT
 
 
 func _refresh_reroll_button() -> void:
-	reroll_button.text = "REROLL — %d mouches" % _reroll_price()
-	reroll_button.disabled = _run_manager.get_flies() < _reroll_price()
+	if _free_reroll_available:
+		reroll_button.text = "REROLL — GRATUIT"
+		reroll_button.disabled = false
+	else:
+		reroll_button.text = "REROLL — %d mouches" % _reroll_price()
+		reroll_button.disabled = _run_manager.get_flies() < _reroll_price()
 
 
 func _on_reroll_pressed() -> void:
-	if not _run_manager.spend_flies(_reroll_price()):
+	if _free_reroll_available:
+		_free_reroll_available = false  # consomme le reroll gratuit de la visite
+	elif not _run_manager.spend_flies(_reroll_price()):
 		return
 	_reroll_count += 1
 	_shop_manager.reroll_unitaires(_run_manager)

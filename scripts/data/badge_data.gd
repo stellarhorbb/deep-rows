@@ -3,14 +3,14 @@
 class_name BadgeData
 extends Resource
 
-enum Rarity { COMMON, UNCOMMON, RARE, EPIC }
+enum Rarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY }
 
 @export var id: StringName = &""
 @export var label: String = ""
 @export var description: String = ""
 @export var price: int = 3
 @export var rarity: Rarity = Rarity.COMMON
-## Trigger : &"on_round_start" | &"on_token_drop" | &"on_cascade_step" | &"on_turn_resolved" | &"on_last_breath" | &"on_round_end"
+## Trigger : &"on_round_start" | &"on_token_drop" | &"on_cascade_step" | &"on_turn_resolved" | &"on_last_breath" | &"on_round_end" | &"on_level_up" | &"on_deck_grown"
 @export var trigger: StringName = &"on_round_start"
 ## Script derive de BadgeEffect. Instancie a chaque dispatch par BadgeManager.
 @export var effect_script: GDScript = null

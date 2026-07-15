@@ -1,9 +1,12 @@
 ## Banniere centrale de decomposition du score, un groupe resolu a la fois :
-## nom de la Partition -> valeur brute -> multi intrinseque -> (tilt Badge si
-## applicable) -> resultat final en plus gros. Remplace les anciens popups
-## "+X" et labels de pattern par groupe (GridVisual._animate_match), qui
-## etaient trop discrets/rapides pour suivre le calcul. Zero style pour
-## l'instant — priorite a la lisibilite de la sequence.
+## nom de la Partition -> valeur brute -> Badges "points" un par un (ordre des
+## slots) -> multi intrinseque -> Badges "multi" un par un (ordre des slots)
+## -> resultat final en plus gros (session 17 : les Badges points collent aux
+## jetons bruts, avant tout multi, plutot que d'etre melanges avec les Badges
+## multi dans un seul passage). Remplace les anciens popups "+X" et labels de
+## pattern par groupe (GridVisual._animate_match), qui etaient trop
+## discrets/rapides pour suivre le calcul. Zero style pour l'instant —
+## priorite a la lisibilite de la sequence.
 class_name ResolutionBanner
 extends Label
 
@@ -44,10 +47,9 @@ func _ready() -> void:
 ## cette fonction ne fait qu'afficher sa decomposition.
 func play_breakdown(breakdown: Dictionary, final_score: int, badges_ui: BadgesUI) -> void:
 	var label: String = breakdown.get("label", "") as String
-	var base_value: int = breakdown.get("base_value", 0) as int
+	var raw_value: int = breakdown.get("raw_value", 0) as int
 	var base_mult: float = breakdown.get("base_mult", 1.0) as float
-	var badge_mult: float = breakdown.get("badge_mult", 1.0) as float
-	var badge_sources: Array = breakdown.get("badge_sources", []) as Array
+	var badge_steps: Array = breakdown.get("badge_steps", []) as Array
 
 	visible = true
 	remove_theme_font_size_override("font_size")
@@ -56,18 +58,35 @@ func play_breakdown(breakdown: Dictionary, final_score: int, badges_ui: BadgesUI
 		_show_step(label, result_color)
 		await get_tree().create_timer(step_duration).timeout
 
-	_show_step("%d TICKETS" % base_value, value_color)
+	# 1. Jetons bruts de la Partition — aucun Badge implique ici.
+	_show_step("%d TICKETS" % raw_value, value_color)
 	await get_tree().create_timer(step_duration).timeout
 
+	# 2. Badges "points" (flat), dans l'ordre des slots — juste apres les
+	# jetons bruts, avant tout multi (retour de playtest : ils doivent
+	# apparaitre comme faisant partie de la meme "somme" que les jetons,
+	# pas melanges avec les multis qui suivent).
+	for step in badge_steps:
+		var data: Dictionary = step as Dictionary
+		if (data.get("kind", "flat") as String) != "flat":
+			continue
+		_play_badge_step(data, badges_ui)
+		await get_tree().create_timer(step_duration).timeout
+
+	# 3. Multi intrinseque a la Partition (forme + level up), toujours seul.
 	if base_mult > 1.0:
 		_show_step("x%s MULTI" % _format_mult(base_mult), mult_color)
 		await get_tree().create_timer(step_duration).timeout
 
-	if badge_mult > 1.0:
-		if badges_ui != null:
-			for source in badge_sources:
-				badges_ui.tilt_badge(source as StringName)
-		_show_step("BADGE x%s" % _format_mult(badge_mult), badge_color)
+	# 4. Badges "multi", dans l'ordre des slots — chacun tilte et affiche sa
+	# propre contribution plutot qu'un seul "BADGE xN" fondu (retour de
+	# playtest : illisible des que 2+ Badges contribuent a la meme resolution,
+	# voir CascadeResolver._attach_breakdown).
+	for step in badge_steps:
+		var data: Dictionary = step as Dictionary
+		if (data.get("kind", "flat") as String) != "mult":
+			continue
+		_play_badge_step(data, badges_ui)
 		await get_tree().create_timer(step_duration).timeout
 
 	add_theme_font_size_override("font_size", _base_font_size + result_font_size_boost)
@@ -75,6 +94,20 @@ func play_breakdown(breakdown: Dictionary, final_score: int, badges_ui: BadgesUI
 	await get_tree().create_timer(result_pause_duration).timeout
 
 	visible = false
+
+
+## Tilte le Badge concerne et affiche sa contribution (flat "+N" ou multi
+## "xN") — factorise entre les deux passes de play_breakdown (flat d'abord,
+## multi ensuite, voir ci-dessus).
+func _play_badge_step(data: Dictionary, badges_ui: BadgesUI) -> void:
+	var source: StringName = data.get("source", &"") as StringName
+	if badges_ui != null and source != &"":
+		badges_ui.tilt_badge(source)
+	var step_label: String = data.get("label", "") as String
+	if (data.get("kind", "flat") as String) == "mult":
+		_show_step("%s x%s" % [step_label, _format_mult(data.get("amount", 1.0) as float)], badge_color)
+	else:
+		_show_step("%s +%d" % [step_label, data.get("amount", 0) as int], badge_color)
 
 
 ## Annonce dediee a une cascade (2+ resolutions chainees dans le meme tour,

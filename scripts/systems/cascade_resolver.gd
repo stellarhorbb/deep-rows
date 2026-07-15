@@ -2,7 +2,7 @@ class_name CascadeResolver
 extends RefCounted
 
 ## Types d'evenements dans la timeline
-enum EventType { GRAVITY, MATCH, REMOVE }
+enum EventType { GRAVITY, MATCH, REMOVE, UPGRADE, ROCKIFY }
 
 
 ## Resout toutes les cascades sur la grille. `holes` (Vector2i -> true) sont
@@ -97,8 +97,18 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 
 		earned += combo_bonus
 
+		# Jetons "upgrades" (ex: Poker Face) tires pendant _score_group, mais
+		# uniquement pour les groupes retenus (pas les doublons rejetes
+		# ci-dessus) — evite de crediter deux fois le meme jeton chevauchant
+		# une Double Partition.
+		var upgrades: Array = []
+		for group in groups:
+			upgrades.append_array(group.get("upgrade_candidates", []) as Array)
+
 		# Collecter les cellules a supprimer (dedupliquees, deja garanties
 		# sans chevauchement par le filtrage ci-dessus)
+		var leaves_rock: bool = not context.rock_leaving_sources.is_empty()
+		var rock_replacements: Array[Vector2i] = []  # ex: "Récif vivant"
 		var cells_to_remove: Dictionary = {}  # Vector2i -> true
 		for group in groups:
 			# Diamond Rock "recolte" uniquement son centre : les 4 Rocks du
@@ -110,7 +120,17 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 			# family/rainbow) retirent leurs cellules normalement.
 			var is_rock_harvest: bool = group["shape"] == &"diamond" and group.get("match_rule") == &"rock"
 			if not is_rock_harvest:
-				for cell in group["cells"]:
+				var group_cells: Array = group["cells"]
+				# "Récif vivant" (session 17) : un jeton aleatoire PARMI CEUX QUI
+				# VIENNENT DE SCORER echappe a la suppression et devient un rock
+				# a la place, plutot que de disparaitre normalement.
+				var skip_cell: Vector2i = Vector2i(-1, -1)
+				if leaves_rock and group_cells.size() > 0:
+					skip_cell = group_cells[randi() % group_cells.size()]
+					rock_replacements.append(skip_cell)
+				for cell in group_cells:
+					if cell == skip_cell:
+						continue
 					cells_to_remove[cell] = true
 			# Diamond Rock "recolte" son centre : il est scorable (voir
 			# _score_group) et consomme avec le reste du losange. Les autres
@@ -134,6 +154,18 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 			"combo_bonus": combo_bonus,
 		})
 
+		# Evenement upgrade (ex: Poker Face) — insere avant la suppression pour
+		# que le visuel puisse montrer le jeton monter d'un cran avant de
+		# disparaitre. L'upgrade REEL du pool (RunManager.increase_button_value)
+		# n'a pas lieu ici : CascadeResolver reste de la logique pure, sans
+		# reference a RunManager — TurnController applique l'upgrade en lisant
+		# cet evenement (voir conventions, "communication entre systemes = signals").
+		if upgrades.size() > 0:
+			timeline.append({
+				"type": EventType.UPGRADE,
+				"upgrades": upgrades,
+			})
+
 		# Supprimer les jetons
 		for cell in removed_cells:
 			grid[cell.x][cell.y] = null
@@ -142,6 +174,18 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 			"type": EventType.REMOVE,
 			"cells": removed_cells,
 		})
+
+		# "Récif vivant" : les jetons epargnes ci-dessus deviennent des rocks
+		# APRES la suppression du reste du groupe — pour que le visuel montre
+		# clairement "les autres disparaissent, celui-la se petrifie" plutot
+		# que tout se meler dans la meme animation.
+		if rock_replacements.size() > 0:
+			for cell in rock_replacements:
+				grid[cell.x][cell.y] = TokenData.make_rock()
+			timeline.append({
+				"type": EventType.ROCKIFY,
+				"cells": rock_replacements,
+			})
 
 		total_score += earned
 
@@ -177,6 +221,10 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	var tag_name: StringName = group.get("tag_name", &"") as StringName
 	var level_mult: float = tag_level_multipliers.get(tag_name, 1.0) as float
 	var global_mult: float = context.global_multiplier
+	# Scaling permanent (session 17) : facteur additif qui grossit sur toute
+	# la run (ex: Jetons sacres, +0.1 par special joue), distinct de global_mult
+	# pour ne pas entrer en collision avec Dernier Carre/Regularite.
+	var scaling_mult: float = 1.0 + context.scaling_mult_bonus
 
 	# Diamond : le centre n'entre jamais dans la condition de match (voir
 	# PatternMatcher.find_diamonds), mais son role dans le SCORE depend de la
@@ -187,7 +235,7 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	# comme une ligne ou un carre.
 	if group["shape"] == &"diamond":
 		var tag_mult: float = group.get("score_multiplier", 4.0) as float
-		var base_value: int = 0
+		var raw_value: int = 0
 		var scored_cells: Array = []
 
 		var rock_roll: int = -1
@@ -197,31 +245,41 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 			if center_token == null or not center_token.is_scorable():
 				return 0
 			rock_roll = randi_range(GameRules.DIAMOND_ROCK_ROLL_MIN, GameRules.DIAMOND_ROCK_ROLL_MAX)
-			base_value = center_token.value + rock_roll
+			raw_value = center_token.value + rock_roll
 			scored_cells = [center]
 		else:
 			for cell in group["cells"]:
 				var token: TokenData = grid[cell.x][cell.y] as TokenData
 				if token != null and token.is_scorable():
-					base_value += token.value
+					raw_value += token.value
 			scored_cells = group["cells"]
 
 		var diamond_mod_mult: float = _modifier_multiplier(scored_cells, grid_modifiers)
 		var diamond_value_bonus_mult: float = _value_bonus_multiplier(scored_cells, grid, value_bonus_multipliers)
+		var diamond_sum_bonus: Dictionary = _value_sum_bonus(group, scored_cells, grid, context)
+		var base_value: int = raw_value + (diamond_sum_bonus["amount"] as int)
+		group["upgrade_candidates"] = _roll_upgrades(scored_cells, grid, context)
+		group["scored_tokens"] = _snapshot_scored_tokens(scored_cells, grid)
+		var diamond_mult_contribs: Dictionary = _mult_contributions(scored_cells, grid, context, rule)
 		# cascade_mult exclu du breakdown affiche : la banniere de resolution
 		# lui dedie sa propre annonce (voir GridVisual._animate_match), pas
 		# noye dans le MULTI generique. Le score reel l'inclut toujours.
 		var diamond_base_mult: float = tag_mult * diamond_mod_mult * level_mult
-		_attach_breakdown(group, context, base_value, diamond_base_mult, rule_mult, global_mult, diamond_value_bonus_mult, rule, scored_cells, grid)
+		_attach_breakdown(group, context, raw_value, base_value, diamond_base_mult, diamond_sum_bonus["contributions"] as Dictionary, diamond_mult_contribs)
 		if rock_roll >= 0:
 			(group["score_breakdown"] as Dictionary)["roll"] = rock_roll
-		return int(base_value * tag_mult * cascade_mult * diamond_mod_mult * rule_mult * level_mult * global_mult * diamond_value_bonus_mult)
+		return int(base_value * tag_mult * cascade_mult * diamond_mod_mult * rule_mult * level_mult * global_mult * diamond_value_bonus_mult * scaling_mult)
 
-	var value_sum: int = 0
+	var raw_value: int = 0
 	for cell in group["cells"]:
 		var token: TokenData = grid[cell.x][cell.y] as TokenData
 		if token != null and token.is_scorable():
-			value_sum += token.value
+			raw_value += token.value
+
+	var sum_bonus: Dictionary = _value_sum_bonus(group, group["cells"], grid, context)
+	var value_sum: int = raw_value + (sum_bonus["amount"] as int)
+	group["upgrade_candidates"] = _roll_upgrades(group["cells"], grid, context)
+	group["scored_tokens"] = _snapshot_scored_tokens(group["cells"], grid)
 
 	# Multiplicateur fixe du tag, meme regle pour toutes les formes (les lignes
 	# ne sont plus recompensees selon leur direction de resolution, session 16).
@@ -229,10 +287,11 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 
 	var mod_mult: float = _modifier_multiplier(group["cells"], grid_modifiers)
 	var value_bonus_mult: float = _value_bonus_multiplier(group["cells"], grid, value_bonus_multipliers)
+	var mult_contribs: Dictionary = _mult_contributions(group["cells"], grid, context, rule)
 	# cascade_mult exclu du breakdown affiche, meme raison que la branche diamond.
 	var base_mult: float = shape_mult * mod_mult * level_mult
-	_attach_breakdown(group, context, value_sum, base_mult, rule_mult, global_mult, value_bonus_mult, rule, group["cells"], grid)
-	return int(value_sum * shape_mult * cascade_mult * mod_mult * rule_mult * level_mult * global_mult * value_bonus_mult)
+	_attach_breakdown(group, context, raw_value, value_sum, base_mult, sum_bonus["contributions"] as Dictionary, mult_contribs)
+	return int(value_sum * shape_mult * cascade_mult * mod_mult * rule_mult * level_mult * global_mult * value_bonus_mult * scaling_mult)
 
 
 ## Chaque cellule modifiee dans la liste multiplie le total par son coefficient
@@ -267,42 +326,199 @@ func _value_bonus_multiplier(cells: Array, grid: Array, value_bonus_multipliers:
 	return mult
 
 
-## Attache au groupe la decomposition du score pour la banniere de resolution
-## (GridVisual.ResolutionBanner) — n'influence jamais le score reellement
-## calcule, qui reste le int() de la formule complete. base_mult regroupe tout
-## ce qui est intrinseque a la figure (forme/direction, cascade, niveau de
-## Partition, modifiers de cellule) ; badge_mult regroupe ce qui vient d'un
-## Badge et peut donc etre attribue (rule/global/value_bonus). Les modifiers
-## de cellule contribuent a base_mult sans attribution precise — savoir quel
-## Badge a pose quelle case demanderait de tracer la provenance de
-## grid_modifiers, hors scope pour l'instant.
-func _attach_breakdown(group: Dictionary, context: RunContext, base_value: int, base_mult: float, rule_mult: float, global_mult: float, value_bonus_mult: float, rule: StringName, value_bonus_cells: Array, grid: Array) -> void:
-	var sources: Dictionary = {}  # StringName -> true, utilise comme un set
+## Bonus flat ajoute au value_sum d'un groupe qui score, avant la chaine de
+## multiplicateurs — traite exactement comme si les jetons concernes valaient
+## plus cher, pas comme un multiplicateur a part. Couvre :
+## - retrigger : un jeton dont la valeur est marquee recompte sa propre valeur
+##   une deuxieme fois (ex: "Vingt-trois" sur un 3 qui score -> +3) ;
+## - bonus de famille : pattern de rule "family" d'une famille ciblee (ex:
+##   "Encrée" sur INK) ;
+## - bonus de paire : le groupe contient au moins deux jetons de meme valeur
+##   (ex: "Y'en a pas deux"), applique une seule fois peu importe le nombre
+##   de paires trouvees ;
+## - bonus rangee du haut : au moins une cellule de la derniere rangee de la
+##   grille entiere (pas seulement le groupe) est occupee au moment du score
+##   (ex: "Sommet").
+func _value_sum_bonus(group: Dictionary, cells: Array, grid: Array, context: RunContext) -> Dictionary:
+	var amount: int = 0
+	var contributions: Dictionary = {}  # StringName source -> int (montant individuel du badge)
 
+	var retrigger_values: Dictionary = context.retrigger_values
+	var value_counts: Dictionary = {}  # int (value) -> int (count), pour la paire
+	for cell in cells:
+		var c: Vector2i = cell as Vector2i
+		var token: TokenData = grid[c.x][c.y] as TokenData
+		if token == null or not token.is_scorable():
+			continue
+		value_counts[token.value] = (value_counts.get(token.value, 0) as int) + 1
+		if retrigger_values.get(token.value, false):
+			amount += token.value
+			var retrigger_source: StringName = context.retrigger_value_sources.get(token.value, &"") as StringName
+			if retrigger_source != &"":
+				contributions[retrigger_source] = (contributions.get(retrigger_source, 0) as int) + token.value
+
+	var rule: StringName = group.get("match_rule", &"") as StringName
+	if rule == &"family":
+		var family: int = group.get("family", -1) as int
+		var family_bonus: int = context.family_score_bonus.get(family, 0) as int
+		if family_bonus > 0:
+			amount += family_bonus
+			var family_source: StringName = context.family_score_bonus_sources.get(family, &"") as StringName
+			if family_source != &"":
+				contributions[family_source] = (contributions.get(family_source, 0) as int) + family_bonus
+
+	if context.pair_score_bonus > 0:
+		for count in value_counts.values():
+			if (count as int) >= 2:
+				amount += context.pair_score_bonus
+				if context.pair_score_bonus_source != &"":
+					var s: StringName = context.pair_score_bonus_source
+					contributions[s] = (contributions.get(s, 0) as int) + context.pair_score_bonus
+				break
+
+	if context.top_row_score_bonus > 0 and _top_row_occupied(grid):
+		amount += context.top_row_score_bonus
+		if context.top_row_score_bonus_source != &"":
+			var s2: StringName = context.top_row_score_bonus_source
+			contributions[s2] = (contributions.get(s2, 0) as int) + context.top_row_score_bonus
+
+	# Bonus scaling permanent (session 17) : contrairement aux autres bonus
+	# ci-dessus, inconditionnel — s'applique a CHAQUE groupe qui score (ex:
+	# Quatre quart, +5 par pattern de 4 jetons scorés cumulés sur la run).
+	if context.flat_score_bonus > 0:
+		amount += context.flat_score_bonus
+		for source in context.flat_score_bonuses:
+			var v: int = context.flat_score_bonuses[source] as int
+			contributions[source] = (contributions.get(source, 0) as int) + v
+
+	return {"amount": amount, "contributions": contributions}
+
+
+## Tire, pour chaque jeton scorable du groupe, une chance de gagner +1 de
+## valeur dans le deck (ex: "Poker Face"). Le tirage a lieu ici, PENDANT le
+## scoring — donc avant la suppression du jeton de la grille — pour que le
+## visuel puisse animer la montee en valeur avant que le jeton disparaisse
+## (voir GridVisual._animate_upgrade, EventType.UPGRADE). L'upgrade REEL du
+## pool (RunManager.increase_button_value) n'a pas lieu ici : CascadeResolver
+## reste de la logique pure sans reference a RunManager (voir conventions,
+## "communication entre systemes = signals uniquement") — c'est TurnController
+## qui l'applique en lisant ces candidats dans la timeline.
+func _roll_upgrades(cells: Array, grid: Array, context: RunContext) -> Array:
+	var chance: float = context.token_upgrade_chance
+	if chance <= 0.0:
+		return []
+	var upgrades: Array = []
+	for cell in cells:
+		var c: Vector2i = cell as Vector2i
+		var token: TokenData = grid[c.x][c.y] as TokenData
+		if token == null or not token.is_scorable():
+			continue
+		if randf() < chance:
+			upgrades.append({"cell": c, "family": token.family, "value": token.value})
+	return upgrades
+
+
+## Capture famille/valeur des jetons scores AVANT leur suppression de la
+## grille (le groupe ne garde que des positions Vector2i dans "cells", les
+## jetons eux-memes disparaissent apres resolution — voir decision
+## verrouillee). Attache sur group["scored_tokens"], lu par les badges
+## dispatches apres coup sur la timeline (ex: "Mouche cubique" a
+## on_turn_resolved, qui ne peut plus relire la grille a ce moment-la).
+func _snapshot_scored_tokens(cells: Array, grid: Array) -> Array:
+	var snapshot: Array = []
+	for cell in cells:
+		var c: Vector2i = cell as Vector2i
+		var token: TokenData = grid[c.x][c.y] as TokenData
+		if token == null or not token.is_scorable():
+			continue
+		snapshot.append({"family": token.family, "value": token.value})
+	return snapshot
+
+
+## Rangee du haut = ROWS - 1 (row 0 est le bas logique, destination de la
+## gravite — meme convention que Ecume sur la rangee du bas).
+func _top_row_occupied(grid: Array) -> bool:
+	var top_row: int = GameRules.ROWS - 1
+	for col in range(GameRules.COLS):
+		if grid[col][top_row] != null:
+			return true
+	return false
+
+
+## Construit la contribution multiplicative de CHAQUE badge individuellement
+## (StringName id -> facteur), plutot qu'un seul "badge_mult" fondu — necessaire
+## pour que la banniere de resolution puisse faire resoudre les Badges un par
+## un, de gauche a droite (retour de playtest session 17 : impossible de voir
+## qui a declenche quoi quand plusieurs Badges contribuent a la meme resolution).
+## Couvre les 3 canaux multiplicatifs actionnables par Badge : rule_multipliers,
+## global_multiplier, value_bonus_multipliers (par valeur de jeton, peut avoir
+## des sources differentes selon la valeur presente dans CE groupe) et
+## scaling_mult_bonuses (session 17). Les modifiers de cellule (Cellule Triple,
+## Tranchee...) restent hors de cette attribution — ils vivent sur la grille,
+## pas sur une resolution, et ont deja leur propre feedback visuel (bordures
+## colorees), pas dans la banniere.
+func _mult_contributions(cells: Array, grid: Array, context: RunContext, rule: StringName) -> Dictionary:
+	var contributions: Dictionary = {}  # StringName source -> float (facteur du badge)
+
+	var rule_mult: float = context.rule_multipliers.get(rule, 1.0) as float
 	if rule_mult > 1.0:
 		var rule_source: StringName = context.rule_multiplier_sources.get(rule, &"") as StringName
 		if rule_source != &"":
-			sources[rule_source] = true
+			contributions[rule_source] = rule_mult
 
-	if global_mult > 1.0 and context.global_multiplier_source != &"":
-		sources[context.global_multiplier_source] = true
+	if context.global_multiplier > 1.0 and context.global_multiplier_source != &"":
+		contributions[context.global_multiplier_source] = context.global_multiplier
 
-	if value_bonus_mult > 1.0:
-		for cell in value_bonus_cells:
+	var value_bonus_multipliers: Dictionary = context.value_bonus_multipliers
+	if not value_bonus_multipliers.is_empty():
+		var partial: Dictionary = {}  # StringName source -> float bonus (avant +1)
+		for cell in cells:
 			var c: Vector2i = cell as Vector2i
 			var token: TokenData = grid[c.x][c.y] as TokenData
 			if token == null or not token.is_scorable():
 				continue
-			var value_source: StringName = context.value_bonus_multiplier_sources.get(token.value, &"") as StringName
-			if value_source != &"":
-				sources[value_source] = true
+			var bonus: float = value_bonus_multipliers.get(token.value, 0.0) as float
+			if bonus == 0.0:
+				continue
+			var source: StringName = context.value_bonus_multiplier_sources.get(token.value, &"") as StringName
+			if source == &"":
+				continue
+			partial[source] = (partial.get(source, 0.0) as float) + bonus
+		for source in partial:
+			contributions[source] = 1.0 + (partial[source] as float)
+
+	for source in context.scaling_mult_bonuses:
+		var b: float = context.scaling_mult_bonuses[source] as float
+		if b > 0.0:
+			contributions[source] = 1.0 + b
+
+	return contributions
+
+
+## Attache au groupe la decomposition du score pour la banniere de resolution
+## (GridVisual.ResolutionBanner) — n'influence jamais le score reellement
+## calcule, qui reste le int() de la formule complete. raw_value = somme des
+## valeurs des jetons SEULE (avant tout bonus de Badge) ; base_value = apres
+## les bonus flat (retrigger/famille/paire/rangee du haut/scaling), c'est cette
+## derniere qui entre dans la formule multipliee. badge_steps ordonne les
+## contributions par ordre d'equipement (context.equipped_badges) plutot que
+## de les fondre — chaque entree {label, kind: "flat"|"mult", amount} est
+## jouee individuellement par la banniere, dans l'ordre des slots.
+func _attach_breakdown(group: Dictionary, context: RunContext, raw_value: int, base_value: int, base_mult: float, flat_contributions: Dictionary, mult_contributions: Dictionary) -> void:
+	var badge_steps: Array = []
+	for badge in context.equipped_badges:
+		var id: StringName = badge.id
+		if flat_contributions.has(id):
+			badge_steps.append({"source": id, "label": badge.label, "kind": "flat", "amount": flat_contributions[id]})
+		if mult_contributions.has(id):
+			badge_steps.append({"source": id, "label": badge.label, "kind": "mult", "amount": mult_contributions[id]})
 
 	group["score_breakdown"] = {
 		"label": _tag_label(group.get("tag_name", &"") as StringName, context),
+		"raw_value": raw_value,
 		"base_value": base_value,
 		"base_mult": base_mult,
-		"badge_mult": rule_mult * global_mult * value_bonus_mult,
-		"badge_sources": sources.keys(),
+		"badge_steps": badge_steps,
 	}
 
 

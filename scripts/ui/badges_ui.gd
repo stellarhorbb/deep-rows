@@ -13,13 +13,15 @@ extends Control
 @export var empty_bg_color: Color = Color(1, 1, 1, 0.35)
 @export var sell_button_size: Vector2 = Vector2(64.0, 32.0)
 @export var tilt_flash_color: Color = Color("f0e6c8")
-@export var tilt_duration: float = 0.4
+@export var tilt_duration: float = 0.7
+@export var tilt_angle_max: float = 0.3  # radians, ~17 degrees
 
 var run_manager: RunManager = null
 
 var _font: Font = null
 var _sell_buttons: Array[Button] = []
 var _flash_intensity: Dictionary = {}  # int (slot index) -> float 0..1
+var _tilt_angle: Dictionary = {}  # int (slot index) -> float (radians)
 
 
 func _ready() -> void:
@@ -86,19 +88,27 @@ func _draw() -> void:
 		var flash: float = _flash_intensity.get(i, 0.0) as float
 		if flash > 0.0:
 			bg = bg.lerp(tilt_flash_color, flash)
-		var rect: Rect2 = Rect2(Vector2(x, y_offset), Vector2(slot_width, slot_height))
-		draw_rect(rect, bg, true)
+
+		# Rotation de tilt (voir tilt_badge) : la carte penche puis revient a
+		# plat, en plus du flash de couleur — dessine en coordonnees locales
+		# autour du centre du slot, sous une transform reinitialisee juste apres.
+		var angle: float = _tilt_angle.get(i, 0.0) as float
+		var center: Vector2 = Vector2(x + slot_width * 0.5, y_offset + slot_height * 0.5)
+		draw_set_transform(center, angle, Vector2.ONE)
+		var local_rect: Rect2 = Rect2(Vector2(-slot_width * 0.5, -slot_height * 0.5), Vector2(slot_width, slot_height))
+		draw_rect(local_rect, bg, true)
 
 		if is_filled and _font != null:
 			draw_string(
 				_font,
-				Vector2(x + 12.0, y_offset + slot_height * 0.5 + badge_font_size * 0.35),
+				Vector2(-slot_width * 0.5 + 12.0, -slot_height * 0.5 + slot_height * 0.5 + badge_font_size * 0.35),
 				badges[i].label,
 				HORIZONTAL_ALIGNMENT_LEFT,
 				slot_width - 24.0,
 				badge_font_size,
 				label_color,
 			)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 		_update_sell_button(i, x, y_offset, is_filled, badges)
 
@@ -118,9 +128,12 @@ func _on_badges_changed(_badges: Array[BadgeData]) -> void:
 	queue_redraw()
 
 
-## Petit flash sur le slot du Badge donne (identifie par id), pour signaler
-## qu'il vient de contribuer au score d'une figure. N'attend rien — la
-## banniere de resolution qui l'appelle continue sa propre sequence en parallele.
+## Flash + bascule sur le slot du Badge donne (identifie par id), pour
+## signaler qu'il vient de contribuer au score d'une figure (ou de trigger
+## hors banniere, voir BadgeManager.badge_triggered). N'attend rien — la
+## banniere de resolution qui l'appelle continue sa propre sequence en
+## parallele. Deux Tween independants (flash de couleur + angle) tournent en
+## meme temps sur le meme node — pas besoin de les synchroniser a la main.
 func tilt_badge(badge_id: StringName) -> void:
 	if run_manager == null:
 		return
@@ -133,12 +146,34 @@ func tilt_badge(badge_id: StringName) -> void:
 	if slot_index == -1:
 		return
 
-	var tween: Tween = create_tween()
-	tween.tween_method(
+	var flash_tween: Tween = create_tween()
+	flash_tween.tween_method(
 		func(v: float) -> void:
 			_flash_intensity[slot_index] = v
 			queue_redraw(),
 		1.0, 0.0, tilt_duration
+	).set_ease(Tween.EASE_OUT)
+
+	# Bascule : penche vite d'un cote (overshoot), revient de l'autre cote
+	# plus doucement, puis se stabilise a plat.
+	var angle_tween: Tween = create_tween()
+	angle_tween.tween_method(
+		func(a: float) -> void:
+			_tilt_angle[slot_index] = a
+			queue_redraw(),
+		0.0, tilt_angle_max, tilt_duration * 0.2
+	).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	angle_tween.tween_method(
+		func(a: float) -> void:
+			_tilt_angle[slot_index] = a
+			queue_redraw(),
+		tilt_angle_max, -tilt_angle_max * 0.6, tilt_duration * 0.3
+	).set_ease(Tween.EASE_IN_OUT)
+	angle_tween.tween_method(
+		func(a: float) -> void:
+			_tilt_angle[slot_index] = a
+			queue_redraw(),
+		-tilt_angle_max * 0.6, 0.0, tilt_duration * 0.5
 	).set_ease(Tween.EASE_OUT)
 
 

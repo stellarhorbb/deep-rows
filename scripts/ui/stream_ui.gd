@@ -39,10 +39,15 @@ func _draw() -> void:
 	if current != null:
 		_draw_token_in_slot(current, 0.0, y_offset, cell_size)
 
-	_draw_slot_bg(hold_x, y_offset, cell_size, hold_bg_color)
-	var hold: TokenData = deck_manager.get_hold()
-	if hold != null:
-		_draw_token_in_slot(hold, hold_x, y_offset, cell_size)
+	# Autant de slots de hold que deck_manager.hold_capacity (1 par defaut,
+	# +1 par "Benediction" equipee) — cote a cote a droite du current.
+	var hold_slots: Array[TokenData] = deck_manager.get_hold_slots()
+	for i in range(hold_slots.size()):
+		var slot_x: float = hold_x + i * (cell_size + horizontal_gap)
+		_draw_slot_bg(slot_x, y_offset, cell_size, hold_bg_color)
+		var held: TokenData = hold_slots[i]
+		if held != null:
+			_draw_token_in_slot(held, slot_x, y_offset, cell_size)
 
 	y_offset += cell_size + vertical_gap * 2.0
 
@@ -125,13 +130,19 @@ func _draw_value(value: int, x_pos: float, y_pos: float, slot_size: float, color
 	)
 
 
-func _on_stream_updated(_current: TokenData, _hold: TokenData, _preview: Array[TokenData]) -> void:
+func _on_stream_updated(_current: TokenData, _hold: Array[TokenData], _preview: Array[TokenData]) -> void:
 	queue_redraw()
 
 
-## Detecte si un clic est sur le hold slot. Retourne true si oui.
-func is_hold_click(local_pos: Vector2) -> bool:
+## Detecte si un clic est sur un slot de hold. Retourne l'index du slot
+## clique (0-based), ou -1 si le clic n'est sur aucun slot de hold.
+func is_hold_click(local_pos: Vector2) -> int:
 	var hold_x: float = cell_size + horizontal_gap
 	var hold_y: float = label_font_size + 6.0
-	var hold_rect: Rect2 = Rect2(Vector2(hold_x, hold_y), Vector2(cell_size, cell_size))
-	return hold_rect.has_point(local_pos)
+	var capacity: int = deck_manager.hold_capacity
+	for i in range(capacity):
+		var slot_x: float = hold_x + i * (cell_size + horizontal_gap)
+		var hold_rect: Rect2 = Rect2(Vector2(slot_x, hold_y), Vector2(cell_size, cell_size))
+		if hold_rect.has_point(local_pos):
+			return i
+	return -1
