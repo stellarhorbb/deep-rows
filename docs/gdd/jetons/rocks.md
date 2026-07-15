@@ -7,7 +7,7 @@ Le **scaffold** — jetons sans famille ni valeur qui ne participent à aucun pa
 - **Du relief sur la grille** — un rock posé au milieu d'une colonne force des diagonales et des constructions au-dessus
 - **Un puzzle de placement** — "où est-ce que je le cale pour qu'il me serve plus tard plutôt que de me gêner ?"
 - **De la texture au deck** — piocher un rock change le rythme, oblige à improviser
-- **Un terrain pour les Badges** — les rocks sont une dimension dédiée à exploiter
+- **Un terrain pour les Badges** — les rocks sont une dimension dédiée à exploiter (ex : "Récif vivant", session 17 — quand une Partition score, un jeton aléatoire *parmi ceux qui viennent de scorer* échappe à la suppression et devient un rock à la place)
 
 ## Comportement
 

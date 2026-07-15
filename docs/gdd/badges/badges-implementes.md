@@ -1,6 +1,6 @@
 # Badges implémentés
 
-**15 Badges actifs** dans le proto (4 batchs). Couvrent les 6 triggers (session 13 : `on_token_drop` a eu son premier consommateur, Dernier Carré ; session 16 : `on_round_end` ajouté, premier consommateur Pourboire, voir [Monnaies](../progression/monnaies.md)).
+**37 Badges actifs** dans le proto (8 batchs). Couvrent les 8 triggers (session 13 : `on_token_drop` a eu son premier consommateur, Dernier Carré ; session 16 : `on_round_end` ajouté, premier consommateur Pourboire, voir [Monnaies](../progression/monnaies.md) ; session 17 : `on_level_up` et `on_deck_grown` ajoutés, voir [Triggers](triggers.md)).
 
 | Badge                  | Trigger            | Effet                                                                                                           | Rareté   |
 | ---------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------- | -------- |
@@ -19,8 +19,30 @@
 | **Régularité**         | `on_turn_resolved` | 3 tours sans cascade → le prochain pattern résolu est ×1.5 (contrepoids de Vertige)                             | Uncommon |
 | **Dernier Carré**      | `on_token_drop`    | Deck ≤ 4 jetons restants → tout ce qui résout ce tour est ×2                                                    | Rare     |
 | **Petites Mains**      | `on_round_start`   | Chaque jeton de valeur 1 dans une figure qui score ajoute +0.5 à son multi (par figure, pas cumulé sur le tour) | Uncommon |
+| **Vingt-trois**        | `on_round_start`   | Les jetons de valeur 2 et 3 qui scorent recomptent leur valeur une deuxième fois (session 17)                   | Common   |
+| **Saint Pair**         | `on_round_start`   | Les jetons de valeur paire qui scorent recomptent leur valeur une deuxième fois (session 17)                    | Uncommon |
+| **Impair profane**     | `on_round_start`   | Les jetons de valeur impaire qui scorent recomptent leur valeur une deuxième fois (session 17)                  | Uncommon |
+| **Y'en a pas deux**    | `on_round_start`   | +5 points quand une Partition score avec une paire de chiffres (session 17)                                     | Common   |
+| **Sommet**             | `on_round_start`   | +10 points à chaque Partition qui score tant qu'un jeton occupe la rangée la plus haute (session 17)            | Uncommon |
+| **Encrée**             | `on_round_start`   | +5 points quand une Partition score une famille INK (session 17)                                                | Common   |
+| **Rouillée**           | `on_round_start`   | +5 points quand une Partition score une famille RUST (session 17)                                               | Common   |
+| **Nacrée**             | `on_round_start`   | +5 points quand une Partition score une famille SHELL (session 17)                                              | Common   |
+| **Coraillée**          | `on_round_start`   | +5 points quand une Partition score une famille CORAL (session 17)                                              | Common   |
+| **Jetons sacrés**      | `on_token_drop`    | Chaque spécial joué ajoute +0.1 au multi, cumulé sur toute la run — scaling permanent (session 17)               | Uncommon |
+| **Quatre quart**       | `on_turn_resolved` | Chaque Partition de 4 jetons scorée ajoute +1 point, cumulé sur toute la run — scaling permanent (session 17, nerfé de +5 après playtest : +20 en une manche) | Uncommon |
+| **Poker Face**         | `on_round_start`   | Chaque jeton qui score a 10% de chance de gagner +1 de valeur dans le deck, animé en direct sur le jeton avant qu'il disparaisse (session 17, nerfé de 25% après playtest : +6 jetons upgradés en une manche — voir [Scoring — upgrade en direct](../partitions/scoring.md#upgrade-en-direct-poker-face-session-17)) | Legendary |
+| **Mouche cubique**     | `on_turn_resolved` | +1 mouche à chaque fois qu'un 3 score dans une Partition (session 17)                                            | Uncommon |
+| **Visionnaire**        | `on_round_start`   | +1 jeton visible dans la preview du stream (session 17)                                                          | Rare     |
+| **Bénédiction**        | `on_round_start`   | +1 slot de hold — refonte de `DeckManager` en slots multiples, hold cliquable individuellement (session 17)      | Rare     |
+| **Récif vivant**       | `on_round_start`   | Quand une Partition score, un jeton aléatoire parmi ceux scorés laisse place à un rock au lieu de disparaître (session 17) | Uncommon |
+| **Mouche dorée**       | `on_turn_resolved` | Ajoute au score de chaque Partition un bonus de points égal aux mouches possédées — lecture live, pas un compteur (session 17) | Uncommon |
+| **Mouche mélomane**    | `on_level_up`      | +5 mouches à chaque fois qu'une Partition gagne un niveau (session 17)                                           | Uncommon |
+| **Escalade musicale**  | `on_level_up`      | Chaque level up de Partition cumule +0.1 au multi, cumulé sur toute la run — scaling permanent (session 17)      | Epic     |
+| **Amélioration continue** | `on_level_up`   | Chaque level up de Partition cumule +5 points, cumulé sur toute la run — scaling permanent (session 17)          | Uncommon |
+| **Gourmand**           | `on_deck_grown`    | Chaque jeton ajouté au deck (achat ou scission) cumule +5 points, cumulé sur toute la run — scaling permanent (session 17) | Rare |
+| **Économe**            | (aucun — voir note)| Un reroll gratuit par visite au shop, vérifié directement par `ShopUI` (session 17)                              | Common   |
 
-Chaque Badge = 1 script d'effet (`scripts/badges/effect_*.gd`) + 1 resource (`resources/badges/badge_*.tres`).
+Chaque Badge = 1 script d'effet (`scripts/badges/effect_*.gd`) + 1 resource (`resources/badges/badge_*.tres`). Les 9 Badges "bonus flat au value_sum" et les 3 Badges "scaling permanent" de session 17 partagent chacun une fondation commune : voir [Scoring — bonus flat au value_sum](../partitions/scoring.md#bonus-flat-au-value_sum-session-17) et [Scoring — scaling permanent](../partitions/scoring.md#scaling-permanent-session-17).
 
 ## Indicateur de progression au survol (session 13)
 

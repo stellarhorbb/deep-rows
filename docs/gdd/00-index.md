@@ -61,9 +61,9 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
 
 ### [Badges](badges/)
 - [Principe](badges/principe.md) — 5 slots, passifs permanents
-- [Triggers](badges/triggers.md) — les 5 triggers et leurs events
-- [Badges implémentés](badges/badges-implementes.md) — 10 actifs, 1 dormant
-- [Rareté](badges/rarete.md) — common → epic
+- [Triggers](badges/triggers.md) — les 8 triggers et leurs events
+- [Badges implémentés](badges/badges-implementes.md) — 37 actifs, 1 dormant
+- [Rareté](badges/rarete.md) — common → legendary
 - [Feedback visuel](badges/feedback-visuel.md) — à faire (HOB-12)
 
 ### [Shop](shop/)
