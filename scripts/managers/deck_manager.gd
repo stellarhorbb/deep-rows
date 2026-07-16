@@ -141,10 +141,17 @@ func get_remaining() -> int:
 	return _deck.size()
 
 
-## Jetons pas encore tires (hors current/hold, deja reveles). Pour l'inspecteur
-## de deck : comptes agreges uniquement, jamais l'ordre de tirage.
+## Tous les jetons qu'il reste au joueur a jouer cette manche : pioche pas
+## encore tiree + current + hold. Pour l'inspecteur de deck : comptes agreges
+## uniquement, jamais l'ordre de tirage.
 func get_remaining_tokens() -> Array[TokenData]:
-	return _deck.duplicate()
+	var tokens: Array[TokenData] = _deck.duplicate()
+	if _current != null:
+		tokens.append(_current)
+	for h in _hold:
+		if h != null:
+			tokens.append(h)
+	return tokens
 
 
 func is_exhausted() -> bool:
