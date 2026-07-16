@@ -1,12 +1,13 @@
 [gd_resource type="Resource" script_class="BadgeData" format=3 uid="uid://decho001"]
 
-[ext_resource type="Script" path="res://scripts/data/badge_data.gd" id="1_data"]
-[ext_resource type="Script" path="res://scripts/badges/effect_flies_cascade.gd" id="2_effect"]
+[ext_resource type="Script" uid="uid://ct80ym651ovo7" path="res://scripts/data/badge_data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://dxscp162xknei" path="res://scripts/badges/effect_flies_cascade.gd" id="2_effect"]
 
 [resource]
 script = ExtResource("1_data")
 id = &"flies_cascade"
 label = "MOUCHES EN CASCADE"
 description = "+3 mouches par cascade déclenchée"
+rarity = 1
 trigger = &"on_cascade_step"
 effect_script = ExtResource("2_effect")

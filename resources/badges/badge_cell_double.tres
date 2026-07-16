@@ -8,4 +8,5 @@ script = ExtResource("1_data")
 id = &"cell_double"
 label = "CELLULE DOUBLE"
 description = "Ajoute une cellule x2 aléatoire chaque manche"
+rarity = 1
 effect_script = ExtResource("2_effect")

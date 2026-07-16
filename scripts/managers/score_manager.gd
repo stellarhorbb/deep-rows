@@ -5,14 +5,15 @@ signal score_changed(new_score: int, delta: int)
 signal target_reached(score: int, target: int)
 
 var _score: int = 0
-var _target: int = GameRules.BASE_TARGET
+var _target: int = GameRules.ROUND_TARGETS[0]
 var _round: int = 1
 
 
 func reset_round(round_number: int) -> void:
 	_round = round_number
 	_score = 0
-	_target = GameRules.BASE_TARGET + (round_number - 1) * GameRules.TARGET_INCREMENT
+	var targets: Array[int] = GameRules.ROUND_TARGETS
+	_target = targets[clampi(round_number - 1, 0, targets.size() - 1)]
 	score_changed.emit(_score, 0)
 
 

@@ -143,7 +143,14 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 		elif event["type"] == CascadeResolver.EventType.UPGRADE:
 			for entry in (event["upgrades"] as Array):
 				var data: Dictionary = entry as Dictionary
-				run_manager.upgrade_matching_button(data["family"] as TokenData.Family, data["value"] as int)
+				var family: TokenData.Family = data["family"] as TokenData.Family
+				var value: int = data["value"] as int
+				# >= MAX_BUTTON_VALUE : suite des figures (arcanes mineurs),
+				# chemin distinct du +1 normal (voir GameRules.next_face_value).
+				if value >= GameRules.MAX_BUTTON_VALUE:
+					run_manager.promote_matching_button(family, value)
+				else:
+					run_manager.upgrade_matching_button(family, value)
 
 	turn_resolved.emit(timeline)
 

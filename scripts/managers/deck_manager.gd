@@ -29,9 +29,12 @@ func build_deck(composition: Dictionary, button_pool: Array[TokenData]) -> void:
 	for i in range(hold_capacity):
 		_hold.append(null)
 
-	# Jetons de base : copies fraiches du pool possede (persistant pour la run)
+	# Jetons de base : copies fraiches du pool possede (persistant pour la run).
+	# locked propage explicitement (make_base ne le porte pas par defaut).
 	for source_token in button_pool:
-		_deck.append(TokenData.make_base(source_token.family, source_token.value))
+		var copy: TokenData = TokenData.make_base(source_token.family, source_token.value)
+		copy.locked = source_token.locked
+		_deck.append(copy)
 
 	# Rocks
 	for i in range(GameRules.DECK_ROCK_COUNT):
@@ -64,9 +67,12 @@ func advance_stream() -> void:
 ## slot_index >= 0 (clic sur un slot precis) : stocke/echange avec CE slot.
 ## slot_index < 0 (touche clavier, defaut) : vise le premier slot vide, sinon
 ## le slot 0 — swap simple, comme avant l'ajout de slots supplementaires.
+## Stocker dans un slot vide exige un current (rien a stocker sinon) ; recuperer
+## depuis un slot plein doit marcher meme si current est vide (session 18 : fix
+## softlock — avec 2+ slots de hold, enchainer deux holds pendant que le deck
+## se vide pouvait laisser current a null avec des jetons en hold inaccessibles,
+## le guard bloquant alors tout clic, y compris pour les recuperer).
 func do_hold(slot_index: int = -1) -> void:
-	if _current == null:
-		return
 	var target: int = slot_index
 	if target < 0:
 		target = _first_empty_hold_slot()
@@ -76,6 +82,8 @@ func do_hold(slot_index: int = -1) -> void:
 		return
 
 	if _hold[target] == null:
+		if _current == null:
+			return
 		_hold[target] = _current
 		_current = null
 		advance_stream()

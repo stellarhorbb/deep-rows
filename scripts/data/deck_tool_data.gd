@@ -5,7 +5,7 @@ class_name DeckToolData
 extends Resource
 
 enum Rarity { COMMON, UNCOMMON, RARE, EPIC }
-enum Action { INCREASE, DECREASE, CHANGE_FAMILY, SPLIT, FUSE, REMOVE }
+enum Action { INCREASE, DECREASE, CHANGE_FAMILY, SPLIT, FUSE, REMOVE, FIX_FIGURE }
 
 @export var id: StringName = &""
 @export var label: String = ""
@@ -13,7 +13,7 @@ enum Action { INCREASE, DECREASE, CHANGE_FAMILY, SPLIT, FUSE, REMOVE }
 @export var rarity: Rarity = Rarity.COMMON
 @export var action: Action = Action.INCREASE
 ## Uniquement pertinent pour action == CHANGE_FAMILY.
-@export var target_family: TokenData.Family = TokenData.Family.CORAL
+@export var target_family: TokenData.Family = TokenData.Family.BATONS
 
 
 ## Nombre de jetons cibles a selectionner avant de pouvoir confirmer.

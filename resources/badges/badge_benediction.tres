@@ -9,5 +9,5 @@ id = &"benediction"
 label = "BÉNÉDICTION"
 description = "+1 slot de hold (2 jetons de côté au lieu d'1)"
 price = 7
-rarity = 2
+rarity = 3
 effect_script = ExtResource("2_effect")

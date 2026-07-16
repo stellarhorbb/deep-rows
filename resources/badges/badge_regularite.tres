@@ -9,6 +9,6 @@ id = &"regularite"
 label = "RÉGULARITÉ"
 description = "3 tours sans cascade : le prochain pattern résolu est x1.5"
 price = 5
-rarity = 1
+rarity = 2
 trigger = &"on_turn_resolved"
 effect_script = ExtResource("2_effect")

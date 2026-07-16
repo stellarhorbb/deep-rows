@@ -262,7 +262,7 @@ func _rebuild_target_candidates() -> void:
 		var pool_index: int = candidate["index"] as int
 		var token: TokenData = candidate["token"] as TokenData
 		var btn: Button = Button.new()
-		btn.text = "%s %d" % [TokenData.family_label(token.family), token.value]
+		btn.text = "%s %s" % [TokenData.family_label(token.family), TokenData.value_label(token.value)]
 		btn.toggle_mode = true
 		btn.pressed.connect(_on_target_candidate_pressed.bind(pool_index, btn))
 		target_candidates_container.add_child(btn)
@@ -320,7 +320,9 @@ func _is_action_applicable(tool: DeckToolData, tokens: Array[TokenData]) -> bool
 		return false
 	match tool.action:
 		DeckToolData.Action.DECREASE:
-			return tokens[0].value > GameRules.TOKEN_MIN_VALUE
+			# Une figure (Valet+) ne se reduit pas : elle ne s'obtient que par
+			# le score (voir RunManager.decrease_button_value).
+			return tokens[0].value > GameRules.TOKEN_MIN_VALUE and tokens[0].value <= GameRules.MAX_BUTTON_VALUE
 		DeckToolData.Action.INCREASE:
 			return tokens[0].value < GameRules.MAX_BUTTON_VALUE
 		DeckToolData.Action.SPLIT:
@@ -331,6 +333,8 @@ func _is_action_applicable(tool: DeckToolData, tokens: Array[TokenData]) -> bool
 			return tokens[0].value + tokens[1].value <= GameRules.MAX_BUTTON_VALUE
 		DeckToolData.Action.REMOVE:
 			return true
+		DeckToolData.Action.FIX_FIGURE:
+			return tokens[0].value >= GameRules.MAX_BUTTON_VALUE and not tokens[0].locked
 	return false
 
 
@@ -351,6 +355,8 @@ func _on_tool_action_pressed(tool: DeckToolData) -> void:
 			_run_manager.remove_button(_target_selected_indices[0])
 		DeckToolData.Action.FUSE:
 			_run_manager.fuse_buttons(_target_selected_indices[0], _target_selected_indices[1])
+		DeckToolData.Action.FIX_FIGURE:
+			_run_manager.lock_button(_target_selected_indices[0])
 	target_panel.visible = false
 
 

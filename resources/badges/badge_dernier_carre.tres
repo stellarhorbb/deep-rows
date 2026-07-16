@@ -9,6 +9,5 @@ id = &"dernier_carre"
 label = "DERNIER CARRÉ"
 description = "Deck ≤ 4 jetons : tout ce qui résout ce tour est x2"
 price = 5
-rarity = 2
 trigger = &"on_token_drop"
 effect_script = ExtResource("2_effect")

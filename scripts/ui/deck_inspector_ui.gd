@@ -34,7 +34,7 @@ func _refresh() -> void:
 	for token in tokens:
 		match token.kind:
 			TokenData.Kind.BASE:
-				var key: String = "%s %d" % [TokenData.family_label(token.family), token.value]
+				var key: String = "%s %s" % [TokenData.family_label(token.family), TokenData.value_label(token.value)]
 				base_counts[key] = (base_counts.get(key, 0) as int) + 1
 			TokenData.Kind.ROCK:
 				rock_count += 1

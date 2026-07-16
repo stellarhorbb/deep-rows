@@ -208,19 +208,18 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 ## Calcule le score d'un groupe.
 ## Toutes les formes (lignes comprises) : multiplicateur fixe defini sur le tag.
 ## Cellules modifiees : chaque cellule concernee multiplie le total par son coef (HALF/BOOST/DOUBLE/TRIPLE).
-## rule_multipliers : multiplicateur applique selon la rule du pattern (ex: "family" x2 via badge).
+## rule_mult : multiplicateur applique selon la rule du pattern (ex: "family" x2 via badge),
+## voir RunContext.get_rule_multiplier — combine par produit si plusieurs badges.
 ## tag_level_multipliers : multiplicateur selon le niveau de la Partition qui a matche (level up).
 func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: RunContext) -> int:
 	var grid_modifiers: Dictionary = context.grid_modifiers
-	var rule_multipliers: Dictionary = context.rule_multipliers
 	var tag_level_multipliers: Dictionary = context.tag_level_multipliers
-	var value_bonus_multipliers: Dictionary = context.value_bonus_multipliers
 	var cascade_mult: float = pow(GameRules.CASCADE_MULTIPLIER_BASE, cascade_level)
 	var rule: StringName = group.get("match_rule", &"") as StringName
-	var rule_mult: float = rule_multipliers.get(rule, 1.0) as float
+	var rule_mult: float = context.get_rule_multiplier(rule)
 	var tag_name: StringName = group.get("tag_name", &"") as StringName
 	var level_mult: float = tag_level_multipliers.get(tag_name, 1.0) as float
-	var global_mult: float = context.global_multiplier
+	var global_mult: float = context.get_global_multiplier()
 	# Scaling permanent (session 17) : facteur additif qui grossit sur toute
 	# la run (ex: Jetons sacres, +0.1 par special joue), distinct de global_mult
 	# pour ne pas entrer en collision avec Dernier Carre/Regularite.
@@ -254,21 +253,21 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 					raw_value += token.value
 			scored_cells = group["cells"]
 
-		var diamond_mod_mult: float = _modifier_multiplier(scored_cells, grid_modifiers)
-		var diamond_value_bonus_mult: float = _value_bonus_multiplier(scored_cells, grid, value_bonus_multipliers)
+		var diamond_grid_mult: float = _grid_modifier_multiplier(scored_cells, grid_modifiers)
+		var diamond_value_bonus_mult: float = _value_bonus_multiplier(scored_cells, grid, context)
 		var diamond_sum_bonus: Dictionary = _value_sum_bonus(group, scored_cells, grid, context)
 		var base_value: int = raw_value + (diamond_sum_bonus["amount"] as int)
-		group["upgrade_candidates"] = _roll_upgrades(scored_cells, grid, context)
+		group["upgrade_candidates"] = _roll_upgrades(scored_cells, grid, context) + _roll_face_promotions(scored_cells, grid)
 		group["scored_tokens"] = _snapshot_scored_tokens(scored_cells, grid)
 		var diamond_mult_contribs: Dictionary = _mult_contributions(scored_cells, grid, context, rule)
 		# cascade_mult exclu du breakdown affiche : la banniere de resolution
 		# lui dedie sa propre annonce (voir GridVisual._animate_match), pas
 		# noye dans le MULTI generique. Le score reel l'inclut toujours.
-		var diamond_base_mult: float = tag_mult * diamond_mod_mult * level_mult
+		var diamond_base_mult: float = tag_mult * diamond_grid_mult * level_mult
 		_attach_breakdown(group, context, raw_value, base_value, diamond_base_mult, diamond_sum_bonus["contributions"] as Dictionary, diamond_mult_contribs)
 		if rock_roll >= 0:
 			(group["score_breakdown"] as Dictionary)["roll"] = rock_roll
-		return int(base_value * tag_mult * cascade_mult * diamond_mod_mult * rule_mult * level_mult * global_mult * diamond_value_bonus_mult * scaling_mult)
+		return int(base_value * tag_mult * cascade_mult * diamond_grid_mult * rule_mult * level_mult * global_mult * diamond_value_bonus_mult * scaling_mult)
 
 	var raw_value: int = 0
 	for cell in group["cells"]:
@@ -278,51 +277,59 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 
 	var sum_bonus: Dictionary = _value_sum_bonus(group, group["cells"], grid, context)
 	var value_sum: int = raw_value + (sum_bonus["amount"] as int)
-	group["upgrade_candidates"] = _roll_upgrades(group["cells"], grid, context)
+	group["upgrade_candidates"] = _roll_upgrades(group["cells"], grid, context) + _roll_face_promotions(group["cells"], grid)
 	group["scored_tokens"] = _snapshot_scored_tokens(group["cells"], grid)
 
 	# Multiplicateur fixe du tag, meme regle pour toutes les formes (les lignes
 	# ne sont plus recompensees selon leur direction de resolution, session 16).
 	var shape_mult: float = group.get("score_multiplier", 1.0) as float
 
-	var mod_mult: float = _modifier_multiplier(group["cells"], grid_modifiers)
-	var value_bonus_mult: float = _value_bonus_multiplier(group["cells"], grid, value_bonus_multipliers)
+	var grid_mult: float = _grid_modifier_multiplier(group["cells"], grid_modifiers)
+	var value_bonus_mult: float = _value_bonus_multiplier(group["cells"], grid, context)
 	var mult_contribs: Dictionary = _mult_contributions(group["cells"], grid, context, rule)
 	# cascade_mult exclu du breakdown affiche, meme raison que la branche diamond.
-	var base_mult: float = shape_mult * mod_mult * level_mult
+	var base_mult: float = shape_mult * grid_mult * level_mult
 	_attach_breakdown(group, context, raw_value, value_sum, base_mult, sum_bonus["contributions"] as Dictionary, mult_contribs)
-	return int(value_sum * shape_mult * cascade_mult * mod_mult * rule_mult * level_mult * global_mult * value_bonus_mult * scaling_mult)
+	return int(value_sum * shape_mult * cascade_mult * grid_mult * rule_mult * level_mult * global_mult * value_bonus_mult * scaling_mult)
 
 
 ## Chaque cellule modifiee dans la liste multiplie le total par son coefficient
-## (cumulatif). Une meme case peut porter plusieurs types empiles (ex: Tranchee
-## + Bord a Bord, ou Cellule Triple par-dessus un badge colonne) : tous ses
-## types se multiplient entre eux plutot que de s'ecraser.
-func _modifier_multiplier(cells: Array, grid_modifiers: Dictionary) -> float:
+## Un type de modificateur ne compte qu'une fois par groupe qui score, peu
+## importe combien de ses cellules touchent une case de ce type — toucher
+## UNE case suffit a activer le multi (session 18 : corrige un bug ou une
+## Partition entierement posee dans une colonne boostee empilait le meme
+## coefficient une fois par cellule, ex. x1.5^5 sur une Line 5). Une meme
+## case peut en revanche porter plusieurs types DIFFERENTS empiles (ex:
+## Tranchee + Bord a Bord, ou Cellule Triple par-dessus un badge colonne) :
+## ceux-la restent cumulatifs entre eux.
+func _grid_modifier_multiplier(cells: Array, grid_modifiers: Dictionary) -> float:
 	if grid_modifiers.is_empty():
 		return 1.0
-	var mult: float = 1.0
+	var types_touched: Dictionary = {}
 	for cell in cells:
 		var key: Vector2i = cell as Vector2i
 		var types: Array = grid_modifiers.get(key, []) as Array
 		for type in types:
-			mult *= GameRules.get_modifier_multiplier(type as StringName)
+			types_touched[type] = true
+	var mult: float = 1.0
+	for type in types_touched.keys():
+		mult *= GameRules.get_modifier_multiplier(type as StringName)
 	return mult
 
 
 ## Chaque jeton scorable de la figure dont la valeur a un bonus enregistre
 ## ajoute ce bonus au multiplicateur (additif, pas multiplicatif entre jetons :
-## 2 jetons a +0.5 donnent x2.0, pas x2.25).
-func _value_bonus_multiplier(cells: Array, grid: Array, value_bonus_multipliers: Dictionary) -> float:
-	if value_bonus_multipliers.is_empty():
-		return 1.0
+## 2 jetons a +0.5 donnent x2.0, pas x2.25). Voir RunContext.
+## get_value_bonus_multiplier_sum — combine par somme si plusieurs badges
+## ciblent la meme valeur.
+func _value_bonus_multiplier(cells: Array, grid: Array, context: RunContext) -> float:
 	var mult: float = 1.0
 	for cell in cells:
 		var c: Vector2i = cell as Vector2i
 		var token: TokenData = grid[c.x][c.y] as TokenData
 		if token == null or not token.is_scorable():
 			continue
-		mult += value_bonus_multipliers.get(token.value, 0.0) as float
+		mult += context.get_value_bonus_multiplier_sum(token.value)
 	return mult
 
 
@@ -332,7 +339,7 @@ func _value_bonus_multiplier(cells: Array, grid: Array, value_bonus_multipliers:
 ## - retrigger : un jeton dont la valeur est marquee recompte sa propre valeur
 ##   une deuxieme fois (ex: "Vingt-trois" sur un 3 qui score -> +3) ;
 ## - bonus de famille : pattern de rule "family" d'une famille ciblee (ex:
-##   "Encrée" sur INK) ;
+##   "Tickets Hivernal" sur DENIERS) ;
 ## - bonus de paire : le groupe contient au moins deux jetons de meme valeur
 ##   (ex: "Y'en a pas deux"), applique une seule fois peu importe le nombre
 ##   de paires trouvees ;
@@ -343,7 +350,6 @@ func _value_sum_bonus(group: Dictionary, cells: Array, grid: Array, context: Run
 	var amount: int = 0
 	var contributions: Dictionary = {}  # StringName source -> int (montant individuel du badge)
 
-	var retrigger_values: Dictionary = context.retrigger_values
 	var value_counts: Dictionary = {}  # int (value) -> int (count), pour la paire
 	for cell in cells:
 		var c: Vector2i = cell as Vector2i
@@ -351,36 +357,40 @@ func _value_sum_bonus(group: Dictionary, cells: Array, grid: Array, context: Run
 		if token == null or not token.is_scorable():
 			continue
 		value_counts[token.value] = (value_counts.get(token.value, 0) as int) + 1
-		if retrigger_values.get(token.value, false):
+		if context.is_retrigger_value(token.value):
 			amount += token.value
-			var retrigger_source: StringName = context.retrigger_value_sources.get(token.value, &"") as StringName
-			if retrigger_source != &"":
-				contributions[retrigger_source] = (contributions.get(retrigger_source, 0) as int) + token.value
+			var retrigger_sources: Dictionary = context.retrigger_value_contributions.get(token.value, {}) as Dictionary
+			for source in retrigger_sources:
+				if (source as StringName) == &"":
+					continue
+				contributions[source] = (contributions.get(source, 0) as int) + token.value
 
 	var rule: StringName = group.get("match_rule", &"") as StringName
 	if rule == &"family":
 		var family: int = group.get("family", -1) as int
-		var family_bonus: int = context.family_score_bonus.get(family, 0) as int
-		if family_bonus > 0:
-			amount += family_bonus
-			var family_source: StringName = context.family_score_bonus_sources.get(family, &"") as StringName
-			if family_source != &"":
-				contributions[family_source] = (contributions.get(family_source, 0) as int) + family_bonus
+		var family_bonus_sources: Dictionary = context.family_score_bonus_contributions.get(family, {}) as Dictionary
+		for source in family_bonus_sources:
+			var v: int = family_bonus_sources[source] as int
+			amount += v
+			if (source as StringName) != &"":
+				contributions[source] = (contributions.get(source, 0) as int) + v
 
-	if context.pair_score_bonus > 0:
+	if context.get_pair_score_bonus() > 0:
 		for count in value_counts.values():
 			if (count as int) >= 2:
-				amount += context.pair_score_bonus
-				if context.pair_score_bonus_source != &"":
-					var s: StringName = context.pair_score_bonus_source
-					contributions[s] = (contributions.get(s, 0) as int) + context.pair_score_bonus
+				for source in context.pair_score_bonus_contributions:
+					var pv: int = context.pair_score_bonus_contributions[source] as int
+					amount += pv
+					if (source as StringName) != &"":
+						contributions[source] = (contributions.get(source, 0) as int) + pv
 				break
 
-	if context.top_row_score_bonus > 0 and _top_row_occupied(grid):
-		amount += context.top_row_score_bonus
-		if context.top_row_score_bonus_source != &"":
-			var s2: StringName = context.top_row_score_bonus_source
-			contributions[s2] = (contributions.get(s2, 0) as int) + context.top_row_score_bonus
+	if context.get_top_row_score_bonus() > 0 and _top_row_occupied(grid):
+		for source in context.top_row_score_bonus_contributions:
+			var tv: int = context.top_row_score_bonus_contributions[source] as int
+			amount += tv
+			if (source as StringName) != &"":
+				contributions[source] = (contributions.get(source, 0) as int) + tv
 
 	# Bonus scaling permanent (session 17) : contrairement aux autres bonus
 	# ci-dessus, inconditionnel — s'applique a CHAQUE groupe qui score (ex:
@@ -413,9 +423,37 @@ func _roll_upgrades(cells: Array, grid: Array, context: RunContext) -> Array:
 		var token: TokenData = grid[c.x][c.y] as TokenData
 		if token == null or not token.is_scorable():
 			continue
+		# >= MAX_BUTTON_VALUE : plafond normal atteint, relève de la suite des
+		# figures (_roll_face_promotions) plutôt que de ce chemin probabiliste.
+		if token.value >= GameRules.MAX_BUTTON_VALUE:
+			continue
 		if randf() < chance:
-			upgrades.append({"cell": c, "family": token.family, "value": token.value})
+			upgrades.append({"cell": c, "family": token.family, "value": token.value, "next_value": token.value + 1})
 	return upgrades
+
+
+## Contrairement a _roll_upgrades (Poker Face, probabiliste), la promotion en
+## figure (arcanes mineurs) est une regle de base toujours active : un jeton
+## deja a MAX_BUTTON_VALUE (ou plus loin dans la suite) qui score avance
+## automatiquement d'un cran (voir GameRules.next_face_value). Chemin
+## exclusivement accessible par le score. Un jeton verrouille (action "Fixer"
+## des Des a coudre) n'est jamais propose ici, meme s'il rescore.
+func _roll_face_promotions(cells: Array, grid: Array) -> Array:
+	var promotions: Array = []
+	for cell in cells:
+		var c: Vector2i = cell as Vector2i
+		var token: TokenData = grid[c.x][c.y] as TokenData
+		if token == null or not token.is_scorable():
+			continue
+		if token.locked:
+			continue
+		if token.value < GameRules.MAX_BUTTON_VALUE:
+			continue
+		var next_value: int = GameRules.next_face_value(token.value)
+		if next_value == token.value:
+			continue # deja Roi, plafond definitif
+		promotions.append({"cell": c, "family": token.family, "value": token.value, "next_value": next_value})
+	return promotions
 
 
 ## Capture famille/valeur des jetons scores AVANT leur suppression de la
@@ -460,32 +498,37 @@ func _top_row_occupied(grid: Array) -> bool:
 func _mult_contributions(cells: Array, grid: Array, context: RunContext, rule: StringName) -> Dictionary:
 	var contributions: Dictionary = {}  # StringName source -> float (facteur du badge)
 
-	var rule_mult: float = context.rule_multipliers.get(rule, 1.0) as float
-	if rule_mult > 1.0:
-		var rule_source: StringName = context.rule_multiplier_sources.get(rule, &"") as StringName
-		if rule_source != &"":
-			contributions[rule_source] = rule_mult
+	# Chaque canal "keyed"/"flat" est deja garde par badge_id sur le RunContext
+	# (session 18) — plus besoin de reconstituer l'attribution via un champ
+	# _source separe, le dictionnaire EST l'attribution.
+	var rule_sources: Dictionary = context.rule_multiplier_contributions.get(rule, {}) as Dictionary
+	for source in rule_sources:
+		if (source as StringName) == &"":
+			continue
+		var rule_source_mult: float = rule_sources[source] as float
+		if rule_source_mult > 1.0:
+			contributions[source] = rule_source_mult
 
-	if context.global_multiplier > 1.0 and context.global_multiplier_source != &"":
-		contributions[context.global_multiplier_source] = context.global_multiplier
+	for source in context.global_multiplier_contributions:
+		if (source as StringName) == &"":
+			continue
+		var global_source_mult: float = context.global_multiplier_contributions[source] as float
+		if global_source_mult > 1.0:
+			contributions[source] = global_source_mult
 
-	var value_bonus_multipliers: Dictionary = context.value_bonus_multipliers
-	if not value_bonus_multipliers.is_empty():
-		var partial: Dictionary = {}  # StringName source -> float bonus (avant +1)
-		for cell in cells:
-			var c: Vector2i = cell as Vector2i
-			var token: TokenData = grid[c.x][c.y] as TokenData
-			if token == null or not token.is_scorable():
+	var partial: Dictionary = {}  # StringName source -> float bonus (avant +1)
+	for cell in cells:
+		var c: Vector2i = cell as Vector2i
+		var token: TokenData = grid[c.x][c.y] as TokenData
+		if token == null or not token.is_scorable():
+			continue
+		var value_sources: Dictionary = context.value_bonus_multiplier_contributions.get(token.value, {}) as Dictionary
+		for source in value_sources:
+			if (source as StringName) == &"":
 				continue
-			var bonus: float = value_bonus_multipliers.get(token.value, 0.0) as float
-			if bonus == 0.0:
-				continue
-			var source: StringName = context.value_bonus_multiplier_sources.get(token.value, &"") as StringName
-			if source == &"":
-				continue
-			partial[source] = (partial.get(source, 0.0) as float) + bonus
-		for source in partial:
-			contributions[source] = 1.0 + (partial[source] as float)
+			partial[source] = (partial.get(source, 0.0) as float) + (value_sources[source] as float)
+	for source in partial:
+		contributions[source] = 1.0 + (partial[source] as float)
 
 	for source in context.scaling_mult_bonuses:
 		var b: float = context.scaling_mult_bonuses[source] as float

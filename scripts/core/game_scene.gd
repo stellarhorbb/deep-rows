@@ -15,6 +15,7 @@ extends Node2D
 @onready var score_label: Label = $ScoreLabel
 @onready var target_label: Label = $TargetLabel
 @onready var zone_label: Label = $ZoneLabel
+@onready var background: ColorRect = $Background
 @onready var flies_label: Label = $SaltLabel
 
 # --- UI persistante, portee par le Shell (voir scripts/core/shell.gd) ---
@@ -149,7 +150,9 @@ func _update_zone_display() -> void:
 	@warning_ignore("integer_division")
 	var zone: int = (RunService.current_round - 1) / GameRules.ROUNDS_PER_ZONE + 1
 	var round_in_zone: int = (RunService.current_round - 1) % GameRules.ROUNDS_PER_ZONE + 1
-	zone_label.text = "ZONE " + str(zone) + "\nMANCHE " + str(round_in_zone) + "/" + str(GameRules.ROUNDS_PER_ZONE)
+	var biome_index: int = clampi(zone - 1, 0, GameRules.BIOME_NAMES.size() - 1)
+	zone_label.text = GameRules.BIOME_NAMES[biome_index] + "\nMANCHE " + str(round_in_zone) + "/" + str(GameRules.ROUNDS_PER_ZONE)
+	background.color = GameRules.BIOME_BACKGROUND_COLORS[biome_index]
 
 
 func _on_flies_changed(amount: int) -> void:

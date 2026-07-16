@@ -1,11 +1,12 @@
 class_name TokenVisual
 
-## Mapping famille -> sprite "nude" (sans points ; la valeur est affichee en texte par-dessus).
+## Mapping famille -> sprite (sans points ; la valeur est affichee en texte par-dessus).
+## Arcanes mineurs (session 18) — remplace les sprites coral/shell/rust/ink-nude.
 const FAMILY_SPRITES: Dictionary = {
-	TokenData.Family.CORAL: "res://assets/tokens/coral-nude.png",
-	TokenData.Family.SHELL: "res://assets/tokens/shell-nude.png",
-	TokenData.Family.RUST: "res://assets/tokens/rust-nude.png",
-	TokenData.Family.INK: "res://assets/tokens/ink-nude.png",
+	TokenData.Family.BATONS: "res://assets/tokens/tarot/batons.png",
+	TokenData.Family.COUPES: "res://assets/tokens/tarot/coupes.png",
+	TokenData.Family.EPEES: "res://assets/tokens/tarot/epees.png",
+	TokenData.Family.DENIERS: "res://assets/tokens/tarot/deniers.png",
 }
 
 const ROCK_SPRITE_PATH: String = "res://assets/tokens/rock.png"

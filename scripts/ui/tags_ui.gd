@@ -164,7 +164,7 @@ func _format_tag_label(tag: PatternData) -> String:
 	match tag.rule:
 		&"suite":     rule_str = "SUITE"
 		&"rock":      rule_str = "ROCK"
-		&"value":     rule_str = "VALUE"
+		&"value":     rule_str = "CASINO"
 		&"rainbow":   rule_str = "RAINBOW"
 		&"fibonacci": rule_str = "FIBO"
 		_:            rule_str = ""

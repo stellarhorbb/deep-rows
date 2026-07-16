@@ -67,10 +67,10 @@ const BADGE_PATHS: Array[String] = [
 	"res://resources/badges/badge_impair_profane.tres",
 	"res://resources/badges/badge_yen_a_pas_deux.tres",
 	"res://resources/badges/badge_sommet.tres",
-	"res://resources/badges/badge_encree.tres",
-	"res://resources/badges/badge_rouillee.tres",
-	"res://resources/badges/badge_nacree.tres",
-	"res://resources/badges/badge_coraillee.tres",
+	"res://resources/badges/badge_tickets_hivernal.tres",
+	"res://resources/badges/badge_tickets_automnal.tres",
+	"res://resources/badges/badge_tickets_estival.tres",
+	"res://resources/badges/badge_tickets_printanier.tres",
 	"res://resources/badges/badge_jetons_sacres.tres",
 	"res://resources/badges/badge_quatre_quart.tres",
 	"res://resources/badges/badge_poker_face.tres",
@@ -92,13 +92,14 @@ const BADGE_PATHS: Array[String] = [
 const DECK_TOOL_PATHS: Array[String] = [
 	"res://resources/deck_tools/increase.tres",
 	"res://resources/deck_tools/decrease.tres",
-	"res://resources/deck_tools/change_coral.tres",
-	"res://resources/deck_tools/change_shell.tres",
-	"res://resources/deck_tools/change_rust.tres",
-	"res://resources/deck_tools/change_ink.tres",
+	"res://resources/deck_tools/change_batons.tres",
+	"res://resources/deck_tools/change_coupes.tres",
+	"res://resources/deck_tools/change_epees.tres",
+	"res://resources/deck_tools/change_deniers.tres",
 	"res://resources/deck_tools/split.tres",
 	"res://resources/deck_tools/fuse.tres",
 	"res://resources/deck_tools/remove.tres",
+	"res://resources/deck_tools/fix_figure.tres",
 ]
 
 ## Categories tirables pour un pack (pas de "pack de Des a coudre" — le
@@ -275,7 +276,11 @@ func _available_badges(run_manager: RunManager) -> Array[BadgeData]:
 
 func _random_button() -> TokenData:
 	var family: int = randi() % GameRules.FAMILY_COUNT
-	var value: int = randi() % GameRules.TOKEN_MAX_VALUE + GameRules.TOKEN_MIN_VALUE
+	var value: int
+	if randf() < GameRules.SHOP_BUTTON_RARE_VALUE_CHANCE:
+		value = GameRules.MAX_BUTTON_VALUE
+	else:
+		value = randi() % GameRules.TOKEN_MAX_VALUE + GameRules.TOKEN_MIN_VALUE
 	return TokenData.make_base(family as TokenData.Family, value)
 
 

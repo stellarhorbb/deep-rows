@@ -403,7 +403,7 @@ func _animate_upgrade(event: Dictionary) -> void:
 		var sprite: Sprite2D = _token_sprites[cell] as Sprite2D
 		for child in sprite.get_children():
 			if child is Label:
-				(child as Label).text = str((data["value"] as int) + 1)
+				(child as Label).text = TokenData.value_label(data["next_value"] as int)
 		sprite.modulate = Color(2.5, 2.0, 0.4, 1.0)
 
 	await get_tree().create_timer(upgrade_hold_duration).timeout
@@ -565,7 +565,8 @@ func _add_value_label(sprite: Sprite2D, value: int, tex_size: Vector2) -> void:
 	if not GameRules.DEBUG_SHOW_TOKEN_VALUE:
 		return
 	var label: Label = Label.new()
-	label.text = str(value)
+	var text: String = TokenData.value_label(value)
+	label.text = text
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.size = tex_size
 	label.pivot_offset = tex_size / 2.0
@@ -575,7 +576,10 @@ func _add_value_label(sprite: Sprite2D, value: int, tex_size: Vector2) -> void:
 	label.add_theme_color_override("font_color", Color.WHITE)
 	if _popup_font != null:
 		label.add_theme_font_override("font", _popup_font)
-	label.add_theme_font_size_override("font_size", int(tex_size.y * 0.4))
+	# Police retrecie pour les noms de figure (ex: "CHEVALIER") : trop long
+	# pour tenir a la taille normale d'un chiffre seul.
+	var size_ratio: float = 0.4 if text.length() <= 2 else 0.18
+	label.add_theme_font_size_override("font_size", int(tex_size.y * size_ratio))
 	sprite.add_child(label)
 
 

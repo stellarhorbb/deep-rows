@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="DeckToolData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/deck_tool_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"fix_figure"
+label = "FIXER"
+description = "Verrouille une figure (Valet+) contre toute promotion future, même si elle rescore"
+rarity = 2
+action = 6

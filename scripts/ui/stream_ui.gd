@@ -114,15 +114,19 @@ func _draw_token_in_slot(token: TokenData, x_pos: float, y_pos: float, slot_size
 		_draw_value(token.value, x_pos, y_pos, slot_size, Color.WHITE)
 
 
-## Valeur en Londrina Solid blanc, centree dans un slot carre.
+## Valeur (ou nom de figure) en Londrina Solid blanc, centree dans un slot carre.
+## Police retrecie pour les noms de figure (ex: "CHEVALIER") : trop long pour
+## tenir a la taille normale d'un chiffre seul.
 func _draw_value(value: int, x_pos: float, y_pos: float, slot_size: float, color: Color) -> void:
 	if not GameRules.DEBUG_SHOW_TOKEN_VALUE:
 		return
-	var value_font_size: int = int(slot_size * 0.45)
+	var text: String = TokenData.value_label(value)
+	var size_ratio: float = 0.45 if text.length() <= 2 else 0.2
+	var value_font_size: int = int(slot_size * size_ratio)
 	draw_string(
 		_font,
 		Vector2(x_pos, y_pos + slot_size * 0.5 + value_font_size * 0.35),
-		str(value),
+		text,
 		HORIZONTAL_ALIGNMENT_CENTER,
 		slot_size,
 		value_font_size,

@@ -31,13 +31,40 @@ const ROUND_START_HOLES_MAX: int = 8
 const PREVIEW_SIZE: int = 3
 const BASE_HOLD_SLOTS: int = 1
 
-# Scoring
-const BASE_TARGET: int = 60
-const TARGET_INCREMENT: int = 30
+## Score cible par manche (session 18, remplace l'ancien BASE_TARGET +
+## TARGET_INCREMENT lineaire). Valeurs hardcodees pour faciliter le retuning
+## manuel plutot qu'une formule live — derivees de :
+##   f(n) = (n-1) + ACCEL * (n-1)^2        avec ACCEL = 0.01
+##   target(n) = round_to_2_sig_figs(60 * GROWTH^f(n))  avec GROWTH = 2^(1/4)
+##   (grain minimum 5 — 2 sig figs seul ne touche pas les nombres a 2 chiffres,
+##   d'ou le 70 en manche 2 plutot que 71)
+## (doublement tous les 4 manches + acceleration quadratique tardive, boss
+## sans multiplicateur — le malus de boss porte deja la difficulte du tour).
+## Index = manche - 1. Les paliers boss (5, 10, 15, 20) restent sur la meme
+## courbe lissee, pas de spike. Voir docs/gdd/manche/score-cible.md.
+const ROUND_TARGETS: Array[int] = [
+	60, 70, 85, 100, 120,
+	150, 180, 220, 270, 330,
+	400, 500, 620, 770, 950,
+	1200, 1500, 1900, 2400, 3000,
+]
 
-# Structure d'un run
-const ROUNDS_PER_ZONE: int = 3
+# Structure d'un run — 4 biomes de 5 manches (4 + 1 boss) = 20 manches
+const ROUNDS_PER_ZONE: int = 5
 const ZONES_PER_RUN: int = 4
+
+## Noms placeholder des biomes (session 18) et fond pastel associe, un par
+## zone + un pour le mode infini. Index = zone - 1 (voir GameScene._update_
+## zone_display). Noms et couleurs a remplacer une fois la DA/l'univers
+## des biomes tranches (voir questions-ouvertes.md).
+const BIOME_NAMES: Array[String] = ["PLAGE", "FORET", "MARAIS", "REVES", "VIDE"]
+const BIOME_BACKGROUND_COLORS: Array[Color] = [
+	Color("b8ccd8"), # Plage — bleu
+	Color("bfddc4"), # Foret — vert
+	Color("d0c2e0"), # Marais — violet
+	Color("e8c9d6"), # Reves — rose
+	Color("d6d6da"), # Vide (mode infini) — gris
+]
 
 # Pattern tags
 const MAX_PATTERN_SLOTS: int = 4
@@ -52,15 +79,12 @@ const SELL_REFUND_RATIO: float = 0.5
 const MAX_BADGE_SLOTS: int = 5
 
 # Recompense par manche gagnee (fixe pour l'instant)
-const FLIES_PER_ROUND_WON: int = 10
+const FLIES_PER_ROUND_WON: int = 8
 
-# Bonus de mouches en fin de manche selon les jetons restants dans le deck au
-# moment de la victoire. Palier exclusif (pas cumulatif) : seul le palier le
-# plus haut atteint s'applique.
-const FLIES_BONUS_HIGH_REMAINING: int = 20
-const FLIES_BONUS_HIGH: int = 5
-const FLIES_BONUS_LOW_REMAINING: int = 10
-const FLIES_BONUS_LOW: int = 2
+# Bonus de mouches en fin de manche si le deck restant est encore confortable
+# au moment de la victoire (session 18, retune equilibrage).
+const FLIES_BONUS_REMAINING_THRESHOLD: int = 10
+const FLIES_BONUS_REMAINING: int = 2
 
 # Delai avant transition en fin de manche (shop / victoire / defaite) pour
 # laisser le temps d'integrer le dernier coup.
@@ -68,10 +92,8 @@ const ROUND_END_DELAY: float = 2.0
 
 
 static func get_round_end_flies_bonus(remaining: int) -> int:
-	if remaining >= FLIES_BONUS_HIGH_REMAINING:
-		return FLIES_BONUS_HIGH
-	if remaining >= FLIES_BONUS_LOW_REMAINING:
-		return FLIES_BONUS_LOW
+	if remaining > FLIES_BONUS_REMAINING_THRESHOLD:
+		return FLIES_BONUS_REMAINING
 	return 0
 
 # Modificateurs de cellules
@@ -129,14 +151,51 @@ const RARITY_NAMES: Array[String] = ["COMMON", "UNCOMMON", "RARE", "EPIC", "LEGE
 # Deck de depart structure : x copies de chaque (famille, valeur) possible,
 # plutot qu'un tirage purement aleatoire — garantit une repartition egale
 # entre les 4 familles a chaque run (voir RunManager._generate_starter_buttons).
-const STARTER_COPIES_PER_VALUE: int = 2
-const DECK_BASE_COUNT: int = FAMILY_COUNT * (TOKEN_MAX_VALUE - TOKEN_MIN_VALUE + 1) * STARTER_COPIES_PER_VALUE
+# Reduit de 2 a 1 en session 18 (40+4 -> 20+4) : le deck de base etait trop
+# genereux, la pression "deck vide" arrivait trop tard. Mais 20+4 s'est
+# revele trop juste au playtest (44 -> 24 coups/manche, cible inchangee) —
+# second pass session 18 : une copie supplementaire, mais seulement pour les
+# valeurs basses (1-2), pour ne pas regonfler la rarete des valeurs hautes
+# (3-5), qui doivent rester precieuses a placer. Total 28+4 = 32.
+const STARTER_COPIES_PER_VALUE: int = 1
+const STARTER_LOW_VALUE_EXTRA_COPY_MAX: int = 2 # valeurs <= ce seuil recoivent 1 copie de plus
+const DECK_BASE_COUNT: int = (
+	FAMILY_COUNT * (TOKEN_MAX_VALUE - TOKEN_MIN_VALUE + 1) * STARTER_COPIES_PER_VALUE
+	+ FAMILY_COUNT * (STARTER_LOW_VALUE_EXTRA_COPY_MAX - TOKEN_MIN_VALUE + 1)
+)
 
 ## Plafond de valeur apres fusion (voir RunManager.fuse_buttons) — la valeur
 ## ne sert plus a resoudre des patterns (seule la famille compte pour ca),
 ## juste a amplifier le score une fois un match resolu. Sans plafond elle
 ## scale sans limite au fil des fusions.
 const MAX_BUTTON_VALUE: int = 10
+
+## Chance qu'un bouton achete au shop (unitaire ou pack, voir ShopManager.
+## _random_button) sorte directement a MAX_BUTTON_VALUE au lieu du tirage
+## normal 1-5 — un petit frisson jackpot a l'achat, qui saute juste le grind
+## de Fusion. Les figures (Valet+) restent exclusivement accessibles par le
+## score, jamais par le shop (session 18) : voir FACE_CARD_VALUES ci-dessous.
+const SHOP_BUTTON_RARE_VALUE_CHANCE: float = 0.01
+
+## Suite des figures (arcanes mineurs, session 18) : un jeton de base deja a
+## MAX_BUTTON_VALUE qui score avance automatiquement d'un cran dans cette
+## suite jusqu'a Roi (plafond definitif) — voir RunManager.promote_matching_
+## button et CascadeResolver._roll_face_promotions. Chemin EXCLUSIVEMENT
+## accessible par le score : Fusion/Augmenter/Poker Face restent plafonnes a
+## MAX_BUTTON_VALUE (voir fuse_buttons, increase_button_value), sinon on
+## pourrait acheter une figure sans jamais avoir a la jouer.
+const FACE_CARD_VALUES: Array[int] = [11, 12, 15, 20] # Valet, Chevalier, Reine, Roi
+const FACE_CARD_LABELS: Array[String] = ["J", "C", "Q", "K"] # Valet, Chevalier, Reine, Roi
+
+## A appeler uniquement pour value >= MAX_BUTTON_VALUE (garanti par les deux
+## call sites). Retourne la meme valeur si deja au Roi.
+static func next_face_value(value: int) -> int:
+	if value == MAX_BUTTON_VALUE:
+		return FACE_CARD_VALUES[0]
+	var idx: int = FACE_CARD_VALUES.find(value)
+	if idx < 0 or idx >= FACE_CARD_VALUES.size() - 1:
+		return value
+	return FACE_CARD_VALUES[idx + 1]
 
 ## Valeur affichee sur les jetons (grille + stream) — redevient pertinente
 ## maintenant qu'elle sert de levier de score, pas juste de bruit visuel.
@@ -164,7 +223,7 @@ const PACK_PRICE_SPECIAL: int = 4
 const PACK_PRICE_BUTTON: int = 4
 
 # Shop — boutons a l'unite
-const BUTTON_UNIT_PRICE: int = 3
+const BUTTON_UNIT_PRICE: int = 5
 
 # Outils de deck ("Des a coudre") — generalise l'ancienne Fusion seule
 # (session 16, voir docs/brainstorms/brainstorm-outils-deck.md). Gate derriere

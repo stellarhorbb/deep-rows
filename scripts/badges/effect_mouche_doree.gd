@@ -8,3 +8,7 @@ extends BadgeEffect
 
 func apply(_event: Dictionary, run_manager: RunManager) -> void:
 	run_manager.set_flat_score_bonus(&"mouche_doree", run_manager.get_flies())
+
+
+func get_progress_text(run_manager: RunManager) -> String:
+	return "Actuellement +%d tickets (%d mouches)" % [run_manager.get_flies(), run_manager.get_flies()]

@@ -1,14 +1,14 @@
-[gd_resource type="Resource" script_class="BadgeData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BadgeData" format=3 uid="uid://bjox5orj3cofv"]
 
-[ext_resource type="Script" path="res://scripts/data/badge_data.gd" id="1_data"]
-[ext_resource type="Script" path="res://scripts/badges/effect_mouche_doree.gd" id="2_effect"]
+[ext_resource type="Script" uid="uid://ct80ym651ovo7" path="res://scripts/data/badge_data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://ijwbqxiem4ea" path="res://scripts/badges/effect_mouche_doree.gd" id="2_effect"]
 
 [resource]
 script = ExtResource("1_data")
 id = &"mouche_doree"
 label = "MOUCHE DORÉE"
-description = "Ajoute au score de chaque Partition un bonus de points égal aux mouches possédées"
-trigger = &"on_turn_resolved"
+description = "Ajoute au score de chaque Partition un bonus de tickets égal aux mouches possédées"
 price = 5
 rarity = 1
+trigger = &"on_turn_resolved"
 effect_script = ExtResource("2_effect")

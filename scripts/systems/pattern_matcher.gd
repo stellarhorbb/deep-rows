@@ -30,12 +30,21 @@ static func find_lines(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
 
 					# Dedup : sauter si le predecesseur sur le meme axe prolonge deja
 					# cette sequence (la ligne sera trouvee depuis son vrai debut).
-					var pc: int = c - dx
-					var pr: int = r - dy
-					if pc >= 0 and pc < cols and pr >= 0 and pr < rows:
-						var prev_t: TokenData = grid[pc][pr] as TokenData
-						if prev_t != null and prev_t.is_scorable() and _can_extend(token, prev_t, rule):
-							continue
+					# Exclu pour "suite" (session 18, fix bug) : une suite peut changer
+					# de sens (ex: colonne 3,4,3,2 — un pic a 4). Le predecesseur "3"
+					# peut etendre vers "4", mais la vraie suite a decouvrir part du
+					# pic et redescend (4,3,2), dans le sens INVERSE — sauter cette
+					# cellule comme depart l'aurait rendue introuvable. Les doublons
+					# resultants (ex: sous-groupe [3,4] retrouve en plus de [4,3,2])
+					# sont deja geres par la resolution en aval (sous-ensemble strict
+					# rejete, chevauchement reel traite comme Double Partition).
+					if rule != &"suite":
+						var pc: int = c - dx
+						var pr: int = r - dy
+						if pc >= 0 and pc < cols and pr >= 0 and pr < rows:
+							var prev_t: TokenData = grid[pc][pr] as TokenData
+							if prev_t != null and prev_t.is_scorable() and _can_extend(token, prev_t, rule):
+								continue
 
 					# Marche en avant
 					var line: Array[Vector2i] = [Vector2i(c, r)]

@@ -23,23 +23,26 @@ var _deck_composition: Dictionary = {
 	"maree_count": 0,
 }
 var _grid_modifiers: Dictionary = {}    # Vector2i -> Array[StringName]
-var _rule_multipliers: Dictionary = {}  # StringName -> float
-var _rule_multiplier_sources: Dictionary = {}  # StringName (rule) -> StringName (badge id)
-var _value_bonus_multipliers: Dictionary = {}  # int (value) -> float
-var _value_bonus_multiplier_sources: Dictionary = {}  # int (value) -> StringName (badge id)
-var _global_multiplier_source: StringName = &""
-var _retrigger_values: Dictionary = {}  # int (value) -> true
-var _retrigger_value_sources: Dictionary = {}  # int (value) -> StringName (badge id)
-var _family_score_bonus: Dictionary = {}  # TokenData.Family -> int
-var _family_score_bonus_sources: Dictionary = {}  # TokenData.Family -> StringName (badge id)
-var _pair_score_bonus: int = 0
-var _pair_score_bonus_source: StringName = &""
-var _top_row_score_bonus: int = 0
-var _top_row_score_bonus_source: StringName = &""
+
+## Canaux alimentables par plusieurs Badges a la fois (session 18) : un seul
+## pattern partout — Dictionary[badge_id] -> valeur pour les canaux "flat",
+## Dictionary[cle] -> Dictionary[badge_id] -> valeur pour les canaux "keyed"
+## (cle = rule/valeur/famille selon le canal). Remplace 3 patterns
+## incoherents (ecrasement pur pour rule/global, source unique pour value_
+## bonus/family/pair/top_row) — voir RunContext pour la combinaison (produit
+## ou somme selon le canal) et l'attribution complete pour la banniere de
+## resolution.
+var _rule_multiplier_contributions: Dictionary = {}          # rule -> {badge_id -> float}
+var _value_bonus_multiplier_contributions: Dictionary = {}   # value -> {badge_id -> float}
+var _retrigger_value_contributions: Dictionary = {}          # value -> {badge_id -> true}
+var _family_score_bonus_contributions: Dictionary = {}       # family -> {badge_id -> int}
+var _global_multiplier_contributions: Dictionary = {}        # badge_id -> float
+var _pair_score_bonus_contributions: Dictionary = {}         # badge_id -> int
+var _top_row_score_bonus_contributions: Dictionary = {}      # badge_id -> int
 
 ## Bonus de slots de hold / taille de preview pour la manche (session 17) :
 ## StringName (id du badge) -> int. Remis a zero chaque manche comme les
-## rule_multipliers — repeuples par les badges on_round_start.
+## canaux ci-dessus — repeuples par les badges on_round_start.
 var _hold_slot_bonuses: Dictionary = {}
 var _preview_size_bonuses: Dictionary = {}
 var _rock_leaving_sources: Dictionary = {}  # StringName -> true
@@ -111,16 +114,20 @@ func init_run() -> void:
 
 
 ## Genere le pool de boutons de depart : x copies de chaque (famille, valeur)
-## possible (STARTER_COPIES_PER_VALUE), pas un tirage purement aleatoire —
-## garantit une repartition egale entre les 4 familles, pour ne pas saboter
-## un demarrage jouable par un mauvais tirage independant du choix de Partition.
-## Ce pool persiste ensuite pour toute la run, seul le shop pourra le muter
-## (achat, fusion).
+## possible (STARTER_COPIES_PER_VALUE), plus une copie additionnelle pour les
+## valeurs basses (<= STARTER_LOW_VALUE_EXTRA_COPY_MAX) — pas un tirage
+## purement aleatoire — garantit une repartition egale entre les 4 familles,
+## pour ne pas saboter un demarrage jouable par un mauvais tirage independant
+## du choix de Partition. Ce pool persiste ensuite pour toute la run, seul le
+## shop pourra le muter (achat, fusion).
 func _generate_starter_buttons() -> Array[TokenData]:
 	var buttons: Array[TokenData] = []
 	for family in range(GameRules.FAMILY_COUNT):
 		for value in range(GameRules.TOKEN_MIN_VALUE, GameRules.TOKEN_MAX_VALUE + 1):
-			for i in range(GameRules.STARTER_COPIES_PER_VALUE):
+			var copies: int = GameRules.STARTER_COPIES_PER_VALUE
+			if value <= GameRules.STARTER_LOW_VALUE_EXTRA_COPY_MAX:
+				copies += 1
+			for i in range(copies):
 				buttons.append(TokenData.make_base(family as TokenData.Family, value))
 	return buttons
 
@@ -143,20 +150,14 @@ func build_context() -> RunContext:
 	ctx.equipped_tags = _equipped_tags.duplicate()
 	ctx.equipped_badges = _equipped_badges.duplicate()
 	ctx.grid_modifiers = _grid_modifiers.duplicate()
-	ctx.rule_multipliers = _rule_multipliers.duplicate()
-	ctx.rule_multiplier_sources = _rule_multiplier_sources.duplicate()
+	ctx.rule_multiplier_contributions = _rule_multiplier_contributions.duplicate(true)
 	ctx.tag_level_multipliers = _build_tag_level_multipliers()
-	ctx.value_bonus_multipliers = _value_bonus_multipliers.duplicate()
-	ctx.value_bonus_multiplier_sources = _value_bonus_multiplier_sources.duplicate()
-	ctx.global_multiplier_source = _global_multiplier_source
-	ctx.retrigger_values = _retrigger_values.duplicate()
-	ctx.retrigger_value_sources = _retrigger_value_sources.duplicate()
-	ctx.family_score_bonus = _family_score_bonus.duplicate()
-	ctx.family_score_bonus_sources = _family_score_bonus_sources.duplicate()
-	ctx.pair_score_bonus = _pair_score_bonus
-	ctx.pair_score_bonus_source = _pair_score_bonus_source
-	ctx.top_row_score_bonus = _top_row_score_bonus
-	ctx.top_row_score_bonus_source = _top_row_score_bonus_source
+	ctx.value_bonus_multiplier_contributions = _value_bonus_multiplier_contributions.duplicate(true)
+	ctx.global_multiplier_contributions = _global_multiplier_contributions.duplicate()
+	ctx.retrigger_value_contributions = _retrigger_value_contributions.duplicate(true)
+	ctx.family_score_bonus_contributions = _family_score_bonus_contributions.duplicate(true)
+	ctx.pair_score_bonus_contributions = _pair_score_bonus_contributions.duplicate()
+	ctx.top_row_score_bonus_contributions = _top_row_score_bonus_contributions.duplicate()
 	ctx.scaling_mult_bonus = _sum_dict_values(_scaling_mult_bonuses)
 	ctx.scaling_mult_bonuses = _scaling_mult_bonuses.duplicate()
 	ctx.flat_score_bonus = int(_sum_dict_values(_flat_score_bonuses))
@@ -225,19 +226,13 @@ func get_tag_cumulative_score(tag_name: StringName) -> int:
 ## Appele au start_round avant que les badges on_round_start ne peuplent.
 func reset_round_modifiers() -> void:
 	_grid_modifiers.clear()
-	_rule_multipliers.clear()
-	_rule_multiplier_sources.clear()
-	_value_bonus_multipliers.clear()
-	_value_bonus_multiplier_sources.clear()
-	_global_multiplier_source = &""
-	_retrigger_values.clear()
-	_retrigger_value_sources.clear()
-	_family_score_bonus.clear()
-	_family_score_bonus_sources.clear()
-	_pair_score_bonus = 0
-	_pair_score_bonus_source = &""
-	_top_row_score_bonus = 0
-	_top_row_score_bonus_source = &""
+	_rule_multiplier_contributions.clear()
+	_value_bonus_multiplier_contributions.clear()
+	_global_multiplier_contributions.clear()
+	_retrigger_value_contributions.clear()
+	_family_score_bonus_contributions.clear()
+	_pair_score_bonus_contributions.clear()
+	_top_row_score_bonus_contributions.clear()
 	_hold_slot_bonuses.clear()
 	_preview_size_bonuses.clear()
 	_rock_leaving_sources.clear()
@@ -248,7 +243,7 @@ func reset_round_modifiers() -> void:
 ## Ajoute un modifier sur une cellule. Appele par les badges. Les modifiers
 ## s'empilent sur une meme case (ex: Tranchee + Bord a Bord, ou Cellule Triple
 ## par-dessus un badge colonne) : chaque type ajoute son propre multiplicateur
-## au lieu d'ecraser les precedents, voir CascadeResolver._modifier_multiplier.
+## au lieu d'ecraser les precedents, voir CascadeResolver._grid_modifier_multiplier.
 func add_grid_modifier(cell: Vector2i, type: StringName) -> void:
 	var types: Array = (_grid_modifiers.get(cell, []) as Array).duplicate()
 	types.append(type)
@@ -263,26 +258,26 @@ func notify_grid_modifiers_ready() -> void:
 ## Pose un multiplicateur de score par rule (ex: &"family" -> 2.0). Appele par
 ## les badges, qui passent leur propre id (ex: &"famille_unie") pour que la
 ## bannière de résolution puisse identifier — et faire tilter — le bon Badge.
+## Deux badges sur la meme rule se multiplient entre eux (voir RunContext.
+## get_rule_multiplier) au lieu que le dernier ecrase l'autre.
 func set_rule_multiplier(rule: StringName, mult: float, source: StringName = &"") -> void:
-	_rule_multipliers[rule] = mult
-	_rule_multiplier_sources[rule] = source
+	var contributions: Dictionary = (_rule_multiplier_contributions.get(rule, {}) as Dictionary).duplicate()
+	contributions[source] = mult
+	_rule_multiplier_contributions[rule] = contributions
 
 
 func get_grid_modifiers() -> Dictionary:
 	return _grid_modifiers.duplicate()
 
 
-func get_rule_multipliers() -> Dictionary:
-	return _rule_multipliers.duplicate()
-
-
 ## Pose un bonus additif au multiplicateur d'une figure par occurrence d'une
-## valeur de jeton donnee (ex: 1 -> 0.5 pour "Petites Mains"). Appele par les
+## valeur de jeton donnee (ex: 1 -> 0.25 pour "Petites Mains"). Appele par les
 ## badges au round_start, qui passent leur propre id (attribution pour la
-## bannière de résolution).
+## bannière de résolution). Cumulatif entre badges ciblant la meme valeur.
 func add_value_bonus_multiplier(value: int, bonus: float, source: StringName = &"") -> void:
-	_value_bonus_multipliers[value] = bonus
-	_value_bonus_multiplier_sources[value] = source
+	var contributions: Dictionary = (_value_bonus_multiplier_contributions.get(value, {}) as Dictionary).duplicate()
+	contributions[source] = bonus
+	_value_bonus_multiplier_contributions[value] = contributions
 
 
 ## Marque une valeur de jeton comme "retrigger" : un jeton scorable de cette
@@ -290,31 +285,31 @@ func add_value_bonus_multiplier(value: int, bonus: float, source: StringName = &
 ## groupe qui score (ex: un 3 qui score vaut 6 points). Idempotent — deux
 ## badges qui ciblent la meme valeur ne la font pas compter trois fois.
 func add_retrigger_value(value: int, source: StringName = &"") -> void:
-	_retrigger_values[value] = true
-	_retrigger_value_sources[value] = source
+	var contributions: Dictionary = (_retrigger_value_contributions.get(value, {}) as Dictionary).duplicate()
+	contributions[source] = true
+	_retrigger_value_contributions[value] = contributions
 
 
 ## Pose un bonus flat ajoute au value_sum quand un pattern de rule "family" de
-## cette famille score (ex: "Encrée" -> INK). Cumulatif entre badges.
+## cette famille score (ex: "Tickets Hivernal" -> DENIERS). Cumulatif entre badges.
 func add_family_score_bonus(family: TokenData.Family, bonus: int, source: StringName = &"") -> void:
-	_family_score_bonus[family] = (_family_score_bonus.get(family, 0) as int) + bonus
-	_family_score_bonus_sources[family] = source
+	var contributions: Dictionary = (_family_score_bonus_contributions.get(family, {}) as Dictionary).duplicate()
+	contributions[source] = bonus
+	_family_score_bonus_contributions[family] = contributions
 
 
 ## Pose un bonus flat ajoute au value_sum quand le groupe qui score contient
 ## au moins deux jetons de meme valeur ("paire", ex: "Y'en a pas deux").
 ## Cumulatif entre badges.
 func add_pair_score_bonus(bonus: int, source: StringName = &"") -> void:
-	_pair_score_bonus += bonus
-	_pair_score_bonus_source = source
+	_pair_score_bonus_contributions[source] = bonus
 
 
 ## Pose un bonus flat ajoute au value_sum de chaque pattern qui score tant
 ## qu'un jeton occupe la rangee du haut de la grille (ex: "Sommet"). Cumulatif
 ## entre badges.
 func add_top_row_score_bonus(bonus: int, source: StringName = &"") -> void:
-	_top_row_score_bonus += bonus
-	_top_row_score_bonus_source = source
+	_top_row_score_bonus_contributions[source] = bonus
 
 
 ## Ajoute un bonus de slots de hold pour la manche (ex: "Bénédiction", +1).
@@ -383,6 +378,44 @@ func upgrade_matching_button(family: TokenData.Family, value: int) -> bool:
 	return false
 
 
+## Fait progresser un jeton deja a MAX_BUTTON_VALUE vers la figure suivante
+## (arcanes mineurs — voir GameRules.next_face_value). Chemin distinct de
+## upgrade_matching_button/increase_button_value (Fusion/Augmenter/Poker
+## Face), qui restent plafonnes a MAX_BUTTON_VALUE : celui-ci n'existe QUE
+## via le score (voir CascadeResolver._roll_face_promotions).
+## Ignore les jetons verrouilles (voir lock_button) : ils gardent leur rang
+## meme s'ils rescorent. Si plusieurs exemplaires du meme family/valeur
+## existent, seul un exemplaire NON verrouille peut etre promu.
+func promote_matching_button(family: TokenData.Family, value: int) -> bool:
+	var next_value: int = GameRules.next_face_value(value)
+	if next_value == value:
+		return false
+	for i in range(_button_pool.size()):
+		var candidate: TokenData = _button_pool[i]
+		if candidate.kind == TokenData.Kind.BASE and candidate.family == family and candidate.value == value and not candidate.locked:
+			_button_pool[i] = TokenData.make_base(family, next_value)
+			button_pool_changed.emit()
+			return true
+	return false
+
+
+## Action "Fixer" des Des a coudre : verrouille une figure (Valet+) contre
+## toute promotion future par le score. Gratuit en ressources autres que le
+## Des a coudre lui-meme — pas un achat direct de progression, juste un choix
+## de timing sur un chemin qui reste entierement gagne par le jeu.
+func lock_button(index: int) -> bool:
+	if index < 0 or index >= _button_pool.size():
+		return false
+	var token: TokenData = _button_pool[index]
+	if token.value < GameRules.MAX_BUTTON_VALUE or token.locked:
+		return false
+	var locked_copy: TokenData = TokenData.make_base(token.family, token.value)
+	locked_copy.locked = true
+	_button_pool[index] = locked_copy
+	button_pool_changed.emit()
+	return true
+
+
 ## Etat libre par badge, JAMAIS remis a zero en cours de run (voir
 ## _run_badge_state) — pour les compteurs "scaling permanent" qui doivent
 ## survivre aux transitions de manche (contrairement a get_badge_state/
@@ -403,11 +436,14 @@ func set_run_badge_state(key: StringName, value: Variant) -> void:
 ## precedentes — pas de cumul entre deux badges qui viseraient tous les deux
 ## le multiplicateur global (meme limitation connue que les rule_multipliers,
 ## voir questions-ouvertes.md).
+## Deux badges sur le global_multiplier se multiplient entre eux (voir
+## RunContext.get_global_multiplier) — chacun n'ecrase que sa PROPRE entree
+## (rappeler set_global_multiplier plusieurs fois pour le meme badge, ex. a
+## chaque tour pour Regularite, ne double donc pas son propre facteur).
 func set_global_multiplier(mult: float, source: StringName = &"") -> void:
-	_global_multiplier_source = source
+	_global_multiplier_contributions[source] = mult
 	if _active_context != null:
-		_active_context.global_multiplier = mult
-		_active_context.global_multiplier_source = source
+		_active_context.global_multiplier_contributions = _global_multiplier_contributions.duplicate()
 
 
 ## Etat libre par badge, remis a zero a chaque manche (voir _badge_state).
@@ -606,12 +642,15 @@ func increase_button_value(index: int) -> bool:
 
 
 ## Reduire : -1 sur la valeur d'un bouton possede. Refuse si deja au plancher
-## (GameRules.TOKEN_MIN_VALUE).
+## (GameRules.TOKEN_MIN_VALUE) ou si c'est une figure (Valet+) — celles-ci ne
+## s'obtiennent que par le score, elles ne se perdent pas via un outil de deck.
 func decrease_button_value(index: int) -> bool:
 	if index < 0 or index >= _button_pool.size():
 		return false
 	var token: TokenData = _button_pool[index]
 	if token.value <= GameRules.TOKEN_MIN_VALUE:
+		return false
+	if token.value > GameRules.MAX_BUTTON_VALUE:
 		return false
 	_button_pool[index] = TokenData.make_base(token.family, token.value - 1)
 	button_pool_changed.emit()

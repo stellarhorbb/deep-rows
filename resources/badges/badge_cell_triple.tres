@@ -9,5 +9,5 @@ id = &"cell_triple"
 label = "CELLULE TRIPLE"
 description = "Ajoute une cellule x3 aléatoire chaque manche"
 price = 4
-rarity = 1
+rarity = 2
 effect_script = ExtResource("2_effect")
