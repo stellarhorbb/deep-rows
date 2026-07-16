@@ -4,7 +4,7 @@
 
 ## Principe
 
-Un [bouton](boutons.md) pourrait recevoir un **état** qui ajoute un effet bonus tout en gardant sa famille et son chiffre. Exemple : `Bone 4 "Explosif"` — reste un Bone 4 pour les patterns, mais déclenche un effet bonus à la résolution.
+Un [bouton](boutons.md) pourrait recevoir un **état** qui ajoute un effet bonus tout en gardant sa famille et son chiffre. Exemple : `Bâtons 4 "Explosif"` — reste un Bâtons 4 pour les patterns, mais déclenche un effet bonus à la résolution.
 
 ## Fonctionnement envisagé
 

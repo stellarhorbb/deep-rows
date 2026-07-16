@@ -32,21 +32,23 @@ Chaque cellule modifiée traversée par le pattern multiplie le total par son co
 | DOUBLE | ×2 |
 | TRIPLE | ×3 |
 
-**Cumulatif** : deux cellules DOUBLE dans un même pattern = ×4. Voir [Modifiers de cellules](../grille/modifiers-cellules.md).
+**Dédupliqué par type** (bug corrigé session 18) : plusieurs cellules du même type dans un même pattern ne cumulent plus (deux cellules DOUBLE = ×2, pas ×4) — toucher une case d'un type suffit à l'activer. Des types différents restent cumulatifs entre eux (une case DOUBLE + une case BOOST = ×3). Voir [Modifiers de cellules](../grille/modifiers-cellules.md).
 
 ## Multiplicateurs de règle
 
-Alimentés par les [Badges](../badges/principe.md) au `on_round_start`. Stockés dans `RunContext.rule_multipliers: Dictionary` (StringName → float), lus par `CascadeResolver._score_group`.
+Alimentés par les [Badges](../badges/principe.md) au `on_round_start`. Stockés dans `RunContext.rule_multiplier_contributions` — dictionnaire gardé par source (`rule → {badge_id → float}`), combiné par **produit** (`RunContext.get_rule_multiplier`, lu par `CascadeResolver._score_group`).
 
 Exemple : le Badge "Famille Unie" pose `family → 2.0` → tous les patterns de rule `family` scorent x2.
 
 ## Multiplicateur global (session 13)
 
-`RunContext.global_multiplier: float` — contrairement aux autres champs du contexte (figés au `round_start`), celui-ci peut être **muté en cours de manche** : `RunManager` garde une référence vivante vers le contexte actif, et `set_global_multiplier()` l'écrit directement dedans. C'est ce qui permet à un Badge comme Dernier Carré de changer le multiplicateur d'un tour à l'autre selon l'état du deck. Écrase au lieu de cumuler si deux Badges dynamiques sont équipés en même temps — même limitation connue que les rule_multipliers.
+`RunContext.global_multiplier_contributions` (`badge_id → float`, combiné par produit via `get_global_multiplier`) — contrairement aux autres champs du contexte (figés au `round_start`), celui-ci peut être **muté en cours de manche** : `RunManager` garde une référence vivante vers le contexte actif, et `set_global_multiplier()` écrit la contribution de ce Badge directement dedans. C'est ce qui permet à un Badge comme Dernier Carré de changer le multiplicateur d'un tour à l'autre selon l'état du deck.
 
 ## Bonus par valeur de jeton (session 13)
 
-`RunContext.value_bonus_multipliers: Dictionary` (int valeur → float bonus). Chaque jeton scorable de cette valeur présent dans la figure qui score ajoute ce bonus au multiplicateur — additif entre jetons, pas multiplicatif (2 jetons à +0.5 donnent x2.0, pas x2.25). Alimenté par les Badges au `round_start` (ex : Petites Mains pose `1 → 0.5`).
+`RunContext.value_bonus_multiplier_contributions` (`valeur → {badge_id → float}`, combiné par somme via `get_value_bonus_multiplier_sum`). Chaque jeton scorable de cette valeur présent dans la figure qui score ajoute ce bonus au multiplicateur — additif entre jetons, pas multiplicatif (2 jetons à +0.5 donnent x2.0, pas x2.25). Alimenté par les Badges au `round_start` (ex : Petites Mains pose `1 → 0.5`).
+
+**Refactor RunContext (session 18)** : ces trois canaux (règle, global, valeur) partageaient auparavant un même bug — un scalaire écrasé au lieu d'un dictionnaire par source, donc deux Badges sur le même canal s'annulaient l'un l'autre au lieu de cumuler (connu depuis la session 15 pour règle/global, jamais repéré avant pour la valeur). `RunContext` a été réécrit sur un seul pattern (dictionnaire gardé par `badge_id`, combiné par produit ou somme selon le canal) — voir `run_context.gd`. Aucun Badge n'a eu besoin d'être modifié, seul l'interne a changé.
 
 ## Bonus flat au value_sum (session 17)
 

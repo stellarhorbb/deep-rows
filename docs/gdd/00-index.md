@@ -37,7 +37,7 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
 - [Modifiers de cellules](grille/modifiers-cellules.md) — HALF / BOOST / DOUBLE / TRIPLE
 
 ### [Jetons](jetons/)
-- [Boutons](jetons/boutons.md) — 4 familles en code, valeur = pur levier de score depuis la session 12, deck persistant, fusion gatée
+- [Boutons](jetons/boutons.md) — 4 familles vocabulaire tarot (session 18), valeur = pur levier de score depuis la session 12, deck persistant, fusion gatée, [figures](jetons/boutons.md#figures-arcanes-mineurs) Valet→Roi (session 18)
 - [Rocks](jetons/rocks.md) — scaffold, explosent au Dernier Souffle
 - [Spéciaux](jetons/specials.md) — outils one-shot
 - [Entity-skull](jetons/entity-skull.md) — jeton lâché par l'Entity
@@ -49,14 +49,14 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
 - [Axes de règles](partitions/axes-de-regles.md) — famille / chiffre / suite / mixte
 - [Scoring](partitions/scoring.md) — multi direction, cascade, modifiers, rule
 - [Level up](partitions/level-up.md) — Pianissimo → Maestro
-- [Catalogue implémenté](partitions/catalogue-implemente.md) — 17 actives, 1 dormante, refonte du mult par tier décidée (session 16)
+- [Catalogue implémenté](partitions/catalogue-implemente.md) — 17 actives, 1 dormante, classées par tier de difficulté (session 16, rééquilibré session 18)
 
 ### [Manche](manche/)
 - [Deck](manche/deck.md) — composition, persistant sur la run, pas de reshuffle
 - [Stream + Hold](manche/stream-hold.md) — pioche continue, 1 slot
 - [Inspecteur de deck](manche/inspecteur-deck.md) — voir ce qu'il reste à tirer
 - [Déroulement](manche/deroulement.md) — les étapes d'un tour
-- [Score cible](manche/score-cible.md) — courbe de pression
+- [Score cible](manche/score-cible.md) — courbe exponentielle, figée session 18
 - [Dernier Souffle](manche/dernier-souffle.md) — explosion rocks, cascade surprise
 
 ### [Badges](badges/)
@@ -74,7 +74,7 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
 - [Génération de l'offre](shop/generation-offre.md) — règles de curation
 
 ### [Progression](progression/)
-- [Structure du run](progression/structure-run.md) — biomes fixes, boss de zone, mode infini (chantier session 16, longueur pas figée)
+- [Structure du run](progression/structure-run.md) — biomes fixes, boss de zone, mode infini — 20 manches, figé session 18
 - [Sources de scaling](progression/sources-scaling.md) — les 7 leviers
 - [Monnaies](progression/monnaies.md) — mouches + tickets
 - [Défaite](progression/defaite.md) — conditions, game over

@@ -4,13 +4,11 @@ Les leviers qui font monter la puissance du joueur au fil d'un run.
 
 ## 1. Ajout de boutons (shop)
 
-Un [bouton](../jetons/boutons.md) acheté à l'unité ou via [bocal](../shop/packs.md) est **permanent pour la run** (le pool de boutons est [persistant](../manche/deck.md)). Le deck grossit → +1 drop par manche → scaling doux du nombre de coups, vers un deck fat.
+Un [bouton](../jetons/boutons.md) acheté à l'unité ou via [pack](../shop/packs.md) est **permanent pour la run** (le pool de boutons est [persistant](../manche/deck.md)). Le deck grossit → +1 drop par manche → scaling doux du nombre de coups, vers un deck fat.
 
-## 2. Fusion de boutons (shop, gatée)
+## 2. Outils de deck "Dés à coudre" (shop, gatés)
 
-Fusionner 2 boutons possédés (famille libre) en 1 seul, de valeur = somme des deux (**plafonnée à 10**, `MAX_BUTTON_VALUE`) et famille tirée au hasard entre les deux entrées. Réduit le deck et concentre sa valeur — le levier "slim" opposé à l'ajout de boutons. Sélection parmi un tirage random de 8-10 boutons du pool, pas le pool entier.
-
-Depuis la session 12, l'accès à la fusion est gaté par l'achat d'un item **Dés à coudre** au shop — une seule fusion par achat, plus un bouton permanent spammable. Voir [Boutons — évolution au shop](../jetons/boutons.md).
+Fusionner 2 boutons possédés (famille libre) en 1 seul, de valeur = somme des deux (**plafonnée à 10**, `MAX_BUTTON_VALUE`) et famille tirée au hasard entre les deux entrées — réduit le deck et concentre sa valeur, le levier "slim" opposé à l'ajout de boutons. Fusionner n'est plus qu'une des **10 actions** débloquées par l'achat d'un item **Dés à coudre** (`DECK_TOOL_ACTION_DRAW_SIZE` = 3 actions tirées, `DECK_TOOL_TARGET_DRAW_SIZE` = 8 boutons candidats), généralisée en session 16 — voir [Boutons — outils de deck](../jetons/boutons.md).
 
 ## 3. Partitions level up (par le jeu)
 

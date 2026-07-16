@@ -44,7 +44,7 @@ C'est le terrain où les [dan sans plafond du level up](../partitions/level-up.m
 Début de run
   ├── Choix du pack de boutons (débloqués au Shore)
   │
-  ├── Plage    (N manches + shop entre chaque, boss en dernière manche)
+  ├── Plage    (4 manches + shop entre chaque, boss en 5e manche)
   ├── Forêt
   ├── Marais
   ├── Rêves (boss) → "You win"
@@ -64,7 +64,7 @@ Le joueur doit sentir une **montée en puissance constante** même si les [score
 - **Zone 3** : le build prend forme, cascades régulières
 - **Zone 4** : la machine tourne, gros chiffres, combos spectaculaires
 
-Le score cible monte linéairement, mais la puissance du joueur monte **exponentiellement** grâce aux synergies. Le skill c'est de construire la bonne courbe exponentielle avant que le linéaire ne rattrape.
+Le [score cible](../manche/score-cible.md) monte lui-même en exponentielle (session 18), mais la puissance du joueur doit monter **plus vite encore** grâce aux synergies. Le skill c'est de construire sa propre courbe exponentielle avant que celle de la cible ne rattrape.
 
 ## Liens
 

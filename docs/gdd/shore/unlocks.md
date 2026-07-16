@@ -16,7 +16,7 @@ Nouveaux outils qui apparaissent dans le pool du shop.
 
 ## Nouvelles [Partitions](../partitions/principe.md)
 
-Nouvelles manières de scorer. Les Partitions exotiques (Fibonacci, Parfait, Rainbow...) sont débloquées ici.
+Nouvelles manières de scorer, au-delà des 17 déjà actives dans le catalogue de base (voir [Catalogue implémenté](../partitions/catalogue-implemente.md)) — le tiroir rare/signature (9999, paires de familles figées) est le candidat naturel pour ce type d'unlock.
 
 ## Nouvelles [Badges](../badges/principe.md)
 

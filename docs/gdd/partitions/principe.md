@@ -20,7 +20,7 @@ C'est le cœur du puzzle. Le joueur ne choisit pas juste comment scorer — il c
 - **4 slots max** actifs à un instant donné (`MAX_PATTERN_SLOTS` dans `game_rules.gd`)
 - **Écran de sélection en début de run** (session 12) : 3 Partitions tirées au hasard dans tout le catalogue, le joueur en choisit **2, gratuites**. Remplace l'ancienne idée de "pack de boutons qui livre 1-2 Partitions pré-équipées" — jamais implémentée telle quelle, cette version-là l'a été à la place. (Une seule Partition de départ a été testée en premier jet et jugée trop punitive — voir le log de session 12.)
 - Les 2 slots restants se remplissent au shop via des partitions unitaires ou des **packs**
-- Pool cible : **20-30 Partitions** (voir `brainstorm-pattern-tags.md`) — 6 actives aujourd'hui, voir [Catalogue implémenté](catalogue-implemente.md)
+- Pool cible : **20-30 Partitions** (voir `brainstorm-pattern-tags.md`) — 17 actives aujourd'hui, voir [Catalogue implémenté](catalogue-implemente.md)
 
 ## Vente (session 12)
 

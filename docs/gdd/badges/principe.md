@@ -23,14 +23,14 @@ Chaque Badge = un `BadgeData.tres` (métadonnées : label, description, price, t
 
 ## Achat au shop
 
-Vendus par les [grenouilles orchestre](../univers/personnages/grenouilles-orchestre.md) dans des **paquets scellés à déchirer** — ou à l'unité. Voir [Packs](../shop/packs.md).
+Vendus par les [grenouilles orchestre](../univers/personnages/grenouilles-orchestre.md), dans le [contenant générique](../shop/packs.md) commun à toutes les catégories — ou à l'unité.
 
 Plus chers que les spéciaux parce qu'ils sont structurants. Voir [Économie](../shop/economie.md).
 
 ## Synergies
 
 La profondeur du jeu vient des **combinaisons** :
-- "Famille Unie" + "Cellule Triple" + pack Mono-Bone → les patterns Bone scorent ×6 sur la cellule triple
+- "Famille Unie" + "Cellule Triple" + pack Mono-Bâtons → les patterns Bâtons scorent ×6 sur la cellule triple
 - "Mouches en Cascade" + un Badge qui force des cascades → économie qui explose
 - "Tranchée" + Partition "Ligne Horizontale" → build qui exploite les colonnes centrales
 

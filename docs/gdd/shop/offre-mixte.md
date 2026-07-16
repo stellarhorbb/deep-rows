@@ -19,7 +19,7 @@ Catégories possibles pour un slot :
 | [Partitions](../partitions/principe.md) | Équipe un slot (max 4) | Contenu : 3 candidats, tu en gardes 1 |
 | [Spéciaux](../jetons/specials.md) | One-shot ajouté au deck | Contenu : 3 candidats, tu en gardes 1 |
 | [Badges](../badges/principe.md) | Équipe un slot (max 5) | Contenu : 3 candidats, tu en gardes 1 |
-| **Dés à coudre** | Débloque **une** [fusion de boutons](../jetons/boutons.md) | — (pas de version pack) |
+| **Dés à coudre** | Tire 3 [actions de deck](../jetons/boutons.md#outils-de-deck-gatés-par-dés-à-coudre-session-12-généralisé-session-16) (Augmenter, Fusionner, Fixer...) parmi 10, applique celle choisie | — (pas de version pack) |
 
 Dés à coudre n'apparaît que côté unitaire — ce n'est pas un tirage-et-choix-1 comme les autres, juste un déblocage d'action.
 

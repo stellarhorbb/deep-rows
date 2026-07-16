@@ -15,9 +15,9 @@ Autres pistes non implémentées : TRAP, VOID.
 
 ## Fonctionnement technique
 
-`RunManager` porte un dict `_grid_modifiers: Vector2i → StringName`, snapshooté dans `RunContext.grid_modifiers`, lu par `CascadeResolver._modifier_multiplier`.
+`RunManager` porte un dict `_grid_modifiers: Vector2i → StringName`, snapshooté dans `RunContext.grid_modifiers`, lu par `CascadeResolver._grid_modifier_multiplier`.
 
-**Cumulatif** : deux cellules modifiées dans un même pattern → multiplicateurs multipliés (ex : 2 cellules DOUBLE → ×4).
+**Dédupliqué par type, pas par cellule (bug corrigé session 18)** : toucher une case d'un type donné suffit à activer son multiplicateur pour tout le groupe — plusieurs cases du même type dans le même pattern ne le cumulent plus (ex : une Ligne 5 entièrement dans une colonne DOUBLE reste ×2, pas ×32). Des **types différents** sur des cases différentes du même pattern restent cumulatifs entre eux (ex : une case DOUBLE + une case BOOST dans le même groupe → ×2 × ×1.5 = ×3).
 
 ## Sources
 

@@ -55,11 +55,10 @@ Chaque Badge = 1 script d'effet (`scripts/badges/effect_*.gd`) + 1 resource (`re
 ## Reportée
 
 - **Bombe à retardement** ([HOB-10](https://linear.app/hobbes-game/issue/HOB-10)) — les bombes ne sautent plus à l'impact, elles attendent le Dernier Souffle. Plus complexe qu'un simple side-effect car elle modifie le comportement d'un [jeton spécial](../jetons/specials.md).
-- **Slot de hold supplémentaire** — idée validée (voir `brainstorm-badges.md`) mais nécessite un refactor du hold (`DeckManager._hold` est un slot unique, pas un compteur) avant de pouvoir l'écrire comme un simple effet.
 
 ## Catalogue complet (idées + statuts)
 
-Les pistes non implémentées sont brassées dans `brainstorm-badges.md` (produit cartésien Triggers × Effets). `on_token_drop` et `on_last_breath` restent câblés mais sans Badge qui les consomme.
+Les pistes non implémentées sont brassées dans `brainstorm-badges.md` (produit cartésien Triggers × Effets). Seul `on_last_breath` reste câblé sans Badge qui le consomme (voir [Triggers](triggers.md)) — `on_token_drop` a bien des consommateurs (Dernier Carré, Jetons sacrés).
 
 ## Debug
 

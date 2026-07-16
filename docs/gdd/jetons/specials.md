@@ -28,11 +28,11 @@ Les **outils** — coups d'éclat qu'on achète au shop et qu'on joue au bon mom
 
 Pistes brainstorm : Transformateur, Gravité inversée, Abîme, Prisme, Ancre, Corrosif, Siphon, Dualité. Plus thématique : Grenouille qui saute, Cactus, Poudrière.
 
-Catalogue complet (statut + idées + prix) dans `docs/content/specials.csv`.
+Catalogue complet (statut + idées + prix) dans le [Google Sheet](https://docs.google.com/spreadsheets/d/1JMEQf2W6H8fMZ24D63-jRQrJKz5424kR7Exyo4xvM_0/edit) (onglet Jetons spéciaux), source de vérité depuis le 2026-07-10.
 
 ## Achat au shop
 
-Vendus dans des **malles de music-hall** par les [grenouilles orchestre](../univers/personnages/grenouilles-orchestre.md) — à l'unité ou en pack (3 choix, tu en gardes 1). Très accessibles parce que jetables.
+Vendus par les [grenouilles orchestre](../univers/personnages/grenouilles-orchestre.md), dans le [contenant générique](../shop/packs.md) commun à toutes les catégories — à l'unité ou en pack (3 choix, tu en gardes 1). Très accessibles parce que jetables.
 
 ## Liens
 

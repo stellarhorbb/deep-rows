@@ -4,12 +4,12 @@ Le joueur peut **reroll** pour voir de nouveaux items. **Ne touche que la rangé
 
 ## Prix croissant
 
-`GameRules.REROLL_BASE_PRICE = 5`, `GameRules.REROLL_INCREMENT = 1` — chaque reroll suivant coûte +1 mouche dans la même visite.
+`GameRules.REROLL_BASE_PRICE = 2`, `GameRules.REROLL_INCREMENT = 1` — chaque reroll suivant coûte +1 mouche dans la même visite.
 
 Exemple :
-- 1er reroll : 5 mouches
-- 2e reroll : 6 mouches
-- 3e reroll : 7 mouches
+- 1er reroll : 2 mouches
+- 2e reroll : 3 mouches
+- 3e reroll : 4 mouches
 - ...
 
 **Statut** : implémenté (session 12) avec ces valeurs de départ, à réequilibrer au fil du playtest.

@@ -16,11 +16,7 @@ Elles donnent des repères dans un monde de plus en plus étrange. Avec [les bou
 
 ## Vocabulaire des objets du shop
 
-Elles vendent dans des contenants spécifiques à chaque catégorie :
-- [Bocaux](../../shop/packs.md) pour les boutons
-- Recueils pour les [partitions](../../partitions/principe.md)
-- Malles de music-hall pour les [spéciaux](../../jetons/specials.md)
-- Paquets scellés pour les [cartes de Badges](../../badges/principe.md)
+En jeu actuellement : **un seul contenant générique** pour toutes les catégories (voir [Packs](../../shop/packs.md)) — pas de DA avant validation du fun. L'idée d'un contenant thématique par catégorie (Bocal pour les boutons, Rouleau pour les [partitions](../../partitions/principe.md), Malle de music-hall pour les [spéciaux](../../jetons/specials.md), Bulbe des grenouilles pour les [Badges](../../badges/principe.md)) reste une piste à ressortir une fois la boucle validée, voir l'historique dans [Packs](../../shop/packs.md).
 
 ## Liens
 

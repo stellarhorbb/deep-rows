@@ -13,7 +13,7 @@ Pool de contenu enrichi progressivement via [les unlocks du Shore](../shore/unlo
 - **Pas de doublons** de Badges déjà possédées
 - **Pas de doublons** de Partitions déjà équipées
 - Pour les boutons/spéciaux, doublons possibles (tu peux acheter 2 Fantômes dans la même run)
-- **Pondération par rareté** (session 14) — Tags et Badges tirés (unitaires et packs) selon `GameRules.RARITY_WEIGHTS` (COMMON=10, UNCOMMON=5, RARE=2, EPIC=1), via `ShopManager._weighted_pick`/`_weighted_sample`. Spéciaux et boutons restent tirés uniformément (pas de champ `rarity`). Poids posés au jugé, jamais playtestés.
+- **Pondération par rareté** (session 14) — Tags et Badges tirés (unitaires et packs) selon `GameRules.RARITY_WEIGHTS` (COMMON=10, UNCOMMON=5, RARE=2, EPIC=1, LEGENDARY=0.1 — ajouté session 17), via `ShopManager._weighted_pick`/`_weighted_sample`. Spéciaux et boutons restent tirés uniformément (pas de champ `rarity`). Poids posés au jugé, jamais playtestés.
 
 ## Pas encore implémenté
 

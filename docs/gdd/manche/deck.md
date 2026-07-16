@@ -9,7 +9,7 @@ Deck actuel : **28 boutons + 4 rocks + spéciaux** (`DECK_BASE_COUNT`, `DECK_ROC
 
 ## Persistance entre manches
 
-Le pool de boutons possédés n'est **pas régénéré au hasard à chaque manche** — il persiste sur toute la run, et n'évolue qu'au shop (achat unitaire, [bocal](../shop/packs.md), [fusion](../jetons/boutons.md)). Chaque manche pioche dans ce pool, mélangé, en un seul passage. C'est le pool qui persiste, pas l'ordre de tirage.
+Le pool de boutons possédés n'est **pas régénéré au hasard à chaque manche** — il persiste sur toute la run, et n'évolue qu'au shop (achat unitaire, [pack](../shop/packs.md), [fusion](../jetons/boutons.md)). Chaque manche pioche dans ce pool, mélangé, en un seul passage. C'est le pool qui persiste, pas l'ordre de tirage.
 
 Les spéciaux suivent la même logique (session 15) : un spécial acheté et non joué (encore dans le deck, en hold, ou en main) reste possédé à la manche suivante — il n'est retiré de l'inventaire qu'au moment où il est réellement posé sur la grille (`RunManager.consume_special`). Seul l'achat au shop en ajoute.
 
@@ -28,7 +28,7 @@ Une [Badge](../badges/principe.md) rare pourrait débloquer la défausse pour un
 Deux leviers du shop tirent le deck dans des sens opposés (voir [Boutons — évolution au shop](../jetons/boutons.md)) :
 
 - **Fusion** → **deck slim** : moins de jetons, valeur concentrée par jeton (plafonnée à 10, `MAX_BUTTON_VALUE`) → moins de drops mais chaque coup compte plus. Gatée par l'achat d'un Dés à coudre depuis la session 12.
-- **Achat unitaire / bocal** → **deck fat** : plus de boutons dilués → plus de drops, plus d'opportunités de patterns
+- **Achat unitaire / pack** → **deck fat** : plus de boutons dilués → plus de drops, plus d'opportunités de patterns
 
 Le joueur choisit son axe manche après manche, pas une fois pour toutes.
 
