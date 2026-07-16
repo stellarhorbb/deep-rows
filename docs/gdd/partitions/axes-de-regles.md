@@ -39,7 +39,7 @@ Catalogue retenu (toutes en ligne, any direction, comme les Lignes famille) :
 Pièces précieuses justement parce qu'elles sont figées, pas génériques — pas un moteur d'expansion du pool, une poignée de récompenses de fin de run :
 
 - **9999 (Jackpot)** — 4 jetons de valeur 9 alignés. N'existe qu'après plusieurs fusions réussies vers 9 (jetons de base 1-5, `MAX_BUTTON_VALUE = 10`) : un vrai jalon de build, pas un tirage de chance.
-- **Paires de familles figées** (ex "Cross Ink+Shell") — envisagées puis écartées comme axe systématique (RNG punitif si la paire ne tombe jamais dans une run, et 6 paires × 7 formes explose le pool sans identité claire par pièce). Resteraient viables comme loot rare/Shore ponctuel, pas comme contenu de base.
+- **Paires de familles figées** (ex "Cross Deniers+Coupes") — envisagées puis écartées comme axe systématique (RNG punitif si la paire ne tombe jamais dans une run, et 6 paires × 7 formes explose le pool sans identité claire par pièce). Resteraient viables comme loot rare/Shore ponctuel, pas comme contenu de base.
 
 ## Par position sur la grille / Par contexte
 

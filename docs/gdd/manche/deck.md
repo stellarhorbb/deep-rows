@@ -5,7 +5,7 @@ Le deck du joueur contient :
 - **4 [rocks](../jetons/rocks.md)** par défaut (`DECK_ROCK_COUNT` dans `game_rules.gd`)
 - Ses **[jetons spéciaux](../jetons/specials.md)** achetés au shop (persistants tant qu'ils ne sont pas joués sur la grille)
 
-Deck actuel : **40 boutons + 4 rocks + spéciaux** (`DECK_BASE_COUNT`, `DECK_ROCK_COUNT`). Le pool de départ est structuré depuis la session 13 (2 exemplaires de chaque famille/valeur) — voir [Boutons — pool de départ](../jetons/boutons.md).
+Deck actuel : **28 boutons + 4 rocks + spéciaux** (`DECK_BASE_COUNT`, `DECK_ROCK_COUNT`). Le pool de départ est structuré depuis la session 13 : 1 exemplaire de chaque famille/valeur (réduit de 2 en session 18 — le deck de base était trop généreux, la pression "deck vide" arrivait trop tard), puis une copie supplémentaire ajoutée pour les valeurs basses (1-2) après un second playtest ayant montré que 20+4 était cette fois trop juste — les valeurs hautes (3-5) restent volontairement rares. Voir [Boutons — pool de départ](../jetons/boutons.md).
 
 ## Persistance entre manches
 

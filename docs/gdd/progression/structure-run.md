@@ -10,11 +10,13 @@ La **grille**, elle, sort de ce choix de départ : elle est désormais liée au 
 
 ## Dimensions
 
-**Chantier en cours (session 16), pas figé** : `ROUNDS_PER_ZONE = 3`, `ZONES_PER_RUN = 4` dans `game_rules.gd` donnent aujourd'hui **12 manches par run complet**, ~30-40 min cible. Cette valeur va probablement bouger avec l'introduction d'une manche boss par zone (voir [Boss de zone](#boss-de-zone) — exemple utilisé en discussion : 5 manches/zone dont 1 boss, soit 20 manches/run). Pas de nombre final tant que le [score cible](../manche/score-cible.md) et le [level up des Partitions](../partitions/level-up.md) n'ont pas été recalibrés avec cette échelle en tête.
+**Figé en session 18** : `ROUNDS_PER_ZONE = 5` (4 manches + 1 boss), `ZONES_PER_RUN = 4` dans `game_rules.gd` donnent **20 manches par run complet**. Le [score cible](../manche/score-cible.md) a été recalibré sur cette échelle (courbe exponentielle hardcodée dans `GameRules.ROUND_TARGETS`). Le [level up des Partitions](../partitions/level-up.md) (seuils/multiplicateurs des dan au-delà de Maestro) reste à recalibrer avec cette même échelle.
 
 ## Biomes
 
 Les 4 zones deviennent des **biomes à forte identité**, traversés dans un **ordre fixe** (jamais aléatoire) — cohérent avec le pilier narratif ["la descente"](../univers/pitch.md) : la zone 1 doit rester familière, la zone finale totalement étrangère, ce qui n'a de sens que si la position dans la séquence est stable d'une run à l'autre. Modèle explicitement cité : Hades (Tartare → Asphodèle → Élysée → Styx, toujours dans cet ordre, mais contenu de chaque salle randomisé à l'intérieur).
+
+**Noms placeholder (session 18)**, purement provisoires en attendant l'univers final — Plage → Forêt → Marais → Rêves, puis Vide pour le mode infini. Déjà câblés en jeu (`GameRules.BIOME_NAMES`, fond pastel par biome).
 
 Chaque biome introduit du contenu débloqué **une seule fois, pour toujours** (toutes les runs suivantes, pas juste celle en cours) — trois niveaux :
 
@@ -32,7 +34,7 @@ Contraintes encore à inventer (pistes en vrac, non tranchées) : une famille qu
 
 ## Mode infini
 
-Après le boss de la zone 4, l'écran "you win" propose une **option de continuer** en mode infini (façon Balatro après l'Ante 8) — un biome spécial, minimaliste/abstrait ("Cosmos", nom provisoire, lien thématique avec l'univers encore à trouver), qui remplace la fin de la descente par une chute sans fond. Difficulté croissante jusqu'à un game over inévitable.
+Après le boss de la zone 4, l'écran "you win" propose une **option de continuer** en mode infini (façon Balatro après l'Ante 8) — un biome spécial, minimaliste/abstrait ("Vide", nom provisoire — remplace l'ancien placeholder "Cosmos", lien thématique avec l'univers encore à trouver), qui remplace la fin de la descente par une chute sans fond. Difficulté croissante jusqu'à un game over inévitable.
 
 C'est le terrain où les [dan sans plafond du level up](../partitions/level-up.md#au-delà-de-maestro--les-dan-piste-décidée-session-16) et une courbe de [score cible](../manche/score-cible.md) exponentielle (question ouverte depuis longtemps) trouvent enfin une vraie raison d'être — dans la campagne fixe à durée bornée, ces deux systèmes ne servent presque jamais ; dans un mode qui continue tant que le joueur tient, ils deviennent le cœur du scaling de fin de partie.
 
@@ -42,11 +44,11 @@ C'est le terrain où les [dan sans plafond du level up](../partitions/level-up.m
 Début de run
   ├── Choix du pack de boutons (débloqués au Shore)
   │
-  ├── Biome 1  (N manches + shop entre chaque, boss en dernière manche)
-  ├── Biome 2
-  ├── Biome 3
-  ├── Biome 4 (boss) → "You win"
-  │     └── Option : continuer en mode infini (Cosmos) → jusqu'au game over
+  ├── Plage    (N manches + shop entre chaque, boss en dernière manche)
+  ├── Forêt
+  ├── Marais
+  ├── Rêves (boss) → "You win"
+  │     └── Option : continuer en mode infini (Vide) → jusqu'au game over
   │
   └── Fin de run → Victoire ou Game Over → The Shore (meta-progression)
 ```

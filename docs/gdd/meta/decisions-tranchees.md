@@ -16,7 +16,7 @@ Le registre des décisions de design qui ne sont plus à rediscuter, sauf à l'e
 | Question | Décision | Raison |
 |---|---|---|
 | [Jetons de base](../jetons/boutons.md) | **Boutons** | Familier dans un monde qui ne l'est pas, double lecture |
-| [Familles](../jetons/boutons.md) | **4 familles** en code (`CORAL/SHELL/RUST/INK`, la 4e ajoutée session 12). Nommage thématique Bone/Wood/Brass toujours pas appliqué au code | Passé de 3 à 4 pour que le matching famille-seule (voir "Résolution par valeur" ci-dessous) ne soit pas trivial |
+| [Familles](../jetons/boutons.md) | **4 familles** en code, vocabulaire tarot (`BATONS/COUPES/EPEES/DENIERS`, renommées session 18 — remplace l'ancien `CORAL/SHELL/RUST/INK` et le projet Bone/Wood/Brass de session 10, jamais appliqué) | Passé de 3 à 4 pour que le matching famille-seule (voir "Résolution par valeur" ci-dessous) ne soit pas trivial |
 | [Résolution par valeur](../partitions/axes-de-regles.md) | **Désactivée** (session 12) — seules famille et rock résolvent des patterns, la valeur est un pur levier de score | Lisibilité (scan couleur plutôt que lecture de chiffres) + a mécaniquement augmenté la fréquence des cascades |
 | [Persistance](../grille/gravite-resolution.md) | Disparaissent après résolution | Plus dynamique, la grille vit |
 | [Spéciaux](../jetons/specials.md) | **Achat persistant** — reste dans le deck manche après manche tant qu'il n'est pas réellement joué, seul le shop en remet (révisé session 15 : consommés uniquement à la manche suivante à l'origine, corrigé après qu'un Marée acheté ait disparu du hold sans avoir été joué) | Accessibles, le joueur en prend 2-3 pour une manche chaude |

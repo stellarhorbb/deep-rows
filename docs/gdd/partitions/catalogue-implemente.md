@@ -11,14 +11,14 @@ Les labels affichés en jeu ne montrent plus "FAMILY" (redondant, quasi tout le 
 | Line 4          | Ligne             | Famille                                             | 4          | any       | ×2    | 6    |
 | Square 4        | Carré 2×2         | Famille                                             | 4          | —         | ×2    | 8    |
 | T               | Tétromino         | Famille (orientation libre)                         | 4          | any       | ×2    | 7    |
-| Line 4 Rainbow  | Ligne             | 4 familles distinctes                               | 4          | any       | ×2    | 10   |
-| Square Rainbow  | Carré 2×2         | 4 familles distinctes                               | 4          | —         | ×2    | 12   |
+| Line 4 Rainbow  | Ligne             | 4 familles distinctes                               | 4          | any       | ×1    | 10   |
+| Square Rainbow  | Carré 2×2         | 4 familles distinctes                               | 4          | —         | ×1    | 12   |
 | Line 5          | Ligne             | Famille                                             | 5          | any       | ×2.5  | 10   |
 | Suite           | Ligne             | Valeurs consécutives (any sens)                     | 3          | any       | ×2.5  | 14   |
 | Carré           | Ligne             | Même valeur (clin d'œil poker, pas la forme carrée) | 4          | any       | ×2.5  | 8    |
 | Fibonacci       | Ligne             | 1, 1, 2, 3 (dans un sens ou l'autre)                | 4          | any       | ×2.5  | 14   |
 | Diamond         | Losange           | 4 jetons même famille, centre indifférent           | 4          | —         | ×2.5 (somme des 4) | 10   |
-| Diamond Rainbow | Losange           | 4 familles distinctes, centre indifférent           | 4          | —         | ×2.5 (somme des 4) | 12   |
+| Diamond Rainbow | Losange           | 4 familles distinctes, centre indifférent           | 4          | —         | ×2 (somme des 4) | 12   |
 | Plus            | Croix orthogonale | Famille (centre inclus)                             | 5          | any       | ×3    | 10   |
 | Cross           | Croix diagonale   | Famille (centre inclus)                             | 5          | any       | ×4    | 12   |
 | Ring            | Cadre 3×3         | Famille (centre indifférent)                        | 8          | any       | ×5    | 15   |
@@ -32,17 +32,18 @@ Logique de calibrage derrière le tableau ci-dessus, tranchée avec le user et s
 
 | Tier | Partitions | Mult |
 |---|---|---|
+| Trivial | Line 4 Rainbow, Square Rainbow | ×1 |
 | Amorce | Line 3, Brelan | ×1.5 |
-| Facile | Line 4, Square 4, T, Line 4 Rainbow, Square Rainbow | ×2 |
-| Medium | Line 5, Suite, Carré (poker), Fibonacci, Diamond, Diamond Rainbow, Number Square (dormant) | ×2.5 |
+| Facile | Line 4, Square 4, T, Diamond Rainbow | ×2 |
+| Medium | Line 5, Suite, Carré (poker), Fibonacci, Diamond, Number Square (dormant) | ×2.5 |
 | Difficile | Plus | ×3 |
 | Très dur | Cross | ×4 |
 | Extrême | Ring | ×5 |
 | Hors échelle | Diamond Rock, 777 (idée), 9999 (idée) | cas à part, voir ci-dessous |
 
 Notes :
-- **Rainbow revu à la baisse** par rapport à l'intuition initiale : avec seulement `FAMILY_COUNT = 4` familles, obtenir 4 familles *distinctes* est statistiquement plus facile qu'obtenir 4 fois la *même* — Line 4 Rainbow et Square Rainbow rejoignent le tier Facile, Diamond Rainbow le tier Medium (la forme losange reste un peu plus dure à placer qu'un carré ou une ligne, d'où le cran au-dessus de ses cousines)
-- **Fibonacci et Carré** pareil : les valeurs 1-5 sont courantes (`TOKEN_MIN_VALUE`-`TOKEN_MAX_VALUE`, 8 copies chacune dans le deck de base), la contrainte de séquence/répétition pèse moins qu'il n'y paraît — rejoignent le tier Medium avec Line 5/Suite/Diamond plutôt que Facile
+- **Rainbow revu nettement à la baisse en session 18**, après playtest confirmant l'intuition de session 16 : avec seulement `FAMILY_COUNT = 4` familles, obtenir 4 familles *distinctes* est statistiquement ~6× plus probable qu'obtenir 4 fois la *même* (24/256 arrangements contre 4/256) — Line 4 Rainbow et Square Rainbow tombent au tier Trivial (×1, plus de bonus réel, juste un flat), Diamond Rainbow rejoint Facile (×2) au lieu de Medium (la forme losange reste un peu plus dure à placer qu'un carré ou une ligne, d'où le cran au-dessus de ses cousines)
+- **Fibonacci et Carré** : la contrainte de séquence/répétition pèse moins qu'il n'y paraît — rejoignent le tier Medium avec Line 5/Suite/Diamond plutôt que Facile. Note : le deck de départ a bougé deux fois en session 18 (`STARTER_COPIES_PER_VALUE` 2→1, puis copie additionnelle pour les valeurs 1-2 seulement, voir [Deck](../manche/deck.md)) — les valeurs 1-2 ont maintenant 8 copies dans le deck de base (deux par famille), les valeurs 3-5 seulement 4 (une par famille). Fibonacci (séquence 1,1,2,3) profite de ce déséquilibre, Carré sur une valeur haute (4-5) reste plus dur qu'avant — à surveiller au playtest
 - **Diamond Rock** reste hors de ce chantier — son score (centre + roll casino) suit sa propre question de recalibrage, voir [Rocks](../jetons/rocks.md) et [Questions ouvertes](../meta/questions-ouvertes.md)
 - **777/9999** dépendent de la Fusion (valeurs 7 et 9 impossibles autrement que par fusion de deux boutons de base) — signature de fin de run, pool "rare/signature" déjà noté comme non implémenté. La Sheet liste aussi deux nouvelles idées non couvertes ici : **Big T** (family, description à préciser) et **Skull Line 3** (rule `skull`, probablement la piste "Partition à roulette sur l'Entity" du brainstorm session 15)
 
