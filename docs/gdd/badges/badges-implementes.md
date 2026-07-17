@@ -24,10 +24,10 @@
 | **Impair profane**     | `on_round_start`   | Les jetons de valeur impaire qui scorent recomptent leur valeur une deuxième fois (session 17)                  | Uncommon |
 | **Y'en a pas deux**    | `on_round_start`   | +5 points quand une Partition score avec une paire de chiffres (session 17)                                     | Common   |
 | **Sommet**             | `on_round_start`   | +10 points à chaque Partition qui score tant qu'un jeton occupe la rangée la plus haute (session 17)            | Uncommon |
-| **Tickets Hivernal**   | `on_round_start`   | +5 points quand une Partition score une famille DENIERS (session 17, renommée session 18 ex-Encrée/INK)         | Common   |
-| **Tickets Automnal**   | `on_round_start`   | +5 points quand une Partition score une famille EPEES (session 17, renommée session 18 ex-Rouillée/RUST)        | Common   |
-| **Tickets Estival**    | `on_round_start`   | +5 points quand une Partition score une famille COUPES (session 17, renommée session 18 ex-Nacrée/SHELL)        | Common   |
-| **Tickets Printanier** | `on_round_start`   | +5 points quand une Partition score une famille BATONS (session 17, renommée session 18 ex-Coraillée/CORAL)     | Common   |
+| **Tickets Hivernal**   | `on_round_start`   | +2 points par jeton DENIERS qui score, peu importe le pattern (session 17, renommée session 18 ex-Encrée/INK, passé de +5/pattern à +2/jeton session 19)         | Common   |
+| **Tickets Automnal**   | `on_round_start`   | +2 points par jeton EPEES qui score, peu importe le pattern (session 17, renommée session 18 ex-Rouillée/RUST, passé de +5/pattern à +2/jeton session 19)        | Common   |
+| **Tickets Estival**    | `on_round_start`   | +2 points par jeton COUPES qui score, peu importe le pattern (session 17, renommée session 18 ex-Nacrée/SHELL, passé de +5/pattern à +2/jeton session 19)        | Common   |
+| **Tickets Printanier** | `on_round_start`   | +2 points par jeton BATONS qui score, peu importe le pattern (session 17, renommée session 18 ex-Coraillée/CORAL, passé de +5/pattern à +2/jeton session 19)     | Common   |
 | **Jetons sacrés**      | `on_token_drop`    | Chaque spécial joué ajoute +0.1 au multi, cumulé sur toute la run — scaling permanent (session 17)               | Uncommon |
 | **Quatre quart**       | `on_turn_resolved` | Chaque Partition de 4 jetons scorée ajoute +1 point, cumulé sur toute la run — scaling permanent (session 17, nerfé de +5 après playtest : +20 en une manche) | Uncommon |
 | **Poker Face**         | `on_round_start`   | Chaque jeton qui score a 10% de chance de gagner +1 de valeur dans le deck, animé en direct sur le jeton avant qu'il disparaisse (session 17, nerfé de 25% après playtest : +6 jetons upgradés en une manche — voir [Scoring — upgrade en direct](../partitions/scoring.md#upgrade-en-direct-poker-face-session-17)) | Legendary |

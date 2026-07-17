@@ -12,7 +12,7 @@ Depuis la session 12, chaque manche démarre avec quelques **trous** générés 
 
 ## La grille comme identité de biome (revu session 16)
 
-Direction revue : la grille n'est plus un choix fait une fois en début de run (ce rôle de "classe" façon Balatro est repris par le [pack de boutons de départ](../progression/structure-run.md#choix-de-départ)). Elle est désormais liée au [biome](../progression/structure-run.md#biomes) traversé — chaque zone a potentiellement sa propre grille, découverte en y entrant, cohérente avec son identité visuelle et narrative plutôt qu'un choix stratégique fait à l'aveugle avant le run. Chaque grille peut quand même orienter vers une stratégie différente :
+Direction revue : la grille n'est plus un choix fait une fois en début de run (ce rôle de "classe" façon Balatro est repris par le [pack de démarrage](../progression/structure-run.md#choix-de-départ)). Elle est désormais liée au [biome](../progression/structure-run.md#biomes) traversé — chaque zone a potentiellement sa propre grille, découverte en y entrant, cohérente avec son identité visuelle et narrative plutôt qu'un choix stratégique fait à l'aveugle avant le run. Chaque grille peut quand même orienter vers une stratégie différente :
 - Grille large → builds horizontaux (Partitions horizontales plus faciles)
 - Grille profonde → builds verticaux et cascades monstrueuses
 - Grille à trous → chaos calculé, placements créatifs

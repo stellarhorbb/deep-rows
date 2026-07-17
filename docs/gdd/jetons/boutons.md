@@ -22,7 +22,7 @@ C'est le carburant du deck. Les boutons ne sont pas spectaculaires seuls — ce 
 
 **Verrouillage ("Fixer", Dés à coudre, rare)** : protège une figure contre toute promotion future, même si elle rescore — permet de stabiliser volontairement une Reine ou un Chevalier plutôt que de la laisser filer vers Roi malgré elle. Gratuit hors coût du Dés à coudre lui-même — ce n'est pas un raccourci d'achat vers une figure, juste un contrôle de timing sur un chemin qui reste entièrement gagné par le jeu.
 
-**Tension connue** : au-delà de Chevalier, une figure devient orpheline de l'axe casino — Reine(15) et Roi(20) n'ont aucun voisin à distance 1 (pas de Suite possible), et le Brelan demanderait 3 exemplaires de la même figure (structurellement quasi impossible). Seul l'axe famille (Ligne, Carré, Losange, Plus, Cross, Ring, T, Rainbow) reste ouvert passé ce stade. Un futur pattern "Mariage" (Roi+Reine assemblés, voir [Questions ouvertes](../meta/questions-ouvertes.md)) est pensé comme le débouché casino dédié aux figures.
+**Tension connue** : au-delà de Chevalier, une figure devient orpheline de l'axe casino — Reine(15) et Roi(20) n'ont aucun voisin à distance 1 (pas de Suite possible), et le Brelan demanderait 3 exemplaires de la même figure (structurellement quasi impossible). Seul l'axe famille (Ligne, Carré, Losange, Plus, Cross, Ring, T, Rainbow) reste ouvert passé ce stade. Un futur pattern "Wedding" (Roi+Reine assemblés, voir [Questions ouvertes](../meta/questions-ouvertes.md)) est pensé comme le débouché casino dédié aux figures.
 
 ## Le deck de boutons est persistant
 
@@ -32,9 +32,9 @@ Le **pool de boutons possédés** (génération de départ + achats + fusions) n
 
 **Structuré, pas aléatoire** (session 13) — `RunManager._generate_starter_buttons()` génère `STARTER_COPIES_PER_VALUE` (1, réduit de 2 en session 18) exemplaire de chaque combinaison (famille, valeur) possible, soit `FAMILY_COUNT × (TOKEN_MAX_VALUE - TOKEN_MIN_VALUE + 1) × STARTER_COPIES_PER_VALUE` = 20 boutons, **plus une copie additionnelle pour les valeurs ≤ `STARTER_LOW_VALUE_EXTRA_COPY_MAX`** (2 — session 18, deuxième passe suite au playtest : 20+4 s'est révélé trop juste, mais regonfler uniformément aurait aussi re-fragilisé les valeurs hautes 3-5, qui doivent rester rares et précieuses à placer), soit +8 boutons. Total **28 boutons** (`GameRules.DECK_BASE_COUNT`, calculé plutôt que codé en dur). Avant, la composition était 100% aléatoire (30 boutons, famille/valeur tirées indépendamment) — un mauvais tirage pouvait saboter une Partition équipée sans faute du joueur, à l'encontre du principe "pas de RNG punitif" déjà appliqué à l'Entity. Le seul hasard qui reste, c'est l'ordre de pioche (shuffle du deck).
 
-**Toujours pas de "pack de boutons" comme choix structurant** — le pool de départ est fixe pour toute run, aucun choix du joueur là-dessus. Le vrai choix structurant de départ implémenté aujourd'hui, c'est l'[écran de sélection de Partition](../partitions/catalogue-implemente.md) (2 Partitions gratuites parmi 3, tirées dans tout le catalogue) — pas les boutons.
+**Aujourd'hui, aucun choix du joueur sur ce pool** — il est fixe pour toute run. Le choix structurant de départ actuellement en jeu, c'est l'[écran de sélection de Partition](../partitions/catalogue-implemente.md) (2 Partitions gratuites parmi 3, tirées dans tout le catalogue) — pas les boutons.
 
-**Statut** : packs concrets de boutons (Polyvalent, Mono-famille, Escalier…) toujours à designer, pas de priorité immédiate. Idée évoquée en session 13 : des **decks de départ façon Balatro** (bonus/malus, choix de rejouabilité) — distincts des grilles spéciales, réservées à la progression du Shore plutôt qu'au choix de départ. Pas encore implémenté.
+**Statut** : remplacé, à terme, par le [pack de démarrage déterministe](../progression/structure-run.md#choix-de-départ) (session 19, pas encore implémenté) — ce pool de boutons deviendrait l'un des ingrédients modifiables du pack (taille, quelques valeurs pré-fusionnées...), pas un choix de "pack de boutons" isolé façon Polyvalent/Mono-famille/Escalier comme envisagé en session 13. Voir le [Brainstorm — Packs de démarrage](../../brainstorms/brainstorm-starter-packs.md).
 
 ## Évolution au shop
 
@@ -53,13 +53,13 @@ Un achat de Dés à coudre tire **3 actions distinctes** du pool de 10, pondér�
 |---|---|---|
 | Common | Augmenter | +1 sur un bouton |
 | Common | Réduire | -1 sur un bouton (refusé sur une figure, voir [Figures](#figures-arcanes-mineurs)) |
-| Common | Changer vers Bâtons/Coupes/Épées/Deniers | Recolore un bouton (4 actions distinctes, une par famille) |
 | Uncommon | Scinder | 1 bouton de valeur **paire** → 2 boutons de moitié valeur (ex : 6 → 3+3). Inverse de la Fusion |
-| Uncommon | Fusionner | 2 boutons → 1, valeur = somme (plafonnée à 10), famille tirée au hasard entre les deux — **nerfée en session 16** : n'est plus garantie à chaque achat, un tirage pondéré comme les autres |
-| Rare | Suppression | Retire un bouton du deck, jamais remplacé — améliore les probas de tirage de tout ce qui reste vu le sans-reshuffle |
-| Rare | Fixer (session 18) | Verrouille une figure (Valet+) contre toute promotion future, même si elle rescore — seul moyen de "stabiliser" une figure sans jamais l'acheter directement (voir [Figures](#figures-arcanes-mineurs)) |
+| Uncommon | Fixer | Verrouille une figure (Valet+) contre toute promotion future, même si elle rescore — seul moyen de "stabiliser" une figure sans jamais l'acheter directement (voir [Figures](#figures-arcanes-mineurs)) — **descendue de Rare à Uncommon en session 19**, cohérent avec son faible intérêt tant que Wedding n'existe pas (voir [Questions ouvertes](../meta/questions-ouvertes.md)) |
+| Uncommon | Changer vers Bâtons/Coupes/Épées/Deniers | Recolore **2 boutons sélectionnés** (4 actions distinctes, une par famille) — **passé de 1 à 2 cibles et de Common à Uncommon en session 19**, pour mieux ouvrir les builds mono-famille |
+| Rare | Fusionner | 2 boutons → 1, valeur = somme (plafonnée à 10), famille tirée au hasard entre les deux — nerfée en session 16 (plus garantie à chaque achat), **montée de Uncommon à Rare en session 19** |
+| Epic | Suppression | Retire un bouton du deck, jamais remplacé — améliore les probas de tirage de tout ce qui reste vu le sans-reshuffle — **montée de Rare à Epic en session 19**, premier outil à occuper ce tier |
 
-Duplication et jeton arc-en-ciel (toutes familles à la fois) mis de côté pour plus tard (tier Epic vide) — voir le brainstorm pour le detail et la question ouverte sur l'interaction avec les Partitions Rainbow.
+Duplication et jeton arc-en-ciel (toutes familles à la fois) mis de côté pour plus tard — voir le brainstorm pour le detail et la question ouverte sur l'interaction avec les Partitions Rainbow.
 
 ### Coût
 

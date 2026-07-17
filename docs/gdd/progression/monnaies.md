@@ -15,7 +15,7 @@ Les grenouilles mangent des mouches. D'où viennent celles du garçon ? On ne r�
 | Source | Montant |
 |---|---|
 | Manche réussie (base) | Fixe (`FLIES_PER_ROUND_WON` = 8) |
-| Jetons restants en fin de manche | +`FLIES_BONUS_REMAINING` (2) si `DeckManager.get_remaining()` > `FLIES_BONUS_REMAINING_THRESHOLD` (10) au moment de la victoire (`GameRules.get_round_end_flies_bonus`) — simplifié à un seul palier en session 18, remplace l'ancien double palier (≥20/≥10) de session 16 |
+| Jetons restants en fin de manche | +`FLIES_BONUS_REMAINING` (2) si `DeckManager.get_remaining()` >= `FLIES_BONUS_REMAINING_THRESHOLD` (10) au moment de la victoire (`GameRules.get_round_end_flies_bonus`) — simplifié à un seul palier en session 18, remplace l'ancien double palier (≥20/≥10) de session 16 ; seuil rendu inclusif en session 19 |
 | Surplus de score | À designer (bonus selon score au-dessus de la cible ?) |
 | [Badges](../badges/principe.md) | Ex : "Mouches en Cascade" → +3 par cascade secondaire. Depuis la session 16, les Badges `on_round_end` (ex : Pourboire) contribuent aussi à la recompense de fin de manche |
 

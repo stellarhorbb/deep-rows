@@ -4,7 +4,15 @@
 
 **Implémenté aujourd'hui** : un [écran de sélection de Partition](../partitions/principe.md) au tout début de la run (et après chaque fin de run) — 3 Partitions tirées au hasard dans tout le catalogue, le joueur en choisit 2, gratuites.
 
-**Pas encore implémenté, direction revue en session 16** : le **choix du pack de [boutons](../jetons/boutons.md)** devient LE choix structurant de départ façon "deck" Balatro (Red Deck, Checkered Deck...) — le joueur pioche parmi les packs qu'il a débloqués au Shore (Polyvalent, Mono-famille, Escalier...), fixe pour tout le run une fois choisi. Le pool de départ est aujourd'hui généré aléatoirement, sans choix du joueur — à remplacer par cette sélection.
+**Direction actée en session 19, remplace le point ci-dessus** : ce screen a un défaut structurel — rien n'empêche de recommencer la run jusqu'à tomber sur les 2 Partitions voulues, donc ce n'est pas un vrai choix, juste un filtre RNG déguisé. Remplacé par un **pack de démarrage déterministe**, choisi parmi ceux débloqués au [Shore](../shore/principe.md), fixe pour toute la run (aucun reroll possible) — comparable au choix de deck dans Balatro ou de personnage dans Slay the Spire. Un pack combine jusqu'à trois ingrédients, tous connus avant de s'engager :
+
+1. **Deck retouché (optionnel)** — taille (slim/fat), nombre de rocks, quelques jetons pré-fusionnés à haute valeur. **Jamais une uniformité totale famille ou valeur** : un deck mono-famille rendrait la résolution quasi automatique (le problème que la [grille cabossée](../grille/trous.md) corrige déjà, en pire) ; un deck mono-valeur tuerait des pans entiers du catalogue casino (Minima/Maxima/Suite/Fibonacci/Prime deviendraient invendables). Composition par défaut équilibrée sinon.
+2. **Modificateur de règle/économie** — un curseur sur un système existant : slots de hold, taille de grille, mouches de départ, prix du reroll, spéciaux garantis, slots de Badge, taille de preview...
+3. **1-2 Partitions fixes** — pas besoin d'être thématiquement liées au modificateur, juste former un ensemble cohérent comme un build.
+
+**Philosophie bonus-first** : l'objectif est de donner envie de tout essayer (complétionniste), pas de trouver "son" archétype préféré — donc majorité de bonus francs, quelques trade-offs équilibrés, aucun pack qui se sent punitif. Interaction propre avec les Badges déjà en place : un modificateur de pack pose une base, un Badge ajoute son bonus par-dessus (même addition simple qu'aujourd'hui) — ex : le pack "Somnambule" (base hold = 0) + Bénédiction (+1) = 1 slot, soit le niveau normal de tout le monde, sans code spécial à écrire.
+
+Voir [Brainstorm — Packs de démarrage](../../brainstorms/brainstorm-starter-packs.md) pour le roster candidat (pas figé) et la discussion complète (pourquoi pas mono-famille/valeur, comment éviter que ça sente la copie Balatro).
 
 La **grille**, elle, sort de ce choix de départ : elle est désormais liée au [biome](#biomes) traversé, pas un choix fait une fois pour tout le run. Voir [Format de la grille](../grille/format.md).
 
@@ -42,7 +50,7 @@ C'est le terrain où les [dan sans plafond du level up](../partitions/level-up.m
 
 ```
 Début de run
-  ├── Choix du pack de boutons (débloqués au Shore)
+  ├── Choix du pack de démarrage (débloqués au Shore)
   │
   ├── Plage    (4 manches + shop entre chaque, boss en 5e manche)
   ├── Forêt

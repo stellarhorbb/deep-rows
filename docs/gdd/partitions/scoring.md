@@ -55,7 +55,7 @@ Exemple : le Badge "Famille Unie" pose `family → 2.0` → tous les patterns de
 Canal parallèle à `value_bonus_multipliers` (ci-dessus) : au lieu de multiplier, ces Badges **ajoutent directement à `value_sum`**, avant toute la chaîne de multiplicateurs — traités exactement comme si un jeton valait plus cher, pas comme un multiplicateur à part. Calculé par `CascadeResolver._value_sum_bonus`, alimenté par 4 champs de `RunContext` (posés par les Badges au `round_start`, tous cumulatifs entre Badges) :
 
 - **Retrigger** (`retrigger_values : int → true`) — un jeton scorable dont la valeur est marquée recompte sa propre valeur une deuxième fois dans le groupe qui score. Ex : "Vingt-trois" marque {2, 3} → un 3 qui score vaut 6 points. Idempotent : deux Badges qui ciblent la même valeur ne la font pas compter trois fois.
-- **Bonus de famille** (`family_score_bonus : Family → int`) — un pattern de rule `family` de la famille ciblée ajoute ce bonus une fois. Ex : "Tickets Hivernal" pose `DENIERS → 5`.
+- **Bonus de famille** (`family_score_bonus : Family → int`) — chaque jeton scorable de la famille ciblée présent dans le groupe qui score ajoute ce bonus, peu importe la rule du pattern (session 19, remplace l'ancien "une fois par pattern de rule `family`"). Ex : "Tickets Hivernal" pose `DENIERS → 2` par jeton DENIERS.
 - **Bonus de paire** (`pair_score_bonus : int`) — le groupe qui score contient au moins deux jetons de même valeur → bonus ajouté une seule fois (peu importe le nombre de paires). Ex : "Y'en a pas deux".
 - **Bonus rangée du haut** (`top_row_score_bonus : int`) — tant qu'au moins une cellule de la dernière rangée de la grille **entière** (pas seulement le groupe qui score) est occupée, chaque pattern qui score ajoute ce bonus. Ex : "Sommet".
 

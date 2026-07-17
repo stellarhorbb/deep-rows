@@ -16,6 +16,8 @@ Modèle : la Maison de Hades. Entre les runs, on dépense des ressources pour en
 - Lieu narratif qui évolue subtilement run après run
 - Moteur de rejouabilité : "j'ai débloqué X, je veux tester ça"
 
+Premier exemple concret (session 19) : les [packs de démarrage](../progression/structure-run.md#choix-de-départ) sont pensés pour donner envie de **tous** les essayer (complétionniste), pas de trouver "son" préféré — aucun pack punitif, majorité de bonus francs. Finir une run avec un pack débloque du contenu au Shore, ce qui donne enfin une vraie fonction à cet écran.
+
 ## Liens
 
 - [Unlocks](unlocks.md)

@@ -32,7 +32,7 @@ Toutes ces valeurs sont des premiers jets, à rééquilibrer avec plus de playte
 | Source | Montant |
 |---|---|
 | Manche réussie | `FLIES_PER_ROUND_WON` = 8 |
-| Bonus deck confortable en fin de manche | +`FLIES_BONUS_REMAINING` (2) si `> FLIES_BONUS_REMAINING_THRESHOLD` (10) boutons restants au moment de la victoire (session 18) |
+| Bonus deck confortable en fin de manche | +`FLIES_BONUS_REMAINING` (2) si `>= FLIES_BONUS_REMAINING_THRESHOLD` (10) boutons restants au moment de la victoire (session 18, seuil inclusif corrigé session 19) |
 | Vente d'une Partition/Badge équipé | 50% de son prix d'achat (`SELL_REFUND_RATIO`) |
 | Surplus de score | À designer (bonus selon score au-dessus de la cible ?) |
 | Badges | Ex : Mouches en Cascade +3 par cascade secondaire, Pourboire +3/manche, Vertige +10 si cascade profonde — voir [Badges implémentés](../badges/badges-implementes.md) pour le détail à jour |

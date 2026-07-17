@@ -49,7 +49,7 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
 - [Axes de règles](partitions/axes-de-regles.md) — famille / chiffre / suite / mixte
 - [Scoring](partitions/scoring.md) — multi direction, cascade, modifiers, rule
 - [Level up](partitions/level-up.md) — Pianissimo → Maestro
-- [Catalogue implémenté](partitions/catalogue-implemente.md) — 17 actives, 1 dormante, classées par tier de difficulté (session 16, rééquilibré session 18)
+- [Catalogue implémenté](partitions/catalogue-implemente.md) — 20 actives, 1 dormante, classées par tier de difficulté (session 16, rééquilibré session 18, +Minima/Maxima/Prime session 19)
 
 ### [Manche](manche/)
 - [Deck](manche/deck.md) — composition, persistant sur la run, pas de reshuffle
@@ -74,14 +74,14 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
 - [Génération de l'offre](shop/generation-offre.md) — règles de curation
 
 ### [Progression](progression/)
-- [Structure du run](progression/structure-run.md) — biomes fixes, boss de zone, mode infini — 20 manches, figé session 18
+- [Structure du run](progression/structure-run.md) — biomes fixes, boss de zone, mode infini — 20 manches, figé session 18. Choix de départ : pack de démarrage déterministe acté session 19, remplace le draft de Partitions actuel
 - [Sources de scaling](progression/sources-scaling.md) — les 7 leviers
 - [Monnaies](progression/monnaies.md) — mouches + tickets
 - [Défaite](progression/defaite.md) — conditions, game over
 
 ### [Shore](shore/)
 - [Principe](shore/principe.md) — hub de meta-progression
-- [Unlocks](shore/unlocks.md) — ce qui se débloque
+- [Unlocks](shore/unlocks.md) — ce qui se débloque, dont les packs de démarrage (session 19, sa première vraie fonction)
 - [Boucle narrative](shore/boucle-narrative.md) — retour, mystères
 
 ### [Meta](meta/)
@@ -97,6 +97,7 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
   - `brainstorm-pattern-tags.md` — pool de partitions à piocher
   - `brainstorm-badges.md` — triggers × effets pour le catalogue
   - `brainstorm-outils-deck.md` — généralisation de la Fusion en rubrique "Dés à coudre" (session 16)
-- **Base de contenu** — [Google Sheet](https://docs.google.com/spreadsheets/d/1JMEQf2W6H8fMZ24D63-jRQrJKz5424kR7Exyo4xvM_0/edit) (onglets Partitions/Badges/Jetons spéciaux/Progression), source de vérité pour les données catalogue depuis le 2026-07-10 — le `.tres` doit suivre en cas de divergence
+  - `brainstorm-starter-packs.md` — packs de démarrage déterministes, roster candidat (session 19)
+- **Base de contenu** — [Google Sheet](https://docs.google.com/spreadsheets/d/1JMEQf2W6H8fMZ24D63-jRQrJKz5424kR7Exyo4xvM_0/edit) (onglets partitions/badges/boss/deck-control/specials/progression), source de vérité pour les données catalogue depuis le 2026-07-10 — le `.tres` doit suivre en cas de divergence
 - **Pitch Discord** — `docs/simple-concept.md` (baromètre de complexité)
 - **Logs de sessions** — `docs/logs/`
