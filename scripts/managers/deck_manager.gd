@@ -14,6 +14,11 @@ var hold_capacity: int = GameRules.BASE_HOLD_SLOTS
 ## que hold_capacity.
 var preview_bonus: int = 0
 
+## Bonus (ou malus) sur le nombre de rocks ajoutes au deck chaque manche —
+## 0 par defaut, modifiable par un pack de demarrage (ex: "Le Collectionneur",
+## +2). Meme timing que hold_capacity/preview_bonus.
+var rock_count_bonus: int = 0
+
 var _deck: Array[TokenData] = []
 var _current: TokenData = null
 var _hold: Array[TokenData] = []
@@ -37,7 +42,7 @@ func build_deck(composition: Dictionary, button_pool: Array[TokenData]) -> void:
 		_deck.append(copy)
 
 	# Rocks
-	for i in range(GameRules.DECK_ROCK_COUNT):
+	for i in range(GameRules.DECK_ROCK_COUNT + rock_count_bonus):
 		_deck.append(TokenData.make_rock())
 
 	# Speciaux issus de la composition du run

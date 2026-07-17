@@ -2,7 +2,7 @@
 
 **20 Partitions actives** dans le proto (session 12 : la valeur ne résout plus de patterns sur les formes famille, seuls famille et rock restent actifs — voir [Axes de règles](axes-de-regles.md). Session 13 : 4 nouvelles formes — Plus, Cross, Ring, T. Session 14 : Rainbow sur l'axe famille + retour de la valeur sous vocabulaire casino confiné aux lignes, voir [Formes](formes.md) et [Axes de règles](axes-de-regles.md). Session 16 : retrait de l'axe directionnel, chaque Partition — lignes comprises — a désormais un multiplicateur fixe unique, calibré par tier de difficulté réelle plutôt que par géométrie brute. Session 19 : Minima, Maxima, Prime — trois nouvelles Partitions casino jouables sur tout le run, pas seulement en fin de run comme le tiroir rare/signature, voir [Axes de règles](axes-de-regles.md#genèse--pourquoi-ces-trois-là-session-19)).
 
-Les labels affichés en jeu ne montrent plus "FAMILY" (redondant, quasi tout le catalogue actif est en rule `family`) — nettoyé en session 13, voir `TagsUI._format_tag_label`. Depuis la session 14, `_format_tag_label` distingue aussi `value`/`rainbow`/`fibonacci` (sinon Brelan et Line 3 auraient affiché le même libellé en jeu).
+Les slots équipés affichent `tag.label` tel quel (ex: "PRIME", "BRELAN"), le même nom que le shop et les hovers — `TagsUI._format_tag_label` (session 13-14) recomposait auparavant un libellé forme+règle+taille (ex: "LINE CASINO 3" pour Brelan) pour éviter les doublons entre Partitions, mais ce nom composé s'est révélé illisible en jeu ; simplifié en session 19 pour ne garder que le label + le multiplicateur.
 
 | Partition       | Forme             | Règle                                               | Taille min | Direction | Mult  | Prix |
 | --------------- | ----------------- | --------------------------------------------------- | ---------- | --------- | ----- | ---- |
@@ -51,6 +51,23 @@ Notes :
 - **Minima/Maxima/Prime (session 19)** : Minima reste au tier Amorce comme Line 3/Brelan (filet d'entrée facile à satisfaire avec le deck de départ) ; Maxima grimpe à Difficile comme Plus (nécessite plusieurs Fusions pour atteindre des valeurs > 7, jamais tirées telles quelles) ; Prime se cale au tier Facile, en dessous de Suite/Fibonacci/Carré — lire des nombres premiers demande le même effort de lecture que le reste de l'axe casino, mais 2/3/5/7 restent des valeurs courantes du deck de base
 - **777/9999** dépendent de la Fusion (valeurs 7 et 9 impossibles autrement que par fusion de deux boutons de base) — signature de fin de run, pool "rare/signature" déjà noté comme non implémenté. La Sheet liste aussi d'autres idées non couvertes ici : **Big T** (family, description à préciser), **Skull Line 3** (rule `skull`, probablement la piste "Partition à roulette sur l'Entity" du brainstorm session 15), et **Wedding**/**Royal Court** (rule `faces`, débouché casino pour les figures — voir [Questions ouvertes](../meta/questions-ouvertes.md))
 
+## Accès générique vs verrouillé (session 19)
+
+Le split rareté-shop retiré ci-dessus (uniforme au sein d'une run) est distinct du **niveau d'accès meta** (voir [Trois niveaux d'accès](../shore/unlocks.md#trois-niveaux-daccès-au-contenu-session-16)) : sur une save neuve, seule une partie du catalogue est débloquée d'office. Le cutoff retenu suit les tiers de difficulté ci-dessus :
+
+- **Générique (15)** — tiers Trivial à Medium, débloquées dès la toute première run : Line 3, Line 4, Line 5, Square 4, Small T, Line 4 Rainbow, Square Rainbow, Diamond Rainbow, Brelan, Carré, Suite, Fibonacci, Minima, Prime, Diamond
+- **Verrouillée (5)** — tiers Difficile à Hors échelle, chacune liée à un [pack de démarrage](../progression/structure-run.md#choix-de-départ) vecteur : débloquer ce pack au Shore débloque aussi, pour toujours, sa Partition signature dans le pool générique du shop (double unlock, pas de Découverte séparée à inventer)
+
+| Partition | Pack vecteur |
+|---|---|
+| Plus | Le Dégagé |
+| Maxima | L'Ermite |
+| Cross | Le Fortifié |
+| Ring | Le Risque-Tout |
+| Diamond Rock | Le Fortifié |
+
+Le tiroir rare/signature (9999/Jackpot, Wedding, Royal Court, paires figées) reste un troisième niveau, non implémenté et séparé de ce split — voir [Questions ouvertes](../meta/questions-ouvertes.md).
+
 ## Rainbow, casino (session 14)
 
 Détection dans `PatternMatcher` :
@@ -77,11 +94,11 @@ Voir [Décisions tranchées](../meta/decisions-tranchees.md) pour le raisonnemen
 
 Number Line 3, Number Line 4 Horiz et Suite 3 Diagonal ont été réactivées en session 14 sous les noms Brelan/Carré/Suite (voir tableau ci-dessus) — mêmes `.tres` renommés, même moteur de détection.
 
-## Sélection de départ (session 12)
+## Sélection de départ — packs de démarrage (implémenté session 19)
 
-Plus de starter pack hardcodé. Au démarrage de la run (et après chaque fin de run), un **écran de sélection** tire 3 Partitions au hasard dans tout le catalogue actif ; le joueur en choisit **2, gratuites**. Voir [Principe](principe.md).
+L'ancien écran de tirage (3 Partitions au hasard, 2 choisies) est retiré : remplacé par le choix d'un **pack de démarrage déterministe**, voir [Structure du run](../progression/structure-run.md#choix-de-départ). Les 4 packs day-one (Le Simplet, Le Généreux, Le Prévoyant, Le Collectionneur — `resources/starter_packs/`) sont codés et sélectionnables dès le lancement du jeu ; les 6 packs à débloquer restent à construire.
 
-Les Partitions non choisies au démarrage restent achetables plus tard au shop.
+Les Partitions non fixées par le pack restent achetables plus tard au shop.
 
 ## Catalogue complet (idées + statuts)
 

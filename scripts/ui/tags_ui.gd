@@ -155,44 +155,14 @@ func _level_progress(tag: PatternData) -> float:
 	return clampf(float(cumulative - prev_threshold) / float(span), 0.0, 1.0)
 
 
+## Reprend directement tag.label (meme nom que shop/hover, ex: "PRIME",
+## "BRELAN") plutot que de recomposer forme+regle+taille (ex: l'ancien
+## "LINE CASINO 3" pour Brelan) — ce nom compose etait illisible en jeu.
 func _format_tag_label(tag: PatternData) -> String:
-	var shape_str: String = _shape_label(tag.shape)
-	# "family" n'est plus affiche : c'est la rule de la quasi-totalite du
-	# catalogue actif, l'afficher est redondant. Les rules qui distinguent
-	# vraiment un Tag (rock, suite) restent visibles.
-	var rule_str: String
-	match tag.rule:
-		&"suite":     rule_str = "SUITE"
-		&"rock":      rule_str = "ROCK"
-		&"value":     rule_str = "CASINO"
-		&"rainbow":   rule_str = "RAINBOW"
-		&"fibonacci": rule_str = "FIBO"
-		&"minima":    rule_str = "MINIMA"
-		&"maxima":    rule_str = "MAXIMA"
-		&"prime":     rule_str = "PRIME"
-		_:            rule_str = ""
-
 	# Multiplicateur fixe visible pour toutes les formes, lignes comprises
 	# depuis la session 16 (la direction ne joue plus sur le score).
 	var raw_mult: String = _format_multiplier(tag.score_multiplier)
-	var label: String = shape_str
-	if rule_str != "":
-		label += " " + rule_str
-	if tag.shape == &"line":
-		label += " " + str(tag.min_size)
-	return label + ("  " + raw_mult if raw_mult != "" else "")
-
-
-func _shape_label(shape: StringName) -> String:
-	match shape:
-		&"line":    return "LINE"
-		&"square":  return "SQUARE"
-		&"diamond": return "DIAMOND"
-		&"plus":    return "PLUS"
-		&"cross":   return "CROSS"
-		&"ring":    return "RING"
-		&"t":       return "T"
-	return "SHAPE"
+	return tag.label + ("  " + raw_mult if raw_mult != "" else "")
 
 
 func _format_multiplier(mult: float) -> String:

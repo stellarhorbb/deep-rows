@@ -209,7 +209,7 @@ func _on_round_won(final_score: int, target: int) -> void:
 	# (flies_label) ne doit visuellement bouger qu'a ce clic, pas avant — on
 	# suspend l'ecoute de flies_changed pendant que le detail s'affiche pour
 	# eviter de spoiler le total, puis on resynchronise l'affichage a la main.
-	var base_flies: int = GameRules.FLIES_PER_ROUND_WON
+	var base_flies: int = GameRules.FLIES_PER_ROUND_WON + RunService.run_manager.get_flies_per_round_bonus()
 	var token_bonus: int = GameRules.get_round_end_flies_bonus(deck_manager.get_remaining())
 
 	RunService.run_manager.flies_changed.disconnect(_on_flies_changed)

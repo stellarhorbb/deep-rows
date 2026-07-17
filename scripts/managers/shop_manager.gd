@@ -278,7 +278,7 @@ func _available_tags(run_manager: RunManager) -> Array[PatternData]:
 	var equipped: Array[PatternData] = run_manager.get_equipped_tags()
 	var pool: Array[PatternData] = []
 	for tag in _all_tags:
-		if not equipped.has(tag):
+		if not tag.locked and not equipped.has(tag):
 			pool.append(tag)
 	return pool
 
@@ -382,7 +382,7 @@ func can_equip_slot(item: Variant, run_manager: RunManager) -> bool:
 			return false
 	elif item is BadgeData:
 		var equipped_badges: Array[BadgeData] = run_manager.get_equipped_badges()
-		if equipped_badges.size() >= GameRules.MAX_BADGE_SLOTS:
+		if equipped_badges.size() >= run_manager.get_badge_slot_count():
 			return false
 		if equipped_badges.has(item):
 			return false

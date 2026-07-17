@@ -13,6 +13,18 @@ signal button_pool_changed()
 signal tag_leveled_up(tag_name: StringName, new_level: int)
 signal tag_progress_changed(tag_name: StringName)
 
+## Chemins des packs de demarrage day-one (session 19) — toujours debloques,
+## une save neuve propose donc un vrai choix des la premiere run. Les 6 packs
+## a debloquer au Shore (dont 4 servent de vecteur d'unlock pour les 5
+## Partitions verrouillees) n'existent pas encore en donnees, voir
+## docs/gdd/meta/questions-ouvertes.md.
+const STARTER_PACK_PATHS: Array[String] = [
+	"res://resources/starter_packs/le_simplet.tres",
+	"res://resources/starter_packs/le_genereux.tres",
+	"res://resources/starter_packs/le_prevoyant.tres",
+	"res://resources/starter_packs/le_collectionneur.tres",
+]
+
 var _flies: int = 0
 var _equipped_tags: Array[PatternData] = []
 var _equipped_badges: Array[BadgeData] = []
@@ -45,6 +57,7 @@ var _top_row_score_bonus_contributions: Dictionary = {}      # badge_id -> int
 ## canaux ci-dessus — repeuples par les badges on_round_start.
 var _hold_slot_bonuses: Dictionary = {}
 var _preview_size_bonuses: Dictionary = {}
+var _rock_count_bonuses: Dictionary = {}
 var _rock_leaving_sources: Dictionary = {}  # StringName -> true
 
 ## Contribution actuelle de chaque badge "scaling permanent" au facteur
@@ -65,6 +78,12 @@ var _token_upgrade_chances: Dictionary = {}  # StringName -> float
 var _run_badge_state: Dictionary = {}
 var _tag_progress: Dictionary = {}      # StringName (tag_name) -> {"cumulative": int, "level": int}
 
+## Pack de demarrage choisi pour cette run (voir apply_starter_pack). Ses
+## bonus de slots/mouches sont permanents pour toute la run, contrairement
+## aux memes canaux alimentes par les Badges (remis a zero chaque manche) —
+## voir get_badge_slot_count/get_flies_per_round_bonus et reset_round_modifiers.
+var _starter_pack: StarterPackData = null
+
 ## Etat libre pour badges a compteur (ex: streak de Regularite, familles deja
 ## vues de Un Pour Tous). Cle = StringName propre a chaque badge, remis a zero
 ## a chaque manche. Voir get_badge_state/set_badge_state.
@@ -78,12 +97,13 @@ var _active_context: RunContext = null
 
 
 ## Initialise un nouveau run. Les Partitions de depart ne sont plus auto-equipees
-## ici : c'est l'ecran de selection de Partition (draft_starter_partitions) qui
-## appelle equip_tag() avec le choix du joueur avant le debut de la manche 1.
+## ici : c'est l'ecran de selection du pack de demarrage (get_available_starter_packs)
+## qui appelle apply_starter_pack() avec le choix du joueur avant le debut de la manche 1.
 func init_run() -> void:
 	_flies = 0
 
 	_equipped_tags.clear()
+	_starter_pack = null
 
 	_equipped_badges.clear()
 	# DEBUG : equipe au demarrage les badges dont debug_start_equipped == true.
@@ -132,16 +152,43 @@ func _generate_starter_buttons() -> Array[TokenData]:
 	return buttons
 
 
-## Tire des Partitions au hasard dans tout le catalogue (ShopManager.TAG_PATHS),
-## pour l'ecran de selection de Partition de depart. Ne mute rien.
-func draft_starter_partitions(n: int = GameRules.STARTER_PARTITION_DRAFT_SIZE) -> Array[PatternData]:
-	var pool: Array[PatternData] = []
-	for path in ShopManager.TAG_PATHS:
-		var tag: PatternData = load(path) as PatternData
-		if tag != null:
-			pool.append(tag)
-	pool.shuffle()
-	return pool.slice(0, min(n, pool.size()))
+## Charge le roster des packs de demarrage day-one (STARTER_PACK_PATHS). Ne
+## mute rien — pour l'ecran de selection de pack.
+func get_available_starter_packs() -> Array[StarterPackData]:
+	var packs: Array[StarterPackData] = []
+	for path in STARTER_PACK_PATHS:
+		var pack: StarterPackData = load(path) as StarterPackData
+		if pack != null:
+			packs.append(pack)
+	return packs
+
+
+## Applique le pack de demarrage choisi par le joueur : equipe ses Partitions
+## fixes et memorise le pack pour ses bonus permanents (hold/badge/preview/
+## mouches, voir get_badge_slot_count/get_flies_per_round_bonus et
+## reset_round_modifiers, qui repeuple hold/preview a chaque manche).
+func apply_starter_pack(pack: StarterPackData) -> void:
+	_starter_pack = pack
+	for tag in pack.get_fixed_tags():
+		equip_tag(tag)
+
+
+func get_starter_pack() -> StarterPackData:
+	return _starter_pack
+
+
+## Slots de Badge disponibles pour cette run (base + bonus permanent du pack
+## de demarrage, ex: Le Collectionneur +1). Remplace les usages directs de
+## GameRules.MAX_BADGE_SLOTS partout ou le choix de pack doit compter.
+func get_badge_slot_count() -> int:
+	var bonus: int = _starter_pack.badge_slot_bonus if _starter_pack != null else 0
+	return GameRules.MAX_BADGE_SLOTS + bonus
+
+
+## Bonus de mouches par manche gagnee accorde par le pack de demarrage (ex:
+## Le Genereux, +2) — ajoute a GameRules.FLIES_PER_ROUND_WON par l'appelant.
+func get_flies_per_round_bonus() -> int:
+	return _starter_pack.flies_per_round_bonus if _starter_pack != null else 0
 
 
 ## Construit un snapshot lu par les systemes.
@@ -165,6 +212,7 @@ func build_context() -> RunContext:
 	ctx.token_upgrade_chance = _sum_dict_values(_token_upgrade_chances)
 	ctx.hold_slot_bonus = int(_sum_dict_values(_hold_slot_bonuses))
 	ctx.preview_size_bonus = int(_sum_dict_values(_preview_size_bonuses))
+	ctx.rock_count_bonus = int(_sum_dict_values(_rock_count_bonuses))
 	ctx.rock_leaving_sources = _rock_leaving_sources.duplicate()
 	_active_context = ctx
 	return ctx
@@ -235,9 +283,22 @@ func reset_round_modifiers() -> void:
 	_top_row_score_bonus_contributions.clear()
 	_hold_slot_bonuses.clear()
 	_preview_size_bonuses.clear()
+	_rock_count_bonuses.clear()
 	_rock_leaving_sources.clear()
 	_badge_state.clear()
 	_active_context = null
+
+	# Bonus permanents du pack de demarrage (ex: Le Prevoyant +1 hold/-1 preview,
+	# Le Collectionneur +1 badge/+2 rocks) — repeuples ici comme une "source" de
+	# plus dans ces memes dictionnaires, au meme titre qu'un Badge on_round_start,
+	# plutot que dans un canal a part.
+	if _starter_pack != null:
+		if _starter_pack.hold_slot_bonus != 0:
+			_hold_slot_bonuses[&"starter_pack"] = _starter_pack.hold_slot_bonus
+		if _starter_pack.preview_size_bonus != 0:
+			_preview_size_bonuses[&"starter_pack"] = _starter_pack.preview_size_bonus
+		if _starter_pack.rock_count_bonus != 0:
+			_rock_count_bonuses[&"starter_pack"] = _starter_pack.rock_count_bonus
 
 
 ## Ajoute un modifier sur une cellule. Appele par les badges. Les modifiers
@@ -323,6 +384,12 @@ func add_hold_slot_bonus(bonus: int, source: StringName = &"") -> void:
 ## (ex: "Visionnaire", +1).
 func add_preview_size_bonus(bonus: int, source: StringName = &"") -> void:
 	_preview_size_bonuses[source] = bonus
+
+
+## Meme principe qu'add_hold_slot_bonus/add_preview_size_bonus, pour le nombre
+## de rocks ajoutes au deck chaque manche (voir GameRules.DECK_ROCK_COUNT).
+func add_rock_count_bonus(bonus: int, source: StringName = &"") -> void:
+	_rock_count_bonuses[source] = bonus
 
 
 ## Active, pour cette manche, l'effet "un jeton aleatoire d'une Partition
@@ -531,7 +598,7 @@ func has_badge(id: StringName) -> bool:
 
 
 func equip_badge(badge: BadgeData) -> bool:
-	if _equipped_badges.size() >= GameRules.MAX_BADGE_SLOTS:
+	if _equipped_badges.size() >= get_badge_slot_count():
 		return false
 	if _equipped_badges.has(badge):
 		return false

@@ -12,7 +12,12 @@
 
 **Philosophie bonus-first** : l'objectif est de donner envie de tout essayer (complétionniste), pas de trouver "son" archétype préféré — donc majorité de bonus francs, quelques trade-offs équilibrés, aucun pack qui se sent punitif. Interaction propre avec les Badges déjà en place : un modificateur de pack pose une base, un Badge ajoute son bonus par-dessus (même addition simple qu'aujourd'hui) — ex : le pack "Somnambule" (base hold = 0) + Bénédiction (+1) = 1 slot, soit le niveau normal de tout le monde, sans code spécial à écrire.
 
-Voir [Brainstorm — Packs de démarrage](../../brainstorms/brainstorm-starter-packs.md) pour le roster candidat (pas figé) et la discussion complète (pourquoi pas mono-famille/valeur, comment éviter que ça sente la copie Balatro).
+**Roster figé (session 19)** — 10 packs, séparés en deux groupes :
+
+- **Day-one (4, toujours débloqués, même sur une save neuve)** : Le Simplet (aucun modificateur, Line 3 + Brelan — remplace l'ancien onboarding par défaut), Le Généreux (+2 mouches par manche gagnée, Diamond + Fibonacci), Le Prévoyant (+1 slot de hold / preview -1, Line 4 + Suite), Le Collectionneur (+1 emplacement de Badge / +2 rocks dans le deck, Square + Prime). Les quatre ne s'appuient que sur des [Partitions génériques](../partitions/catalogue-implemente.md#accès-générique-vs-verrouillé) — un vrai choix dès la toute première run, sans dépendre d'un unlock. Prévoyant et Collectionneur ont reçu une contrepartie après premier playtest (un +1 sec sans rien en face était un choix strictement dominant, pas une identité de build).
+- **À débloquer au Shore (6)** : Le Clairvoyant, Le Marchand, Le Dégagé, Le Risque-Tout, Le Fortifié, L'Ermite. Quatre d'entre eux (Dégagé/Risque-Tout/Fortifié/Ermite) servent aussi de **vecteur d'unlock** pour les 5 Partitions verrouillées — débloquer le pack débloque définitivement sa Partition signature dans le pool générique du shop, pour toutes les runs futures. Conditions de déblocage précises (Découverte/biome) pas encore fixées.
+
+Voir [Brainstorm — Packs de démarrage](../../brainstorms/brainstorm-starter-packs.md#roster-final--jour-1-vs-débloqué-session-19) pour le détail complet (modificateurs, discussion anti-copie-Balatro).
 
 La **grille**, elle, sort de ce choix de départ : elle est désormais liée au [biome](#biomes) traversé, pas un choix fait une fois pour tout le run. Voir [Format de la grille](../grille/format.md).
 

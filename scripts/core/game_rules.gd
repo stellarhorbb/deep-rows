@@ -69,14 +69,18 @@ const BIOME_BACKGROUND_COLORS: Array[Color] = [
 # Pattern tags
 const MAX_PATTERN_SLOTS: int = 4
 
-# Selection de Partition de depart
-const STARTER_PARTITION_DRAFT_SIZE: int = 3
-
 # Vente de Partitions/Badges — pourcentage du prix d'achat rembourse
 const SELL_REFUND_RATIO: float = 0.5
 
 # Badges
 const MAX_BADGE_SLOTS: int = 5
+
+## Bonus de slots de Badge le plus genereux qu'un pack de demarrage puisse
+## accorder (Le Collectionneur, +1, voir resources/starter_packs/) — sert
+## uniquement a dimensionner a l'avance les slots UI de BadgesUI, crees avant
+## qu'un pack ne soit choisi (voir BadgesUI._create_sell_buttons). A remonter
+## si un futur pack accorde plus.
+const STARTER_PACK_MAX_BADGE_SLOT_BONUS: int = 1
 
 # Recompense par manche gagnee (fixe pour l'instant)
 const FLIES_PER_ROUND_WON: int = 8

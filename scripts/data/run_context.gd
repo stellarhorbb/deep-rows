@@ -91,10 +91,12 @@ extends Resource
 # badge equipe (deja pre-somme par RunManager.build_context).
 @export var token_upgrade_chance: float = 0.0
 
-# Bonus de slots de hold / taille de preview pour la manche (deja pre-sommes
-# par RunManager.build_context, voir GameRules.BASE_HOLD_SLOTS/PREVIEW_SIZE).
+# Bonus de slots de hold / taille de preview / nombre de rocks pour la manche
+# (deja pre-sommes par RunManager.build_context, voir
+# GameRules.BASE_HOLD_SLOTS/PREVIEW_SIZE/DECK_ROCK_COUNT).
 @export var hold_slot_bonus: int = 0
 @export var preview_size_bonus: int = 0
+@export var rock_count_bonus: int = 0
 
 # Badges qui font qu'un jeton aleatoire parmi ceux d'une Partition scoree
 # laisse place a un rock au lieu de disparaitre (ex: "Recif vivant") :

@@ -26,4 +26,4 @@ func _populate() -> void:
 
 func _on_restart_pressed() -> void:
 	RunService.start_new_run()
-	SceneRouter.go_to_partition_select()
+	SceneRouter.go_to_starter_pack_select()

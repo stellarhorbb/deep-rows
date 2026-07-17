@@ -8,7 +8,7 @@ Nouvelles formes de terrain avec dimensions différentes, layouts spéciaux ([mo
 
 ## Nouveaux [packs de démarrage](../progression/structure-run.md#choix-de-départ)
 
-**LE** choix structurant de départ façon "deck" Balatro / "personnage" Slay the Spire — une fois débloqué au Shore, un pack devient sélectionnable au lancement d'une run, fixe et déterministe pour tout le run (deck éventuellement retouché + modificateur de règle/économie + 1-2 Partitions fixes, jamais de random). Voir [Brainstorm — Packs de démarrage](../../brainstorms/brainstorm-starter-packs.md) pour le roster candidat.
+**LE** choix structurant de départ façon "deck" Balatro / "personnage" Slay the Spire — une fois débloqué au Shore, un pack devient sélectionnable au lancement d'une run, fixe et déterministe pour tout le run (deck éventuellement retouché + modificateur de règle/économie + 1-2 Partitions fixes, jamais de random). **Roster figé en session 19** : 4 packs day-one (toujours débloqués, une save neuve a donc un vrai choix dès la première run) + 6 à débloquer — voir [Structure du run](../progression/structure-run.md#choix-de-départ) et [Brainstorm — Packs de démarrage](../../brainstorms/brainstorm-starter-packs.md#roster-final--jour-1-vs-débloqué-session-19) pour le détail.
 
 ## Nouveaux [jetons spéciaux](../jetons/specials.md)
 
@@ -16,7 +16,10 @@ Nouveaux outils qui apparaissent dans le pool du shop.
 
 ## Nouvelles [Partitions](../partitions/principe.md)
 
-Nouvelles manières de scorer, au-delà des 17 déjà actives dans le catalogue de base (voir [Catalogue implémenté](../partitions/catalogue-implemente.md)) — le tiroir rare/signature (9999, paires de familles figées) est le candidat naturel pour ce type d'unlock.
+Nouvelles manières de scorer. Deux tiroirs distincts :
+
+- **5 des 20 Partitions actives** (Plus, Maxima, Cross, Ring, Diamond Rock — voir [Catalogue implémenté](../partitions/catalogue-implemente.md#accès-générique-vs-verrouillé)) sont verrouillées dès aujourd'hui, chacune liée à un pack de démarrage vecteur ci-dessus (double unlock : débloquer le pack débloque aussi la Partition, pour toujours)
+- Le **tiroir rare/signature** (9999, Wedding, Royal Court, paires de familles figées) reste un contenu entièrement à part, non implémenté, pour de futures Partitions au-delà des 20 actives
 
 ## Nouvelles [Badges](../badges/principe.md)
 

@@ -68,10 +68,59 @@ Discussion longue, entièrement conversationnelle (rien codé), partie d'une rem
 
 Tout capturé dans un nouveau brainstorm (`docs/brainstorms/brainstorm-starter-packs.md`) avec deux listes de packs candidats (V1 trop dure, V2 rééquilibrée bonus-first), et répercuté dans `structure-run.md`, `partitions/principe.md`, `shore/unlocks.md`, `shore/principe.md`, `decisions-tranchees.md`, `questions-ouvertes.md`. Rien codé — direction actée, roster et implémentation à faire.
 
+## Chantier design — verrouillage des Partitions et roster final des packs
+
+Suite directe du chantier packs de démarrage ci-dessus, toujours entièrement conversationnelle. Point de départ : aucune Partition n'était jamais verrouillée nulle part — les 20 actives sont toutes tirables au shop dès la première run (session 19, suppression de la rareté). Ça prive le Shore d'une vraie fonction sur les Partitions, et rend le "1-2 Partitions fixes" des packs un peu creux (n'importe quel pack peut piocher n'importe quoi).
+
+1. **Split générique/verrouillé** — proposé sur la base du tableau des tiers de difficulté déjà existant. Premier jet à 10/10 (Trivial+Amorce+Facile vs le reste) jugé trop maigre une fois 2 Partitions déjà prises par le pack de départ (8 restantes à acheter sur toute une run). Resserré au cutoff **Difficile+ seulement** : 15 génériques (Trivial à Medium), 5 verrouillées (**Plus, Maxima, Cross, Ring, Diamond Rock** — Difficile à Hors échelle).
+2. **Mécanisme d'unlock** — les 5 verrouillées recoupent exactement les Partitions fixes de 4 packs candidats du brainstorm (Dégagé→Plus, Risque-Tout→Ring, Fortifié→Cross+Diamond Rock, Ermite→Maxima). Plutôt que d'inventer une Découverte séparée par Partition, le pack lui-même fait double emploi : débloquer le pack (déjà une catégorie d'unlock Shore existante) débloque aussi sa Partition signature, pour toujours, dans le pool générique — cohérent avec la règle déjà écrite ("un contenu débloqué reste acquis pour toujours").
+3. **Pas assez de packs day-one** — remarque du user : sur une save neuve, un seul pack de base ne donne pas un vrai choix. Sur les 9 packs candidats du brainstorm V2, 5 ne s'appuient que sur des Partitions génériques (donc peuvent être day-one sans paradoxe) ; les 4 autres sont justement les vecteurs d'unlock ci-dessus, donc doivent rester à débloquer. Sélection des day-one filtrée par le principe déjà posé "leviers Deep Rows plutôt qu'économie pure" (écarte Clairvoyant/Marchand du jour 1).
+4. **Roster final (10 packs)** :
+   - **Day-one** : Le Simplet (Line 3 + Brelan, aucun modificateur — nouveau nom du pack de base), Le Généreux (+2 mouches/manche gagnée, Diamond + Fibonacci), Le Prévoyant (+1 hold, Line 4 + Suite), Le Collectionneur (+1 Badge, Square + Prime — Brelan initialement prévu, swappé pour éviter un doublon avec Le Simplet)
+   - **À débloquer** : Le Clairvoyant, Le Marchand, Le Dégagé (vecteur Plus), Le Risque-Tout (vecteur Ring), Le Fortifié (vecteur Cross + Diamond Rock), L'Ermite (vecteur Maxima)
+
+Répercuté dans `partitions/catalogue-implemente.md`, `progression/structure-run.md`, `shore/unlocks.md`, `brainstorms/brainstorm-starter-packs.md`, `decisions-tranchees.md`, `questions-ouvertes.md`. Rien codé — reste ouvert : les conditions de déblocage précises (Découverte/biome) des 6 packs à débloquer, l'habillage narratif, l'implémentation technique (y compris la sauvegarde inter-runs, toujours pas construite).
+
+## Implémentation — packs de démarrage day-one et champ `locked`
+
+Passage du design au code, suite directe des deux chantiers ci-dessus.
+
+- **`PatternData.locked`** (`scripts/data/pattern_data.gd`) — nouveau champ bool, `false` sur les 20 `.tres` existants (non touchés, la valeur par défaut suffit). Filtré dans `ShopManager._available_tags` : une Partition `locked` ne sort plus jamais du tirage shop. Tout reste décoché pour l'instant — aucun changement de comportement en jeu tant que le système d'unlock du Shore n'existe pas, mais le levier est prêt.
+- **`StarterPackData`** (`scripts/data/starter_pack_data.gd`) — nouvelle Resource : `pack_name`, `description`, `fixed_tag_a`/`fixed_tag_b` (deux champs simples plutôt qu'un `Array[PatternData]`, tous les packs du roster en portent exactement 2), et les modificateurs permanents `hold_slot_bonus`/`badge_slot_bonus`/`preview_size_bonus`/`flies_per_round_bonus`.
+- **4 `.tres`** dans `resources/starter_packs/` : Le Simplet (Line 3 + Brelan, neutre), Le Généreux (Diamond + Fibonacci, +2 mouches/manche), Le Prévoyant (Line 4 + Suite, +1 hold), Le Collectionneur (Square 4 + Prime, +1 Badge).
+- **`RunManager`** — `apply_starter_pack()` équipe les Partitions fixes et mémorise le pack ; `get_badge_slot_count()`/`get_flies_per_round_bonus()` nouveaux getters ; les bonus hold/preview réutilisent le mécanisme existant des Badges (`_hold_slot_bonuses`/`_preview_size_bonuses`, réamorcés à chaque `reset_round_modifiers` comme une source de plus) plutôt qu'un canal séparé. `draft_starter_partitions` retiré (mort, remplacé par `get_available_starter_packs`).
+- **Slots de Badge dynamiques** — `RunManager.equip_badge`, `ShopManager.can_equip_slot` et les 3 usages de `GameRules.MAX_BADGE_SLOTS` dans `BadgesUI` passent par `get_badge_slot_count()`. Les boutons VENDRE de `BadgesUI` sont créés en avance pour `MAX_BADGE_SLOTS + STARTER_PACK_MAX_BADGE_SLOT_BONUS` (nouvelle constante) car `Shell._ready()` tourne avant le choix de pack.
+- **Nouvel écran `StarterPackSelectUI`** (`scenes/starter_pack_select/`) remplace entièrement `PartitionSelectUI`/`partition_select.tscn` (supprimés) — sélection exclusive d'un seul pack parmi les 4, au lieu du tirage 3/2. `SceneRouter`/`Shell`/`EndScreenUI` repointés (`go_to_starter_pack_select`).
+- Vérifié en headless (`godot --headless --editor --quit` pour régénérer le cache de classes globales après l'ajout de `StarterPackData`, puis `--quit-after 10` sans erreur) — pas de test manuel en éditeur encore fait par le user à ce stade.
+
+Rien débloqué côté Shore (les 6 packs restants et leurs conditions de déblocage restent à construire), sauvegarde inter-runs toujours absente.
+
+## Balance — Prévoyant et Collectionneur, contrepartie après premier playtest
+
+Retour à chaud du user dès les premiers essais en jeu : Le Prévoyant (+1 hold) et Le Collectionneur (+1 Badge) étaient de purs bonus sans contrepartie — des choix strictement dominants, pas une identité de build. Correction sur un levier propre à Deep Rows plutôt que l'économie, et sans piocher dans les combos déjà réservés ailleurs (0 hold = Risque-Tout, grille -1 = Fortifié) :
+
+- **Le Prévoyant** : +1 hold, **preview -1** (2 au lieu de 3)
+- **Le Collectionneur** : +1 Badge, **+2 rocks** dans le deck
+
+Nouveau champ `StarterPackData.rock_count_bonus`, câblé comme `hold_slot_bonus`/`preview_size_bonus` (nouveau canal `RunManager._rock_count_bonuses`, seedé a chaque `reset_round_modifiers`, propagé via `RunContext.rock_count_bonus` jusqu'à `DeckManager.build_deck` — `GameRules.DECK_ROCK_COUNT + rock_count_bonus`). `preview_size_bonus` négatif fonctionnait déjà sans changement (simple somme).
+
+## Fix — libellés des Partitions équipées
+
+Repéré par le user en playtest : les slots de Partitions équipées affichaient des noms composés illisibles ("LINE PRIME 3", "LINE CASINO 3" pour Brelan) au lieu du nom simple utilisé partout ailleurs (shop, hovers). `TagsUI._format_tag_label` recomposait un libellé forme+règle+taille depuis session 13-14 pour éviter les doublons visuels — simplifié pour reprendre directement `tag.label` (+ le multiplicateur, conservé). `_shape_label`, devenue inutile, retirée au passage.
+
+## Discussion — cible Steam Neo Fest
+
+Le user a remonté les dates des prochains Steam Neo Fest (octobre 2026, février 2027, juin 2027) et demandé un avis honnête sur la faisabilité d'une démo. Octobre écarté d'emblée : zéro DA commencée (volontairement, voir [[feedback_no_da_before_fun]]) et la mécanique centrale encore en mouvement (cette session seule : scoring, rareté des Partitions, démarrage de run). Février 2027 retenu comme ligne de mire, avec deux nuances posées en discussion :
+
+- Le user cherche des missions de Product Design en parallèle (bande passante dev réelle incertaine) — mais se dit solide côté création (DA/illustration/UI), moins expérimenté sur l'implémentation Godot et le "juice" (animations, triggers, SFX/VFX), qui est pourtant l'axe déjà identifié comme priorité n°1 du projet.
+- Point relevé par le user : ~20 sessions ont déjà produit tout le squelette mécanique (grille, cascades, Partitions, scoring, deck, shop, 37 Badges, starters), à un rythme qui s'accélère. Nuance apportée : ce rythme vient surtout du fait que ce travail est de la logique pure (testable headless), le terrain où l'assistance IA porte le plus — le futur travail de juice/implémentation visuelle est plus manuel/itératif dans l'éditeur, donc pas garanti d'aller aussi vite.
+
+Rien de tranché en dur — février 2027 gardé comme ligne de mire, à réévaluer une fois la bascule fun→feel amorcée. Capturé dans la mémoire persistante (`user_background.md`, `project_content_priority.md`), pas dans le GDD (pas une décision de design).
+
 ## Statut
 
 - GDD entièrement resynchronisé avec le code (22 fichiers)
 - Plusieurs petits fixes/rééquilibrages joués et prêts à tester (Tickets, seuil mouches, Dés à coudre, shop sans doublon)
 - Catalogue de Partitions à 20, plus de rareté dessus, Fibonacci généralisé
-- **Chantier majeur posé pour la suite** : implémenter le système de packs de démarrage (remplace le draft de Partitions), définir le roster final, construire la sauvegarde inter-runs nécessaire pour le Shore (n'existe pas encore dans le code)
+- **Roster complet des packs de démarrage tranché** (10 packs : 4 day-one + 6 à débloquer) et split générique/verrouillé des Partitions posé (15/5) — **les 4 packs day-one et le champ `locked` sont maintenant codés et jouables** (`StarterPackData`, `StarterPackSelectUI`, remplace l'ancien tirage 3/2). Reste : les conditions de déblocage précises des 6 packs restants, la sauvegarde inter-runs pour le Shore (n'existe pas encore dans le code)
 - Idée notée pour plus tard, volontairement différée : un système de Stakes façon Balatro pour les joueurs qui ont tout débloqué

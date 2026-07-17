@@ -1,0 +1,48 @@
+[gd_scene format=3 uid="uid://bq3tv1vxpopy4"]
+
+[ext_resource type="Script" uid="uid://higudnau71dy" path="res://scripts/ui/starter_pack_select_ui.gd" id="1_script"]
+
+[node name="StarterPackSelect" type="Control" unique_id=1363823527]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1456799459]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+color = Color(0.722, 0.8, 0.847, 1)
+
+[node name="Panel" type="PanelContainer" parent="." unique_id=134661045]
+layout_mode = 0
+offset_left = 160.0
+offset_top = 300.0
+offset_right = 1760.0
+offset_bottom = 780.0
+
+[node name="VBox" type="VBoxContainer" parent="Panel" unique_id=828691665]
+layout_mode = 2
+theme_override_constants/separation = 32
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="Panel/VBox" unique_id=1166282973]
+layout_mode = 2
+text = "CHOISIS TON PACK DE DÉPART"
+horizontal_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="Panel/VBox" unique_id=1252022527]
+layout_mode = 2
+text = "Déterministe, fixe pour toute la run — survole une carte pour le détail"
+horizontal_alignment = 1
+
+[node name="CardsContainer" type="HBoxContainer" parent="Panel/VBox" unique_id=1723385293]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="Panel/VBox" unique_id=509344814]
+layout_mode = 2
+disabled = true
+text = "COMMENCER"

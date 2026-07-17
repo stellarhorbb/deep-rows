@@ -9,7 +9,7 @@ extends Node
 const GAME_SCENE_PATH: String = "res://scenes/game/game.tscn"
 const SHOP_SCENE_PATH: String = "res://scenes/shop/shop.tscn"
 const END_SCREEN_PATH: String = "res://scenes/end/end_screen.tscn"
-const PARTITION_SELECT_SCENE_PATH: String = "res://scenes/partition_select/partition_select.tscn"
+const STARTER_PACK_SELECT_SCENE_PATH: String = "res://scenes/starter_pack_select/starter_pack_select.tscn"
 
 ## Assigne par Shell._ready() — le Shell est la scene principale du projet,
 ## donc toujours pret avant le premier appel a go_to_xxx().
@@ -20,8 +20,8 @@ func go_to_game() -> void:
 	shell.load_content(GAME_SCENE_PATH)
 
 
-func go_to_partition_select() -> void:
-	shell.load_content(PARTITION_SELECT_SCENE_PATH)
+func go_to_starter_pack_select() -> void:
+	shell.load_content(STARTER_PACK_SELECT_SCENE_PATH)
 
 
 func go_to_shop() -> void:

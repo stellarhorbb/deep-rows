@@ -56,6 +56,7 @@ func start_round(round_number: int) -> void:
 
 	deck_manager.hold_capacity = GameRules.BASE_HOLD_SLOTS + context.hold_slot_bonus
 	deck_manager.preview_bonus = context.preview_size_bonus
+	deck_manager.rock_count_bonus = context.rock_count_bonus
 	deck_manager.build_deck(run_manager.get_deck_composition(), run_manager.get_button_pool())
 	deck_manager.advance_stream()
 	_state = State.AWAITING_INPUT

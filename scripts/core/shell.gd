@@ -35,7 +35,7 @@ func _ready() -> void:
 	deck_button.disabled = true
 
 	# Shell est la scene principale du projet — premier ecran a charger.
-	SceneRouter.go_to_partition_select()
+	SceneRouter.go_to_starter_pack_select()
 
 
 ## Remplace l'ecran actif par celui demande. Retourne l'instance pour que

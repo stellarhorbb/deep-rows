@@ -35,11 +35,16 @@ func setup() -> void:
 	queue_redraw()
 
 
-## Un bouton "VENDRE" par slot, cree une seule fois. Visible/positionne a
-## chaque _draw() selon l'etat du slot correspondant — evite tout clic
-## accidentel sur le reste de la carte (cf. retour user post-implementation).
+## Un bouton "VENDRE" par slot, cree une seule fois — dimensionne au nombre
+## de slots MAX possible (base + plus gros bonus de pack de demarrage connu),
+## car appele avant que le pack de la run ne soit choisi (voir Shell._ready).
+## Visible/positionne a chaque _draw() selon l'etat du slot correspondant —
+## evite tout clic accidentel sur le reste de la carte (cf. retour user
+## post-implementation). _draw()/_badge_at_position n'utilisent que les
+## get_badge_slot_count() premiers, le reste ne sert jamais tant qu'aucun
+## pack n'accorde plus de bonus.
 func _create_sell_buttons() -> void:
-	for i in range(GameRules.MAX_BADGE_SLOTS):
+	for i in range(GameRules.MAX_BADGE_SLOTS + GameRules.STARTER_PACK_MAX_BADGE_SLOT_BONUS):
 		var btn: Button = Button.new()
 		btn.text = "VENDRE"
 		btn.visible = false
@@ -77,7 +82,7 @@ func _draw() -> void:
 	if run_manager != null:
 		badges = run_manager.get_equipped_badges()
 
-	var max_slots: int = GameRules.MAX_BADGE_SLOTS
+	var max_slots: int = run_manager.get_badge_slot_count() if run_manager != null else GameRules.MAX_BADGE_SLOTS
 	var total_width: float = max_slots * slot_width + (max_slots - 1) * horizontal_gap
 	var start_x: float = (size.x - total_width) * 0.5
 
@@ -222,7 +227,7 @@ func _badge_at_position(pos: Vector2) -> BadgeData:
 	if pos.y < y_offset or pos.y > y_offset + slot_height:
 		return null
 
-	var max_slots: int = GameRules.MAX_BADGE_SLOTS
+	var max_slots: int = run_manager.get_badge_slot_count()
 	var total_width: float = max_slots * slot_width + (max_slots - 1) * horizontal_gap
 	var start_x: float = (size.x - total_width) * 0.5
 

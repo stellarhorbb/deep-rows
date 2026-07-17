@@ -17,6 +17,13 @@ extends Resource
 @export var label: String = ""
 @export var price: int = 0
 
+## Acces meta (session 19) : une Partition verrouillee n'apparait ni au
+## tirage du shop ni dans les packs de demarrage tant qu'elle n'a pas ete
+## debloquee au Shore (voir docs/gdd/partitions/catalogue-implemente.md#acces-generique-vs-verrouille).
+## Toutes decochees pour l'instant (aucune sauvegarde inter-runs encore
+## construite) — a cocher une fois le systeme d'unlock du Shore implemente.
+@export var locked: bool = false
+
 
 ## Texte de hover en langage clair, reutilise en jeu (TagsUI) et au shop.
 func describe() -> String:

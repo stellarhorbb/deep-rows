@@ -66,6 +66,31 @@ Verdict après relecture : 6 malus pour 2 bonus francs, trop orienté hard-mode.
 
 Le Bâtisseur/Somnambule/Assiégé de la V1 restent utilisables en fond de catalogue pour les joueurs qui cherchent un vrai hard-mode (comme les decks Plasma/Nebula de Balatro) — mais pas comme le gros du roster.
 
+## Roster final — jour 1 vs débloqué (session 19)
+
+Parti d'une question annexe mais structurante : combien de Partitions sont accessibles sur une save toute neuve, avant tout unlock ? Réponse posée dans [Catalogue implémenté](../gdd/partitions/catalogue-implemente.md#accès-générique-vs-verrouillé) — 15 des 20 Partitions actives sont **génériques** (tiers Trivial à Medium), 5 sont **verrouillées** (Plus, Maxima, Cross, Ring, Diamond Rock — tiers Difficile à Hors échelle). Ça a immédiatement recoupé le roster de packs ci-dessus : 4 des 9 candidats V2 utilisent une Partition verrouillée dans leurs fixes — ils deviennent naturellement le **vecteur d'unlock** de cette Partition (débloquer le pack débloque aussi, pour toujours, la Partition dans le pool générique du shop — pas de Découverte séparée à inventer). Les 5 autres candidats, eux, n'utilisent que des génériques : ils peuvent être day-one sans paradoxe.
+
+Constat en cours de route : un seul pack day-one (Le Base originel, jamais nommé jusqu'ici) ne suffit pas — une save neuve doit proposer un vrai choix, pas un unique pack imposé. Sélection des day-one guidée par le principe "leviers propres à Deep Rows plutôt qu'économie pure" (voir ci-dessous) : Le Clairvoyant et Le Marchand écartés du jour 1 au profit du Prévoyant et du Collectionneur.
+
+Un ajustement final : Le Collectionneur utilisait Brelan comme Le Simplet (nouveau nom du pack de base) — redondant sur seulement 4 packs day-one, remplacé par Prime.
+
+**Contrepartie ajoutée après premier playtest** — retour du user dès les premiers essais : Prévoyant et Collectionneur, en +1 slot sec sans rien en face, étaient des choix strictement dominants plutôt qu'une identité de build. Chacun gagne une contrepartie sur un levier propre à Deep Rows (jamais l'économie), et volontairement distincte des combos déjà réservés ailleurs dans le roster (0 hold est la contrepartie de Risque-Tout, grille -1 colonne celle de Fortifié) : Prévoyant perd 1 de preview (anticipation contre filet de stockage), Collectionneur gagne 2 rocks dans le deck (build plus large contre grille plus encombrée).
+
+| Pack | Statut | Modificateur | Partitions fixes |
+|---|---|---|---|
+| Le Simplet | **Day-one** | Aucun (deck/règles par défaut) | Line 3 + Brelan |
+| Le Généreux | **Day-one** | +2 mouches par manche gagnée | Diamond + Fibonacci |
+| Le Prévoyant | **Day-one** | +1 slot de hold, preview -1 (2 au lieu de 3) | Line 4 + Suite |
+| Le Collectionneur | **Day-one** | +1 emplacement de Badge, +2 rocks dans le deck | Square + Prime |
+| Le Clairvoyant | À débloquer | Preview à 4 | Line 5 + Carré |
+| Le Marchand | À débloquer | 1er reroll gratuit | Square Rainbow + Minima |
+| Le Dégagé | À débloquer — vecteur **Plus** | -2 rocks | Line 4 Rainbow + Plus |
+| Le Risque-Tout | À débloquer — vecteur **Ring** | +1 slot de Badge, 0 slot de hold | Brelan + Ring |
+| Le Fortifié | À débloquer — vecteur **Cross + Diamond Rock** | Grille -1 colonne, 2 spéciaux garantis | Cross + Diamond Rock |
+| L'Ermite | À débloquer — vecteur **Maxima** | Aucun rock dans le deck | T Family + Maxima |
+
+Reste ouvert : les conditions de déblocage précises (Découverte ou biome) pour les 6 packs à débloquer — voir [Questions ouvertes](../gdd/meta/questions-ouvertes.md).
+
 ## Éviter que ça sente "copie Balatro"
 
 Le squelette (choisir une identité de départ → débloquer plus par la suite) n'est pas le problème, c'est un mécanisme partagé par la moitié du genre (Isaac, Hades, StS). Le risque est dans l'**exécution** : des modificateurs secs façon stat-block, c'est très Balatro (aucune histoire derrière ses decks). Trois leviers pour recoller à l'identité Deep Rows :
