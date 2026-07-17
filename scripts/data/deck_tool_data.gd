@@ -18,4 +18,4 @@ enum Action { INCREASE, DECREASE, CHANGE_FAMILY, SPLIT, FUSE, REMOVE, FIX_FIGURE
 
 ## Nombre de jetons cibles a selectionner avant de pouvoir confirmer.
 func target_count() -> int:
-	return 2 if action == Action.FUSE else 1
+	return 2 if action == Action.FUSE or action == Action.CHANGE_FAMILY else 1

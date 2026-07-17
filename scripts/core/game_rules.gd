@@ -92,7 +92,7 @@ const ROUND_END_DELAY: float = 2.0
 
 
 static func get_round_end_flies_bonus(remaining: int) -> int:
-	if remaining > FLIES_BONUS_REMAINING_THRESHOLD:
+	if remaining >= FLIES_BONUS_REMAINING_THRESHOLD:
 		return FLIES_BONUS_REMAINING
 	return 0
 
@@ -116,10 +116,29 @@ const TOKEN_MIN_VALUE: int = 1
 const TOKEN_MAX_VALUE: int = 5
 const FAMILY_COUNT: int = 4
 
-## Sequence Fibonacci fixe retenue pour la Partition "Fibonacci" (session 14) —
-## pas de fenetre generique, cette cible exacte, dans un sens ou dans l'autre
-## le long de la ligne (voir PatternMatcher.find_fibonacci).
-const FIBONACCI_SEQUENCE: Array[int] = [1, 1, 2, 3]
+## Suite Fibonacci de reference pour la Partition "Fibonacci" (session 14,
+## etendue session 19) — n'importe quelle fenetre de FIBONACCI_WINDOW_SIZE
+## valeurs consecutives de cette suite matche (1,1,2,3 / 1,2,3,5 / 2,3,5,8),
+## pas seulement les 4 premiers termes. Dans un sens ou dans l'autre le long
+## de la ligne (voir PatternMatcher.find_fibonacci).
+const FIBONACCI_SEQUENCE: Array[int] = [1, 1, 2, 3, 5, 8]
+const FIBONACCI_WINDOW_SIZE: int = 4
+
+## Valeur plafond/plancher pour les Partitions "Minima"/"Maxima" (session 19,
+## axe casino) — tous les jetons alignes doivent respecter le seuil (strict,
+## "< 3" et "> 7" cote Sheet), peu importe la famille. Maxima (valeurs >= 8)
+## demande plusieurs Fusions (le tirage de base plafonne a TOKEN_MAX_VALUE =
+## 5), pas juste un tirage chanceux — d'ou son mult plus eleve que Minima.
+const MINIMA_MAX_VALUE: int = 2
+const MAXIMA_MIN_VALUE: int = 8
+
+## Suite de nombres premiers de reference pour la Partition "Nombres premiers"
+## (session 19) — meme mecanique que FIBONACCI_SEQUENCE (n'importe quelle
+## fenetre valide de la suite matche), mais fenetre MINIMALE plutot que fixe :
+## au moins PRIME_MIN_WINDOW consecutifs, jusqu'a la sequence entiere (2,3,5 /
+## 3,5,7 / 2,3,5,7).
+const PRIME_SEQUENCE: Array[int] = [2, 3, 5, 7]
+const PRIME_MIN_WINDOW: int = 3
 
 ## Roll casino ajoute a la valeur du centre d'un Diamond Rock (session 15) —
 ## avec seulement DECK_ROCK_COUNT rocks dans tout le deck, ce pattern ne se
@@ -129,12 +148,14 @@ const FIBONACCI_SEQUENCE: Array[int] = [1, 1, 2, 3]
 const DIAMOND_ROCK_ROLL_MIN: int = 1
 const DIAMOND_ROCK_ROLL_MAX: int = 5
 
-## Poids de tirage par rarete au shop (unitaires + packs, Tags et Badges
-## uniquement — Speciaux et boutons n'ont pas de champ rarity). Index = valeur
-## de l'enum Rarity. PatternData.Rarity s'arrete a EPIC (0-3) ; BadgeData.Rarity
-## ajoute LEGENDARY (4, session 17) pour une poignee de Badges tres puissants
-## debloques au Shore — poids volontairement infime, un Partition n'atteint
-## jamais cet index. Voir ShopManager._weighted_pick.
+## Poids de tirage par rarete au shop (unitaires + packs, Badges et Des a
+## coudre uniquement — Speciaux, Boutons et Partitions n'ont pas de champ
+## rarity, tires uniformement). Index = valeur de l'enum Rarity. BadgeData.
+## Rarity ajoute LEGENDARY (4, session 17) pour une poignee de Badges tres
+## puissants debloques au Shore. Partitions retirees du systeme en session 19
+## (voir Decisions tranchees) : gater par rarete la mecanique de resolution
+## elle-meme allait a l'encontre du principe "pas de RNG punitif", contrairement
+## aux Badges qui restent un bonus optionnel. Voir ShopManager._weighted_pick.
 const RARITY_WEIGHTS: Array[float] = [10.0, 5.0, 2.0, 1.0, 0.1]
 
 ## Couleurs et noms par rarete, pour le badge colore affiche dans les tooltips

@@ -338,8 +338,9 @@ func _value_bonus_multiplier(cells: Array, grid: Array, context: RunContext) -> 
 ## plus cher, pas comme un multiplicateur a part. Couvre :
 ## - retrigger : un jeton dont la valeur est marquee recompte sa propre valeur
 ##   une deuxieme fois (ex: "Vingt-trois" sur un 3 qui score -> +3) ;
-## - bonus de famille : pattern de rule "family" d'une famille ciblee (ex:
-##   "Tickets Hivernal" sur DENIERS) ;
+## - bonus de famille : chaque jeton scorable d'une famille ciblee ajoute ce
+##   bonus (ex: "Tickets Hivernal" sur DENIERS), peu importe la rule du
+##   pattern — pas seulement les patterns de rule "family" ;
 ## - bonus de paire : le groupe contient au moins deux jetons de meme valeur
 ##   (ex: "Y'en a pas deux"), applique une seule fois peu importe le nombre
 ##   de paires trouvees ;
@@ -365,10 +366,7 @@ func _value_sum_bonus(group: Dictionary, cells: Array, grid: Array, context: Run
 					continue
 				contributions[source] = (contributions.get(source, 0) as int) + token.value
 
-	var rule: StringName = group.get("match_rule", &"") as StringName
-	if rule == &"family":
-		var family: int = group.get("family", -1) as int
-		var family_bonus_sources: Dictionary = context.family_score_bonus_contributions.get(family, {}) as Dictionary
+		var family_bonus_sources: Dictionary = context.family_score_bonus_contributions.get(token.family, {}) as Dictionary
 		for source in family_bonus_sources:
 			var v: int = family_bonus_sources[source] as int
 			amount += v

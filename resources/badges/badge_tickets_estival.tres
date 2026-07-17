@@ -7,7 +7,7 @@
 script = ExtResource("1_data")
 id = &"tickets_estival"
 label = "TICKETS ESTIVAL"
-description = "Ajoute +5 tickets lorsqu'une partition score une famille COUPES"
+description = "Ajoute +2 tickets lorsqu'un jeton COUPES score dans une partition"
 trigger = &"on_round_start"
 price = 4
 rarity = 0

@@ -7,5 +7,5 @@ script = ExtResource("1_script")
 id = &"fuse"
 label = "FUSIONNER"
 description = "2 jetons deviennent 1 seul, valeur = somme (plafonnée à 10), famille tirée au hasard entre les deux"
-rarity = 1
+rarity = 2
 action = 4

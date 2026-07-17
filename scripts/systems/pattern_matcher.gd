@@ -21,7 +21,7 @@ static func find_lines(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
 		var dy: int = (axis_entry[0] as Vector2i).y
 		var dir_name: StringName = axis_entry[1]
 
-		for rule in [&"family", &"value", &"suite"]:
+		for rule in [&"family", &"value", &"suite", &"minima", &"maxima"]:
 			for c in range(cols):
 				for r in range(rows):
 					var token: TokenData = grid[c][r] as TokenData
@@ -65,6 +65,12 @@ static func find_lines(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
 									break
 								suite_step = delta
 							elif delta != suite_step:
+								break
+						elif rule == &"minima":
+							if nxt.value > GameRules.MINIMA_MAX_VALUE:
+								break
+						elif rule == &"maxima":
+							if nxt.value < GameRules.MAXIMA_MIN_VALUE:
 								break
 						elif not _tokens_match(nxt, prev, rule):
 							break
@@ -408,49 +414,79 @@ static func find_line_rainbow(grid: Array, cols: int, rows: int) -> Array[Dictio
 	return results
 
 
-## Trouve la sequence Fibonacci fixe (GameRules.FIBONACCI_SEQUENCE, 1,1,2,3),
-## dans un sens ou dans l'autre le long de l'axe. Cible exacte, pas de fenetre
-## generique — voir la discussion "Partitions chiffre" en session 14.
-## Retourne : [{ "cells": Array[Vector2i], "match_rule": &"fibonacci",
+## Toutes les fenetres de longueur entre min_window et max_window au sein
+## d'une suite de reference — precalculees une fois. Partage par Fibonacci
+## (min_window == max_window == FIBONACCI_WINDOW_SIZE, une seule longueur) et
+## Nombres premiers (min_window < max_window, plusieurs longueurs valides —
+## session 19).
+static func _sequence_windows(sequence: Array[int], min_window: int, max_window: int) -> Array[Array]:
+	var windows: Array[Array] = []
+	for length in range(min_window, max_window + 1):
+		for start in range(sequence.size() - length + 1):
+			windows.append(sequence.slice(start, start + length))
+	return windows
+
+
+## Trouve n'importe quel alignement qui matche une des fenetres pre-calculees
+## (voir _sequence_windows), dans un sens ou dans l'autre le long de l'axe.
+## Partage par Fibonacci et Nombres premiers (session 19) — meme mecanique,
+## seule la suite de reference et la fenetre min/max changent.
+## Retourne : [{ "cells": Array[Vector2i], "match_rule": rule_name,
 ##               "shape": &"line", "direction": StringName }]
-static func find_fibonacci(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+static func _find_sequence_matches(grid: Array, cols: int, rows: int, windows: Array[Array], rule_name: StringName) -> Array[Dictionary]:
 	var results: Array[Dictionary] = []
-	var sequence: Array[int] = GameRules.FIBONACCI_SEQUENCE
-	var reversed_sequence: Array[int] = sequence.duplicate()
-	reversed_sequence.reverse()
-	var window: int = sequence.size()
 
 	for axis_entry in AXES:
 		var dx: int = (axis_entry[0] as Vector2i).x
 		var dy: int = (axis_entry[0] as Vector2i).y
 		var dir_name: StringName = axis_entry[1]
 
-		for c in range(cols):
-			for r in range(rows):
-				var cells: Array[Vector2i] = []
-				var values: Array[int] = []
-				var all_scorable: bool = true
-				for i in range(window):
-					var cell: Vector2i = Vector2i(c + dx * i, r + dy * i)
-					if cell.x < 0 or cell.x >= cols or cell.y < 0 or cell.y >= rows:
-						all_scorable = false
-						break
-					var token: TokenData = grid[cell.x][cell.y] as TokenData
-					if token == null or not token.is_scorable():
-						all_scorable = false
-						break
-					cells.append(cell)
-					values.append(token.value)
+		for candidate in windows:
+			var window: int = candidate.size()
+			var reversed_candidate: Array = candidate.duplicate()
+			reversed_candidate.reverse()
 
-				if all_scorable and (values == sequence or values == reversed_sequence):
-					results.append({
-						"cells": cells,
-						"match_rule": &"fibonacci",
-						"shape": &"line",
-						"direction": dir_name,
-					})
+			for c in range(cols):
+				for r in range(rows):
+					var cells: Array[Vector2i] = []
+					var values: Array[int] = []
+					var all_scorable: bool = true
+					for i in range(window):
+						var cell: Vector2i = Vector2i(c + dx * i, r + dy * i)
+						if cell.x < 0 or cell.x >= cols or cell.y < 0 or cell.y >= rows:
+							all_scorable = false
+							break
+						var token: TokenData = grid[cell.x][cell.y] as TokenData
+						if token == null or not token.is_scorable():
+							all_scorable = false
+							break
+						cells.append(cell)
+						values.append(token.value)
+
+					if all_scorable and (values == candidate or values == reversed_candidate):
+						results.append({
+							"cells": cells,
+							"match_rule": rule_name,
+							"shape": &"line",
+							"direction": dir_name,
+						})
 
 	return results
+
+
+## Fenetre fixe unique (FIBONACCI_WINDOW_SIZE) au sein de FIBONACCI_SEQUENCE
+## (1,1,2,3,5,8) — pas seulement les 4 premiers termes (session 19, voir la
+## discussion "Partitions chiffre" en session 14).
+static func find_fibonacci(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	var windows: Array[Array] = _sequence_windows(GameRules.FIBONACCI_SEQUENCE, GameRules.FIBONACCI_WINDOW_SIZE, GameRules.FIBONACCI_WINDOW_SIZE)
+	return _find_sequence_matches(grid, cols, rows, windows, &"fibonacci")
+
+
+## Fenetre minimale PRIME_MIN_WINDOW (pas fixe, contrairement a Fibonacci) au
+## sein de PRIME_SEQUENCE (2,3,5,7) — session 19.
+static func find_primes(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	var windows: Array[Array] = _sequence_windows(GameRules.PRIME_SEQUENCE, GameRules.PRIME_MIN_WINDOW, GameRules.PRIME_SEQUENCE.size())
+	return _find_sequence_matches(grid, cols, rows, windows, &"prime")
 
 
 ## Trouve tous les groupes et filtre par les Pattern Tags equipes.
@@ -466,6 +502,7 @@ static func find_all(grid: Array, cols: int, rows: int, context: RunContext) -> 
 	all_groups.append_array(find_t(grid, cols, rows))
 	all_groups.append_array(find_line_rainbow(grid, cols, rows))
 	all_groups.append_array(find_fibonacci(grid, cols, rows))
+	all_groups.append_array(find_primes(grid, cols, rows))
 
 	var filtered: Array[Dictionary] = []
 	for group in all_groups:
@@ -499,6 +536,14 @@ static func find_all(grid: Array, cols: int, rows: int, context: RunContext) -> 
 static func _can_extend(token: TokenData, prev: TokenData, rule: StringName) -> bool:
 	if rule == &"suite":
 		return abs(token.value - prev.value) == 1
+	# Minima/Maxima (session 19) : seuil sur un jeton individuel, pas une
+	# egalite entre deux jetons — c'est PREV qui doit deja qualifier (s'il
+	# qualifie, son propre parcours en avant a deja rattrape `token`, qu'il
+	# qualifie ou non).
+	if rule == &"minima":
+		return prev.value <= GameRules.MINIMA_MAX_VALUE
+	if rule == &"maxima":
+		return prev.value >= GameRules.MAXIMA_MIN_VALUE
 	return _tokens_match(token, prev, rule)
 
 

@@ -290,8 +290,9 @@ func add_retrigger_value(value: int, source: StringName = &"") -> void:
 	_retrigger_value_contributions[value] = contributions
 
 
-## Pose un bonus flat ajoute au value_sum quand un pattern de rule "family" de
-## cette famille score (ex: "Tickets Hivernal" -> DENIERS). Cumulatif entre badges.
+## Pose un bonus flat ajoute au value_sum par jeton scorable de cette famille
+## present dans un groupe qui score (ex: "Tickets Hivernal" -> DENIERS).
+## Cumulatif entre badges.
 func add_family_score_bonus(family: TokenData.Family, bonus: int, source: StringName = &"") -> void:
 	var contributions: Dictionary = (_family_score_bonus_contributions.get(family, {}) as Dictionary).duplicate()
 	contributions[source] = bonus

@@ -10,6 +10,5 @@ rule = &"family"
 min_size = 4
 direction = &"any"
 score_multiplier = 2.0
-label = "T"
+label = "SMALL T"
 price = 7
-rarity = 0

@@ -6,7 +6,7 @@
 script = ExtResource("1_script")
 id = &"change_epees"
 label = "VERS ÉPÉES"
-description = "Recolore un jeton vers la famille Épées"
-rarity = 0
+description = "Recolore deux jetons sélectionnés vers la famille Épées"
+rarity = 1
 action = 2
 target_family = 2

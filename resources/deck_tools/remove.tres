@@ -7,5 +7,5 @@ script = ExtResource("1_script")
 id = &"remove"
 label = "SUPPRESSION"
 description = "Retire un jeton du deck, jamais remplacé"
-rarity = 2
+rarity = 3
 action = 5

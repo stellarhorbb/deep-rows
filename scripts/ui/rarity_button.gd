@@ -1,11 +1,11 @@
 ## Bouton qui affiche un badge de rarete colore dans son tooltip (voir
 ## RarityTooltip) quand `rarity` est assigne. Utilise partout ou le shop
-## affiche un PatternData/BadgeData au clic/survol (unitaires, packs,
-## selection de Partition de depart).
+## affiche un BadgeData/DeckToolData au clic/survol (unitaires, packs).
 class_name RarityButton
 extends Button
 
-## -1 = pas de rarete connue (Special/Bouton/Des a coudre) -> tooltip texte simple.
+## -1 = pas de rarete connue (Special/Bouton/Partition/selection de Partition
+## de depart) -> tooltip texte simple.
 var rarity: int = -1
 
 

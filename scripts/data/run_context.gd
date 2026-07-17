@@ -58,8 +58,9 @@ extends Resource
 # compter trois fois, voir is_retrigger_value.
 @export var retrigger_value_contributions: Dictionary = {} # value -> {badge_id -> true}
 
-# Bonus flat ajoute au value_sum quand un pattern de rule "family" de cette
-# famille score (ex: DENIERS -> Tickets Hivernal -> 5), keyed. Combine par SOMME.
+# Bonus flat ajoute au value_sum par jeton scorable de cette famille present
+# dans un groupe qui score, peu importe la rule du pattern (ex: DENIERS ->
+# Tickets Hivernal -> 2 par jeton DENIERS), keyed. Combine par SOMME.
 @export var family_score_bonus_contributions: Dictionary = {} # family -> {badge_id -> int}
 
 # Bonus flat ajoute au value_sum quand le groupe qui score contient au moins

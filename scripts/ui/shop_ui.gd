@@ -302,10 +302,10 @@ func _on_target_candidate_pressed(pool_index: int, btn: Button) -> void:
 
 
 ## Une action n'est activable que si le nombre de boutons selectionnes
-## correspond exactement a son besoin (1, ou 2 pour Fusionner) ET que la
-## selection respecte sa contrainte (parite pour Scinder, plafond/plancher
-## pour Augmenter/Reduire, famille differente pour Changer, somme <= 10 pour
-## Fusionner).
+## correspond exactement a son besoin (1, ou 2 pour Fusionner/Changer de
+## famille) ET que la selection respecte sa contrainte (parite pour Scinder,
+## plafond/plancher pour Augmenter/Reduire, famille differente pour Changer
+## (les deux jetons cibles), somme <= 10 pour Fusionner).
 func _refresh_tool_action_states() -> void:
 	var selected_tokens: Array[TokenData] = []
 	for idx in _target_selected_indices:
@@ -328,7 +328,7 @@ func _is_action_applicable(tool: DeckToolData, tokens: Array[TokenData]) -> bool
 		DeckToolData.Action.SPLIT:
 			return tokens[0].value % 2 == 0
 		DeckToolData.Action.CHANGE_FAMILY:
-			return tokens[0].family != tool.target_family
+			return tokens[0].family != tool.target_family and tokens[1].family != tool.target_family
 		DeckToolData.Action.FUSE:
 			return tokens[0].value + tokens[1].value <= GameRules.MAX_BUTTON_VALUE
 		DeckToolData.Action.REMOVE:
@@ -349,6 +349,7 @@ func _on_tool_action_pressed(tool: DeckToolData) -> void:
 			_run_manager.decrease_button_value(_target_selected_indices[0])
 		DeckToolData.Action.CHANGE_FAMILY:
 			_run_manager.change_button_family(_target_selected_indices[0], tool.target_family)
+			_run_manager.change_button_family(_target_selected_indices[1], tool.target_family)
 		DeckToolData.Action.SPLIT:
 			_run_manager.split_button(_target_selected_indices[0])
 		DeckToolData.Action.REMOVE:

@@ -1,19 +1,21 @@
 class_name PatternData
 extends Resource
 
-enum Rarity { COMMON, UNCOMMON, RARE, EPIC }
-
 @export var tag_name: StringName = &""
 @export var shape: StringName = &""       # &"line" | &"square" | &"diamond" | &"plus" | &"cross" | &"ring" | &"t"
-@export var rule: StringName = &""        # &"family" | &"value" | &"suite" | &"rock" | &"rainbow" | &"fibonacci"
+@export var rule: StringName = &""        # &"family" | &"value" | &"suite" | &"rock" | &"rainbow" | &"fibonacci" | &"minima" | &"maxima" | &"prime"
 @export var min_size: int = 3             # 3 pour lignes, 4 pour carres (2x2 = 4 cells)
 @export var direction: StringName = &"any"  # &"horizontal" | &"diagonal" | &"any" (jamais &"vertical")
 @export var score_multiplier: float = 1.0   # Multiplicateur applique au score du groupe
 
 ## Shop
+## Pas de champ rarity (session 19) : contrairement aux Badges (bonus optionnel,
+## rarete = puissance), les Partitions sont la mecanique de resolution elle-meme
+## — les gater par rarete privait le joueur d'une partie du jeu plutot que d'un
+## bonus, a l'encontre du principe "pas de RNG punitif". Tirees uniformement,
+## voir ShopManager._draw_unitaire/open_pack.
 @export var label: String = ""
 @export var price: int = 0
-@export var rarity: Rarity = Rarity.COMMON
 
 
 ## Texte de hover en langage clair, reutilise en jeu (TagsUI) et au shop.
@@ -36,7 +38,10 @@ func describe() -> String:
 		&"suite":  rule_desc = "valeurs consécutives"
 		&"rock":   rule_desc = "autour d'un Rock"
 		&"rainbow":   rule_desc = "toutes familles différentes"
-		&"fibonacci": rule_desc = "suite Fibonacci (1,1,2,3)"
+		&"fibonacci": rule_desc = "suite Fibonacci (1,1,2,3,5,8)"
+		&"minima":    rule_desc = "toutes les valeurs ≤ %d" % GameRules.MINIMA_MAX_VALUE
+		&"maxima":    rule_desc = "toutes les valeurs ≥ %d" % GameRules.MAXIMA_MIN_VALUE
+		&"prime":     rule_desc = "suite de nombres premiers (2,3,5,7)"
 		_:         rule_desc = ""
 
 	var text: String = label

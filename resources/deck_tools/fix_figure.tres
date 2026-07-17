@@ -7,5 +7,5 @@ script = ExtResource("1_script")
 id = &"fix_figure"
 label = "FIXER"
 description = "Verrouille une figure (Valet+) contre toute promotion future, même si elle rescore"
-rarity = 2
+rarity = 1
 action = 6

@@ -6,7 +6,7 @@
 script = ExtResource("1_script")
 id = &"change_deniers"
 label = "VERS DENIERS"
-description = "Recolore un jeton vers la famille Deniers"
-rarity = 0
+description = "Recolore deux jetons sélectionnés vers la famille Deniers"
+rarity = 1
 action = 2
 target_family = 3

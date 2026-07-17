@@ -47,7 +47,6 @@ func _build_cards() -> void:
 		var btn: RarityButton = RarityButton.new()
 		btn.text = candidate.label
 		btn.tooltip_text = candidate.describe()
-		btn.rarity = candidate.rarity
 		btn.custom_minimum_size = Vector2(320.0, 160.0)
 		btn.toggle_mode = true
 		btn.pressed.connect(_on_candidate_pressed.bind(candidate, btn))

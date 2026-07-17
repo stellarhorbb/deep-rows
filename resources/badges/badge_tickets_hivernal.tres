@@ -7,7 +7,7 @@
 script = ExtResource("1_data")
 id = &"tickets_hivernal"
 label = "TICKETS HIVERNAL"
-description = "Ajoute +5 tickets lorsqu'une partition score une famille DENIERS"
+description = "Ajoute +2 tickets lorsqu'un jeton DENIERS score dans une partition"
 trigger = &"on_round_start"
 price = 4
 rarity = 0

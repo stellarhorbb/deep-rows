@@ -167,6 +167,9 @@ func _format_tag_label(tag: PatternData) -> String:
 		&"value":     rule_str = "CASINO"
 		&"rainbow":   rule_str = "RAINBOW"
 		&"fibonacci": rule_str = "FIBO"
+		&"minima":    rule_str = "MINIMA"
+		&"maxima":    rule_str = "MAXIMA"
+		&"prime":     rule_str = "PRIME"
 		_:            rule_str = ""
 
 	# Multiplicateur fixe visible pour toutes les formes, lignes comprises
@@ -233,13 +236,6 @@ func _tooltip_for_position(pos: Vector2) -> String:
 	if tag == null:
 		return ""
 	return tag.describe() + _level_tooltip(tag)
-
-
-func _make_custom_tooltip(for_text: String) -> Object:
-	var tag: PatternData = _tag_at_position(get_local_mouse_position())
-	if tag == null:
-		return null
-	return RarityTooltip.build(for_text, tag.rarity)
 
 
 func _tag_at_position(pos: Vector2) -> PatternData:

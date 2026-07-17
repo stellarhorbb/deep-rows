@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1_script")
-tag_name = &"fibonacci"
+tag_name = &"minima"
 shape = &"line"
-rule = &"fibonacci"
-min_size = 4
+rule = &"minima"
+min_size = 3
 direction = &"any"
-score_multiplier = 2.5
-label = "FIBONACCI"
-price = 14
+score_multiplier = 1.5
+label = "MINIMA"
+price = 6

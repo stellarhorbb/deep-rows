@@ -15,7 +15,7 @@ signal button_purchased(token: TokenData)
 ## square_number.tres reste hors catalogue : l'axe chiffre (session 14) est
 ## volontairement confine a la Ligne, jamais au Carre (voir axes-de-regles.md).
 const TAG_PATHS: Array[String] = [
-	"res://resources/patterns/line_family_3_diagonal.tres",
+	"res://resources/patterns/line_family_3.tres",
 	"res://resources/patterns/square_family.tres",
 	# "res://resources/patterns/square_number.tres",
 	"res://resources/patterns/diamond_rock.tres",
@@ -33,6 +33,9 @@ const TAG_PATHS: Array[String] = [
 	"res://resources/patterns/brelan.tres",
 	"res://resources/patterns/carre_poker.tres",
 	"res://resources/patterns/fibonacci.tres",
+	"res://resources/patterns/minima.tres",
+	"res://resources/patterns/maxima.tres",
+	"res://resources/patterns/prime.tres",
 ]
 
 ## Speciaux achetables (SpecialItem).
@@ -167,10 +170,20 @@ func reroll_unitaires(run_manager: RunManager) -> void:
 	_regenerate_unitaires(run_manager)
 
 
+## Categories tirees sans doublon au sein d'une meme rangee (session 19) —
+## avant, chaque slot tirait sa categorie independamment (randi() % size),
+## donc rien n'empechait de retomber sur "special" sur toute la rangee (voire
+## les deux rangees a la fois). Contraire au principe "pas de RNG punitif"
+## deja applique ailleurs (deck de depart, Entity). Un shuffle plutot qu'une
+## vraie ponderation par progression (piste Balatro evoquee, plus gros
+## chantier) : le nombre de slots par rangee reste toujours <= au nombre de
+## categories, donc jamais besoin de retirage.
 func _regenerate_packs(_run_manager: RunManager) -> void:
 	_pack_slots.clear()
+	var categories: Array[String] = PACK_CATEGORIES.duplicate()
+	categories.shuffle()
 	for i in range(GameRules.SHOP_PACK_SLOT_COUNT):
-		var category: String = PACK_CATEGORIES[randi() % PACK_CATEGORIES.size()]
+		var category: String = categories[i]
 		_pack_slots.append({
 			"format": "pack",
 			"category": category,
@@ -181,8 +194,10 @@ func _regenerate_packs(_run_manager: RunManager) -> void:
 
 func _regenerate_unitaires(run_manager: RunManager) -> void:
 	_unitaire_slots.clear()
+	var categories: Array[String] = UNITAIRE_CATEGORIES.duplicate()
+	categories.shuffle()
 	for i in range(GameRules.SHOP_UNITAIRE_SLOT_COUNT):
-		var category: String = UNITAIRE_CATEGORIES[randi() % UNITAIRE_CATEGORIES.size()]
+		var category: String = categories[i]
 		var slot: Dictionary = _build_unitaire_slot(category, run_manager)
 		if not slot.is_empty():
 			_unitaire_slots.append(slot)
@@ -210,8 +225,10 @@ func _pack_price(category: String) -> int:
 func _draw_unitaire(category: String, run_manager: RunManager) -> Variant:
 	match category:
 		"tag":
+			# Tirage uniforme (session 19) : les Partitions n'ont plus de rarite,
+			# voir PatternData pour le raisonnement.
 			var pool: Array[PatternData] = _available_tags(run_manager)
-			return _weighted_pick(pool)
+			return pool[randi() % pool.size()] if not pool.is_empty() else null
 		"badge":
 			var pool: Array[BadgeData] = _available_badges(run_manager)
 			return _weighted_pick(pool)
@@ -223,8 +240,9 @@ func _draw_unitaire(category: String, run_manager: RunManager) -> Variant:
 
 
 ## Tirage pondere par rarete (GameRules.RARITY_WEIGHTS). Marche sur n'importe
-## quel pool de Resource exposant un champ "rarity" (PatternData, BadgeData) —
-## Speciaux et boutons n'en ont pas, ils restent tires uniformement ailleurs.
+## quel pool de Resource exposant un champ "rarity" (BadgeData, DeckToolData) —
+## Speciaux, Boutons et Partitions n'en ont pas, ils restent tires uniformement
+## ailleurs (session 19 pour les Partitions, voir PatternData).
 static func _weighted_pick(pool: Array) -> Variant:
 	if pool.is_empty():
 		return null
@@ -321,11 +339,10 @@ static func get_description(item: Variant) -> String:
 	return ""
 
 
-## Retourne la rarete d'un item, -1 si le type n'en a pas (Special, Bouton) —
-## RarityButton retombe alors sur le tooltip texte simple.
+## Retourne la rarete d'un item, -1 si le type n'en a pas (Special, Bouton,
+## Partition depuis la session 19) — RarityButton retombe alors sur le
+## tooltip texte simple.
 static func get_rarity(item: Variant) -> int:
-	if item is PatternData:
-		return (item as PatternData).rarity
 	if item is BadgeData:
 		return (item as BadgeData).rarity
 	if item is DeckToolData:
@@ -423,8 +440,10 @@ func open_pack(slot: Dictionary, run_manager: RunManager) -> Array:
 	var size: int = slot["size"] as int
 	match category:
 		"tag":
+			# Tirage uniforme (session 19), meme raisonnement que _draw_unitaire.
 			var pool: Array[PatternData] = _available_tags(run_manager)
-			return _weighted_sample(pool, size)
+			pool.shuffle()
+			return pool.slice(0, min(size, pool.size()))
 		"badge":
 			var pool: Array[BadgeData] = _available_badges(run_manager)
 			return _weighted_sample(pool, size)
