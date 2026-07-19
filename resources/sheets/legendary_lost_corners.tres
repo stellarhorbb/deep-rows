@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SheetData" format=3 uid="uid://ds20wmgeya5h7"]
+
+[ext_resource type="Script" uid="uid://k37ydar6rjlo" path="res://scripts/data/sheet_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+sheet_name = &"lost_corners"
+shape = &"corners"
+rule = &"family"
+min_size = 2
+is_legendary = true
+label = "LOST CORNERS"
+price = 20

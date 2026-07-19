@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SheetData" format=3 uid="uid://bnsikkdikv6xt"]
+
+[ext_resource type="Script" uid="uid://k37ydar6rjlo" path="res://scripts/data/sheet_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+sheet_name = &"square_rainbow"
+shape = &"square"
+rule = &"rainbow"
+min_size = 4
+score_multiplier = 1.0
+label = "SQUARE RAINBOW"
+price = 12

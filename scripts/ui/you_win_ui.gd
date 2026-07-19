@@ -22,14 +22,19 @@ func _ready() -> void:
 
 
 ## base : mouches fixes de la manche (GameRules.FLIES_PER_ROUND_WON).
+## starter_pack_name/starter_bonus : bonus permanent du pack de demarrage
+## (ex: Le Genereux, +2 mouches/manche, voir RunManager.get_flies_per_round_bonus)
+## affiche a part de la base pour que le joueur voie d'ou vient le bonus.
 ## token_bonus : bonus jetons restants (0 si aucun palier atteint, voir
 ## GameRules.get_round_end_flies_bonus). badge_breakdown : {label_badge:
 ## mouches} venu de BadgeManager.dispatch_round_end(). Affiche le detail et
 ## n'ecrase la main qu'une fois "ENCAISSER" clique.
-func show_reward(base: int, token_bonus: int, badge_breakdown: Dictionary) -> void:
+func show_reward(base: int, starter_pack_name: String, starter_bonus: int, token_bonus: int, badge_breakdown: Dictionary) -> void:
 	_base_label.text = "BASE : +%d" % base
 
 	var bonus_lines: Array[String] = []
+	if starter_bonus > 0:
+		bonus_lines.append("%s : +%d" % [starter_pack_name.to_upper(), starter_bonus])
 	if token_bonus > 0:
 		bonus_lines.append("JETONS RESTANTS : +%d" % token_bonus)
 	for badge_label in badge_breakdown:
@@ -44,7 +49,7 @@ func show_reward(base: int, token_bonus: int, badge_breakdown: Dictionary) -> vo
 	var badge_total: int = 0
 	for amount in badge_breakdown.values():
 		badge_total += amount as int
-	_total_label.text = "TOTAL : +%d MOUCHES" % (base + token_bonus + badge_total)
+	_total_label.text = "TOTAL : +%d MOUCHES" % (base + starter_bonus + token_bonus + badge_total)
 
 	visible = true
 	await collected

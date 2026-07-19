@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://rwq173kof16d"]
 
 [ext_resource type="Script" uid="uid://dpielxromhgls" path="res://scripts/core/shell.gd" id="1_shell"]
-[ext_resource type="Script" uid="uid://dml5e5e5qgsdp" path="res://scripts/ui/tags_ui.gd" id="2_tags"]
+[ext_resource type="Script" uid="uid://dml5e5e5qgsdp" path="res://scripts/ui/sheets_ui.gd" id="2_sheets"]
 [ext_resource type="Script" uid="uid://d2v6eujd02dg1" path="res://scripts/ui/badges_ui.gd" id="3_badges"]
 [ext_resource type="Script" uid="uid://8wuxu3ia4mw3" path="res://scripts/ui/deck_inspector_ui.gd" id="4_deck_inspector"]
 
@@ -19,14 +19,14 @@ offset_right = 1920.0
 offset_bottom = 1080.0
 mouse_filter = 2
 
-[node name="TagsUI" type="Control" parent="." unique_id=694024264]
+[node name="SheetsUI" type="Control" parent="." unique_id=694024264]
 anchors_preset = 0
 offset_left = 30.0
 offset_top = 160.0
 offset_right = 300.0
 offset_bottom = 440.0
 mouse_filter = 1
-script = ExtResource("2_tags")
+script = ExtResource("2_sheets")
 
 [node name="BadgesUI" type="Control" parent="." unique_id=1248195380]
 anchors_preset = 0

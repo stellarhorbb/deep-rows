@@ -66,8 +66,8 @@ const BIOME_BACKGROUND_COLORS: Array[Color] = [
 	Color("d6d6da"), # Vide (mode infini) — gris
 ]
 
-# Pattern tags
-const MAX_PATTERN_SLOTS: int = 4
+# Sheets
+const MAX_SHEET_SLOTS: int = 4
 
 # Vente de Partitions/Badges — pourcentage du prix d'achat rembourse
 const SELL_REFUND_RATIO: float = 0.5
@@ -124,7 +124,7 @@ const FAMILY_COUNT: int = 4
 ## etendue session 19) — n'importe quelle fenetre de FIBONACCI_WINDOW_SIZE
 ## valeurs consecutives de cette suite matche (1,1,2,3 / 1,2,3,5 / 2,3,5,8),
 ## pas seulement les 4 premiers termes. Dans un sens ou dans l'autre le long
-## de la ligne (voir PatternMatcher.find_fibonacci).
+## de la ligne (voir SheetMatcher.find_fibonacci).
 const FIBONACCI_SEQUENCE: Array[int] = [1, 1, 2, 3, 5, 8]
 const FIBONACCI_WINDOW_SIZE: int = 4
 
@@ -148,9 +148,38 @@ const PRIME_MIN_WINDOW: int = 3
 ## avec seulement DECK_ROCK_COUNT rocks dans tout le deck, ce pattern ne se
 ## declenche quasiment qu'une fois par run : le roll garantit un plancher
 ## correct independamment de la valeur (chanceuse ou non) du jeton central,
-## et ajoute un moment casino avant que le multiplicateur du tag s'applique.
+## et ajoute un moment casino avant que le multiplicateur du sheet s'applique.
 const DIAMOND_ROCK_ROLL_MIN: int = 1
 const DIAMOND_ROCK_ROLL_MAX: int = 5
+
+## Partitions legendaires (session 20) — petit pool a part de 3 ressources
+## (Lost Corners, Royal Square, Last Trick), jamais dans le tirage uniforme
+## normal (voir ShopManager.LEGENDARY_SHEET_PATHS). Chance independante par
+## slot "sheet" (unitaire ou candidat de pack) qu'il s'agisse d'une legendaire
+## plutot qu'un tirage normal — additif, ne retire jamais de chances au pool
+## de base. Effets codes en dur par sheet_name dans CascadeResolver/
+## SheetMatcher, pas de systeme d'effets generique (voir SheetData.is_legendary).
+const LEGENDARY_SHEET_CHANCE: float = 0.05
+
+## Royal Square (Carre 2x2 famille) : le multiplicateur EST le roll, pas un
+## bonus ajoute a autre chose (contrairement au roll de Diamond Rock) — flat,
+## ne level up jamais.
+const ROYAL_SQUARE_ROLL_MIN: int = 1
+const ROYAL_SQUARE_ROLL_MAX: int = 20
+
+## Last Trick (Losange famille) : le centre (jamais requis par le match, voir
+## SheetMatcher.find_diamonds) se transforme en jeton de cette valeur, AJOUTE
+## DEFINITIVEMENT au pool possede (voir RunManager.add_button, appele par
+## TurnController sur EventType.TRANSFORM) — un vrai moteur de deck-building,
+## pas juste un coup de pouce pour la manche en cours. Plafonne a 9, pas
+## MAX_BUTTON_VALUE (10) : le vrai plafond du jeu reste un objectif merite via
+## les Des a coudre (Augmenter/Fusionner), pas court-circuite gratuitement.
+## Vu la frequence de Diamond+famille en jeu, LAST_TRICK_TRIGGER_CHANCE limite
+## l'effet a une manche sur N plutot qu'un tirage a chaque match (retour de
+## playtest session 20 : sans ca, un moteur permanent qui se declenche a
+## chaque fois est too much).
+const LAST_TRICK_VALUE: int = 9
+const LAST_TRICK_TRIGGER_CHANCE: float = 0.25
 
 ## Poids de tirage par rarete au shop (unitaires + packs, Badges et Des a
 ## coudre uniquement — Speciaux, Boutons et Partitions n'ont pas de champ
@@ -234,6 +263,20 @@ const DEBUG_SHOW_TOKEN_VALUE: bool = true
 const SHOP_PACK_SLOT_COUNT: int = 2
 const SHOP_UNITAIRE_SLOT_COUNT: int = 2
 
+# Poids de tirage par categorie de slot (session 20) — remplace le shuffle
+# uniforme (chaque categorie avait les memes chances). Retour de playtest :
+# Partitions et Packs de jetons simples revenaient trop souvent (Partitions
+# deja au max niveau, Boutons supplementaires rendent le deck trop facile a
+# vider) — rendus 2x plus rares que la base, Speciaux 2x plus frequents.
+# Meme mecanisme que RARITY_WEIGHTS mais applique aux categories de slot.
+const CATEGORY_WEIGHTS: Dictionary = {
+	"sheet": 0.5,
+	"badge": 1.0,
+	"special": 2.0,
+	"button": 0.5,
+	"des_a_coudre": 1.0,
+}
+
 # Taille des packs a l'ouverture (candidats reveles, le joueur en garde 1).
 # Exception boutons (5) deja actee dans le GDD : plus nombreux, individuellement
 # moins determinants qu'une Partition ou un Badge.
@@ -242,7 +285,7 @@ const PACK_SIZE_BUTTON: int = 5
 
 # Prix des packs par categorie — plus cher qu'un unitaire equivalent mais
 # meilleur ratio par item (voir docs/gdd/shop/economie.md). Premiers jets.
-const PACK_PRICE_TAG: int = 8
+const PACK_PRICE_SHEET: int = 8
 const PACK_PRICE_BADGE: int = 6
 const PACK_PRICE_SPECIAL: int = 4
 const PACK_PRICE_BUTTON: int = 4
@@ -268,43 +311,43 @@ const REROLL_INCREMENT: int = 1
 
 # Level up des Partitions — regles generiques, identiques pour toutes.
 # Seuils de score cumule pour passer au niveau suivant (1->2, 2->3, 3->4, 4->5).
-const PATTERN_LEVEL_THRESHOLDS: Array[int] = [150, 500, 1100, 2200]
+const SHEET_LEVEL_THRESHOLDS: Array[int] = [150, 500, 1100, 2200]
 # Multiplicateur applique au score selon le niveau (index 0 = niveau 1).
-const PATTERN_LEVEL_MULTIPLIERS: Array[float] = [1.0, 1.25, 1.5, 1.75, 2.0]
-const PATTERN_LEVEL_NAMES: Array[String] = ["Pianissimo", "Piano", "Forte", "Fortissimo", "Maestro"]
+const SHEET_LEVEL_MULTIPLIERS: Array[float] = [1.0, 1.25, 1.5, 1.75, 2.0]
+const SHEET_LEVEL_NAMES: Array[String] = ["Pianissimo", "Piano", "Forte", "Fortissimo", "Maestro"]
 
 
 ## Calcule le niveau (1 a 5) a partir du score cumule sur une Partition.
-static func compute_pattern_level(cumulative_score: int) -> int:
+static func compute_sheet_level(cumulative_score: int) -> int:
 	var level: int = 1
-	for threshold in PATTERN_LEVEL_THRESHOLDS:
+	for threshold in SHEET_LEVEL_THRESHOLDS:
 		if cumulative_score >= threshold:
 			level += 1
 	return level
 
 
-static func get_pattern_level_multiplier(level: int) -> float:
-	var idx: int = clampi(level - 1, 0, PATTERN_LEVEL_MULTIPLIERS.size() - 1)
-	return PATTERN_LEVEL_MULTIPLIERS[idx]
+static func get_sheet_level_multiplier(level: int) -> float:
+	var idx: int = clampi(level - 1, 0, SHEET_LEVEL_MULTIPLIERS.size() - 1)
+	return SHEET_LEVEL_MULTIPLIERS[idx]
 
 
-static func get_pattern_level_name(level: int) -> String:
-	var idx: int = clampi(level - 1, 0, PATTERN_LEVEL_NAMES.size() - 1)
-	return PATTERN_LEVEL_NAMES[idx]
+static func get_sheet_level_name(level: int) -> String:
+	var idx: int = clampi(level - 1, 0, SHEET_LEVEL_NAMES.size() - 1)
+	return SHEET_LEVEL_NAMES[idx]
 
 
 ## Score cumule requis pour atteindre le PROCHAIN niveau. -1 si deja au max.
-static func get_next_pattern_threshold(level: int) -> int:
-	if level - 1 >= PATTERN_LEVEL_THRESHOLDS.size():
+static func get_next_sheet_threshold(level: int) -> int:
+	if level - 1 >= SHEET_LEVEL_THRESHOLDS.size():
 		return -1
-	return PATTERN_LEVEL_THRESHOLDS[level - 1]
+	return SHEET_LEVEL_THRESHOLDS[level - 1]
 
 
 ## Score cumule qui a fait passer au niveau ACTUEL (0 pour le niveau 1).
-static func get_previous_pattern_threshold(level: int) -> int:
+static func get_previous_sheet_threshold(level: int) -> int:
 	if level <= 1:
 		return 0
-	return PATTERN_LEVEL_THRESHOLDS[level - 2]
+	return SHEET_LEVEL_THRESHOLDS[level - 2]
 
 
 static func get_modifier_multiplier(type: StringName) -> float:

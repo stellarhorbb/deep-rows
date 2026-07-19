@@ -37,16 +37,16 @@ Objectif : donner envie de TOUT essayer (complétionniste), pas juste de trouver
 
 ## V1 — premier jet, trop orienté malus (à ne pas reprendre tel quel)
 
-| Pack | Deck | Modificateur | Partitions fixes | Feel |
-|---|---|---|---|---|
-| Le Somnambule | défaut | Pas de slot de hold | Line 3 + Brelan | Aucun filet, décisions à vif |
-| Le Bâtisseur | défaut | Rocks ×2 | Diamond Rock + Square Family | Grille encombrée, placement patient |
-| Le Joueur | défaut | 3 spéciaux garantis | Suite + Line 4 | Tactique dès le premier coup |
-| L'Étroit | slim | Grille -1 colonne | Line 5 + Plus | Chaque coup compte, tension tôt |
-| Le Généreux | défaut | +10 mouches | Diamond Family + Fibonacci | Longueur d'avance au shop |
-| L'Assiégé | défaut | Grille -2 colonnes + Entity plus fréquente | Cross + Suite | Pression constante |
-| Le Spéculateur | quelques 8-9-10 pré-fusionnés | défaut | Maxima + Carré | Accès immédiat au haut de l'échelle |
-| Le Prudent | fat | +1 spécial | Square Rainbow + Minima | Beaucoup de tentatives, double filet |
+| Pack           | Deck                          | Modificateur                               | Partitions fixes             | Feel                                 |
+| -------------- | ----------------------------- | ------------------------------------------ | ---------------------------- | ------------------------------------ |
+| Le Somnambule  | défaut                        | Pas de slot de hold                        | Line 3 + Brelan              | Aucun filet, décisions à vif         |
+| Le Bâtisseur   | défaut                        | Rocks ×2                                   | Diamond Rock + Square Family | Grille encombrée, placement patient  |
+| Le Joueur      | défaut                        | 3 spéciaux garantis                        | Suite + Line 4               | Tactique dès le premier coup         |
+| L'Étroit       | slim                          | Grille -1 colonne                          | Line 5 + Plus                | Chaque coup compte, tension tôt      |
+| Le Généreux    | défaut                        | +10 mouches                                | Diamond Family + Fibonacci   | Longueur d'avance au shop            |
+| L'Assiégé      | défaut                        | Grille -2 colonnes + Entity plus fréquente | Cross + Suite                | Pression constante                   |
+| Le Spéculateur | quelques 8-9-10 pré-fusionnés | défaut                                     | Maxima + Carré               | Accès immédiat au haut de l'échelle  |
+| Le Prudent     | fat                           | +1 spécial                                 | Square Rainbow + Minima      | Beaucoup de tentatives, double filet |
 
 Verdict après relecture : 6 malus pour 2 bonus francs, trop orienté hard-mode. Repris en V2.
 
@@ -76,18 +76,18 @@ Un ajustement final : Le Collectionneur utilisait Brelan comme Le Simplet (nouve
 
 **Contrepartie ajoutée après premier playtest** — retour du user dès les premiers essais : Prévoyant et Collectionneur, en +1 slot sec sans rien en face, étaient des choix strictement dominants plutôt qu'une identité de build. Chacun gagne une contrepartie sur un levier propre à Deep Rows (jamais l'économie), et volontairement distincte des combos déjà réservés ailleurs dans le roster (0 hold est la contrepartie de Risque-Tout, grille -1 colonne celle de Fortifié) : Prévoyant perd 1 de preview (anticipation contre filet de stockage), Collectionneur gagne 2 rocks dans le deck (build plus large contre grille plus encombrée).
 
-| Pack | Statut | Modificateur | Partitions fixes |
-|---|---|---|---|
-| Le Simplet | **Day-one** | Aucun (deck/règles par défaut) | Line 3 + Brelan |
-| Le Généreux | **Day-one** | +2 mouches par manche gagnée | Diamond + Fibonacci |
-| Le Prévoyant | **Day-one** | +1 slot de hold, preview -1 (2 au lieu de 3) | Line 4 + Suite |
-| Le Collectionneur | **Day-one** | +1 emplacement de Badge, +2 rocks dans le deck | Square + Prime |
-| Le Clairvoyant | À débloquer | Preview à 4 | Line 5 + Carré |
-| Le Marchand | À débloquer | 1er reroll gratuit | Square Rainbow + Minima |
-| Le Dégagé | À débloquer — vecteur **Plus** | -2 rocks | Line 4 Rainbow + Plus |
-| Le Risque-Tout | À débloquer — vecteur **Ring** | +1 slot de Badge, 0 slot de hold | Brelan + Ring |
-| Le Fortifié | À débloquer — vecteur **Cross + Diamond Rock** | Grille -1 colonne, 2 spéciaux garantis | Cross + Diamond Rock |
-| L'Ermite | À débloquer — vecteur **Maxima** | Aucun rock dans le deck | T Family + Maxima |
+| Pack              | Statut                                         | Modificateur                                   | Partitions fixes        |
+| ----------------- | ---------------------------------------------- | ---------------------------------------------- | ----------------------- |
+| Le Simplet        | **Day-one**                                    | Aucun (deck/règles par défaut)                 | Line 3 + Brelan         |
+| Le Généreux       | **Day-one**                                    | +2 mouches par manche gagnée                   | Diamond + Fibonacci     |
+| Le Prévoyant      | **Day-one**                                    | +1 slot de hold, preview -1 (2 au lieu de 3)   | Line 4 + Suite          |
+| Le Collectionneur | **Day-one**                                    | +1 emplacement de Badge, +2 rocks dans le deck | Square + Prime          |
+| Le Clairvoyant    | À débloquer                                    | Preview à 4                                    | Line 5 + Carré          |
+| Le Marchand       | À débloquer                                    | 1er reroll gratuit                             | Square Rainbow + Minima |
+| Le Dégagé         | À débloquer — vecteur **Plus**                 | -2 rocks                                       | Line 4 Rainbow + Plus   |
+| Le Risque-Tout    | À débloquer — vecteur **Ring**                 | +1 slot de Badge, 0 slot de hold               | Brelan + Ring           |
+| Le Fortifié       | À débloquer — vecteur **Cross + Diamond Rock** | Grille -1 colonne, 2 spéciaux garantis         | Cross + Diamond Rock    |
+| L'Ermite          | À débloquer — vecteur **Maxima**               | Aucun rock dans le deck                        | T Family + Maxima       |
 
 Reste ouvert : les conditions de déblocage précises (Découverte ou biome) pour les 6 packs à débloquer — voir [Questions ouvertes](../gdd/meta/questions-ouvertes.md).
 

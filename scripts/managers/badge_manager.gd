@@ -27,12 +27,12 @@ func bind_round(turn_controller: TurnController) -> void:
 	turn_controller.turn_resolved.connect(_on_turn_resolved)
 	turn_controller.last_breath_started.connect(_on_last_breath)
 
-	# tag_leveled_up/button_pool_changed vivent sur RunManager (persistant toute
+	# sheet_leveled_up/button_pool_changed vivent sur RunManager (persistant toute
 	# la run), pas sur TurnController (recree chaque manche) — se connecter ici
 	# quand meme (garde is_connected) pour rester au meme endroit que le reste
 	# du cablage, sans dupliquer la connexion a chaque nouvelle manche.
-	if not run_manager.tag_leveled_up.is_connected(_on_tag_leveled_up):
-		run_manager.tag_leveled_up.connect(_on_tag_leveled_up)
+	if not run_manager.sheet_leveled_up.is_connected(_on_sheet_leveled_up):
+		run_manager.sheet_leveled_up.connect(_on_sheet_leveled_up)
 	if not run_manager.button_pool_changed.is_connected(_on_button_pool_changed):
 		run_manager.button_pool_changed.connect(_on_button_pool_changed)
 	_last_button_pool_size = run_manager.get_button_pool().size()
@@ -69,8 +69,8 @@ func _on_last_breath() -> void:
 ## Level up d'une Partition (score cumule qui franchit un palier) — declenche
 ## en cours de manche, pas seulement au round_start (ex: "Mouche mélomane",
 ## "Escalade musicale", "Amélioration continue").
-func _on_tag_leveled_up(tag_name: StringName, new_level: int) -> void:
-	_dispatch(&"on_level_up", {"tag_name": tag_name, "new_level": new_level})
+func _on_sheet_leveled_up(sheet_name: StringName, new_level: int) -> void:
+	_dispatch(&"on_level_up", {"sheet_name": sheet_name, "new_level": new_level})
 
 
 ## Le pool de boutons vient de changer (achat, scission, fusion, vente...).

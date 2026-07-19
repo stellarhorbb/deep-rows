@@ -191,6 +191,9 @@ func play_timeline(timeline: Array[Dictionary]) -> void:
 		elif event_type == CascadeResolver.EventType.ROCKIFY:
 			await _animate_rockify(event)
 
+		elif event_type == CascadeResolver.EventType.TRANSFORM:
+			await _animate_transform(event)
+
 		elif event_type == CascadeResolver.EventType.GRAVITY:
 			await _animate_gravity(event)
 
@@ -363,10 +366,11 @@ func _animate_match(event: Dictionary) -> void:
 			var breakdown: Dictionary = group.get("score_breakdown", {}) as Dictionary
 			if group_score <= 0 or breakdown.is_empty():
 				continue
-			# Diamond Rock : petite roulette casino avant le detail du score
-			# (voir CascadeResolver._score_group — breakdown.roll).
+			# Diamond Rock/legendaires (Royal Square) : petite roulette casino
+			# avant le detail du score (voir CascadeResolver._score_group —
+			# breakdown.roll/roll_min/roll_max, la plage varie selon le sheet).
 			if breakdown.has("roll"):
-				await resolution_banner.play_roll_announcement(breakdown["roll"] as int, GameRules.DIAMOND_ROCK_ROLL_MIN, GameRules.DIAMOND_ROCK_ROLL_MAX)
+				await resolution_banner.play_roll_announcement(breakdown["roll"] as int, breakdown["roll_min"] as int, breakdown["roll_max"] as int)
 			await resolution_banner.play_breakdown(breakdown, group_score, badges_ui)
 			group_score_revealed.emit(group_score)
 
@@ -437,6 +441,31 @@ func _animate_rockify(event: Dictionary) -> void:
 	for cell_key in cells:
 		var cell: Vector2i = cell_key as Vector2i
 		replace_sprite(cell, TokenData.make_rock())
+
+	await get_tree().create_timer(rockify_pause).timeout
+
+
+## Anime le centre d'un Diamond "Last Trick" (legendaire) qui se transforme en
+## jeton LAST_TRICK_VALUE de sa famille au lieu de disparaitre normalement —
+## meme squelette que _animate_rockify (flash puis swap de sprite).
+func _animate_transform(event: Dictionary) -> void:
+	var transforms: Array = event.get("transforms", []) as Array
+	if transforms.is_empty():
+		return
+
+	for entry in transforms:
+		var data: Dictionary = entry as Dictionary
+		var cell: Vector2i = data["cell"] as Vector2i
+		if _token_sprites.has(cell):
+			(_token_sprites[cell] as Sprite2D).modulate = Color(1.0, 0.9, 0.4, 1.0)
+
+	await get_tree().create_timer(rockify_flash_duration).timeout
+
+	for entry in transforms:
+		var data: Dictionary = entry as Dictionary
+		var cell: Vector2i = data["cell"] as Vector2i
+		var family: TokenData.Family = data["family"] as TokenData.Family
+		replace_sprite(cell, TokenData.make_base(family, GameRules.LAST_TRICK_VALUE))
 
 	await get_tree().create_timer(rockify_pause).timeout
 

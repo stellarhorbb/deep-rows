@@ -1,7 +1,7 @@
-class_name PatternMatcher
+class_name SheetMatcher
 
 ## Axes de recherche avec leur label de direction.
-## Vertical est inclus pour la completude du scan, mais aucun tag ne le cible.
+## Vertical est inclus pour la completude du scan, mais aucun sheet ne le cible.
 const AXES: Array = [
 	[Vector2i(1, 0),  &"horizontal"],
 	[Vector2i(0, 1),  &"vertical"],
@@ -371,6 +371,33 @@ static func find_diamonds(grid: Array, cols: int, rows: int) -> Array[Dictionary
 	return results
 
 
+## Trouve les 2 coins inferieurs de la grille s'ils sont scorables et de meme
+## famille (legendaire "Lost Corners", session 20). Row 0 = bas logique, meme
+## convention que le reste du fichier (voir find_diamonds). Contrairement a
+## toutes les autres formes, taille fixe a 2 cellules — le trigger reste facile
+## a declencher volontairement : la puissance de cette legendaire vient de son
+## multiplicateur dynamique (somme de la ligne du bas, voir CascadeResolver),
+## pas de la difficulte de la figure.
+## Retourne : [{ "cells": Array[Vector2i] (2), "match_rule": &"family",
+##               "shape": &"corners", "direction": &"any" }]
+static func find_bottom_corners(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	var bottom_row: int = 0
+	var left: TokenData = grid[0][bottom_row] as TokenData
+	var right: TokenData = grid[cols - 1][bottom_row] as TokenData
+	if left == null or not left.is_scorable():
+		return []
+	if right == null or not right.is_scorable():
+		return []
+	if left.family != right.family:
+		return []
+	return [{
+		"cells": [Vector2i(0, bottom_row), Vector2i(cols - 1, bottom_row)],
+		"match_rule": &"family",
+		"shape": &"corners",
+		"direction": &"any",
+	}]
+
+
 ## Trouve les Rainbow de Ligne : exactement FAMILY_COUNT jetons consecutifs
 ## sur un axe, tous de familles differentes. Fenetre fixe (pas d'extension
 ## incrementale comme find_lines) car la taille est plafonnee par le nombre
@@ -489,8 +516,8 @@ static func find_primes(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
 	return _find_sequence_matches(grid, cols, rows, windows, &"prime")
 
 
-## Trouve tous les groupes et filtre par les Pattern Tags equipes.
-## Un groupe passe si au moins un tag matche : shape + rule + min_size + direction.
+## Trouve tous les groupes et filtre par les Sheets equipees.
+## Un groupe passe si au moins un sheet matche : shape + rule + min_size + direction.
 static func find_all(grid: Array, cols: int, rows: int, context: RunContext) -> Array[Dictionary]:
 	var all_groups: Array[Dictionary] = []
 	all_groups.append_array(find_lines(grid, cols, rows))
@@ -503,27 +530,39 @@ static func find_all(grid: Array, cols: int, rows: int, context: RunContext) -> 
 	all_groups.append_array(find_line_rainbow(grid, cols, rows))
 	all_groups.append_array(find_fibonacci(grid, cols, rows))
 	all_groups.append_array(find_primes(grid, cols, rows))
+	all_groups.append_array(find_bottom_corners(grid, cols, rows))
+
+	# Legendaires en premier (session 20) : quand un sheet legendaire partage
+	# exactement le meme shape+rule qu'un sheet de base (ex: Royal Square et
+	# Square Family, tous deux square+family), le "break" ci-dessous ne doit
+	# jamais dependre de l'ordre d'equipement des slots — la legendaire doit
+	# toujours capter son propre match. sort_custom est stable, l'ordre relatif
+	# entre deux legendaires (ou deux sheets normaux) ne change pas.
+	var equipped_sheets: Array[SheetData] = context.equipped_sheets.duplicate()
+	equipped_sheets.sort_custom(func(a: SheetData, b: SheetData) -> bool:
+		return a.is_legendary and not b.is_legendary
+	)
 
 	var filtered: Array[Dictionary] = []
 	for group in all_groups:
 		var cell_count: int = (group["cells"] as Array).size()
 		var group_dir: StringName = group.get("direction", &"any")
 
-		for tag in context.equipped_tags:
-			if tag.shape != group["shape"]:
+		for sheet in equipped_sheets:
+			if sheet.shape != group["shape"]:
 				continue
-			if tag.rule != group["match_rule"]:
+			if sheet.rule != group["match_rule"]:
 				continue
-			if cell_count < tag.min_size:
+			if cell_count < sheet.min_size:
 				continue
-			# Direction : &"any" cote tag = accepte tout.
+			# Direction : &"any" cote sheet = accepte tout.
 			# Sinon les directions doivent correspondre.
-			if tag.direction != &"any" and group_dir != &"any" and tag.direction != group_dir:
+			if sheet.direction != &"any" and group_dir != &"any" and sheet.direction != group_dir:
 				continue
-			# Enrichir le groupe avec les infos du tag qui l'a valide
+			# Enrichir le groupe avec les infos du sheet qui l'a valide
 			var enriched: Dictionary = group.duplicate()
-			enriched["score_multiplier"] = tag.score_multiplier
-			enriched["tag_name"] = tag.tag_name
+			enriched["score_multiplier"] = sheet.score_multiplier
+			enriched["sheet_name"] = sheet.sheet_name
 			filtered.append(enriched)
 			break
 

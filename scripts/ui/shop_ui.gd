@@ -67,6 +67,11 @@ func _ready() -> void:
 	pack_panel.item_chosen.connect(_on_pack_item_chosen)
 	target_close_button.pressed.connect(_on_target_close_pressed)
 
+	# Le deck (apercu prochaine manche) reste consultable au shop, y compris
+	# pendant l'ouverture d'un pack (voir DeckInspectorUI.run_manager) — pour
+	# que le joueur puisse acheter en connaissance de cause.
+	SceneRouter.shell.deck_button.disabled = false
+
 	_reroll_count = 0
 	_free_reroll_available = _run_manager.has_badge(&"econome")
 	_shop_manager.regenerate_offer(_run_manager)
@@ -154,7 +159,7 @@ func _make_unitaire_button(entry: Dictionary) -> Button:
 
 func _category_label(category: String) -> String:
 	match category:
-		"tag": return "PARTITION"
+		"sheet": return "PARTITION"
 		"badge": return "BADGE"
 		"special": return "SPÉCIAL"
 		"button": return "BOUTON"

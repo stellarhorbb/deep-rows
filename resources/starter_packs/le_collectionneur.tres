@@ -1,14 +1,14 @@
 [gd_resource type="Resource" script_class="StarterPackData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/starter_pack_data.gd" id="1_script"]
-[ext_resource type="Resource" path="res://resources/patterns/square_family.tres" id="2_tag_a"]
-[ext_resource type="Resource" path="res://resources/patterns/prime.tres" id="3_tag_b"]
+[ext_resource type="Resource" path="res://resources/sheets/square_family.tres" id="2_sheet_a"]
+[ext_resource type="Resource" path="res://resources/sheets/prime.tres" id="3_sheet_b"]
 
 [resource]
 script = ExtResource("1_script")
 pack_name = "Le Collectionneur"
 description = "+1 emplacement de Badge, mais +2 rocks dans le deck."
-fixed_tag_a = ExtResource("2_tag_a")
-fixed_tag_b = ExtResource("3_tag_b")
+fixed_sheet_a = ExtResource("2_sheet_a")
+fixed_sheet_b = ExtResource("3_sheet_b")
 badge_slot_bonus = 1
 rock_count_bonus = 2

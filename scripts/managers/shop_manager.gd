@@ -11,31 +11,41 @@ signal purchased(item: Resource)
 signal purchase_failed(item: Resource)
 signal button_purchased(token: TokenData)
 
-## Tags achetables (PatternData avec label + price).
+## Sheets achetables (SheetData avec label + price).
 ## square_number.tres reste hors catalogue : l'axe chiffre (session 14) est
 ## volontairement confine a la Ligne, jamais au Carre (voir axes-de-regles.md).
-const TAG_PATHS: Array[String] = [
-	"res://resources/patterns/line_family_3.tres",
-	"res://resources/patterns/square_family.tres",
-	# "res://resources/patterns/square_number.tres",
-	"res://resources/patterns/diamond_rock.tres",
-	"res://resources/patterns/line_family_4.tres",
-	"res://resources/patterns/line_family_5.tres",
-	"res://resources/patterns/diamond_family.tres",
-	"res://resources/patterns/plus_family.tres",
-	"res://resources/patterns/cross_family.tres",
-	"res://resources/patterns/ring_family.tres",
-	"res://resources/patterns/t_family.tres",
-	"res://resources/patterns/square_rainbow.tres",
-	"res://resources/patterns/diamond_rainbow.tres",
-	"res://resources/patterns/line_4_rainbow.tres",
-	"res://resources/patterns/suite.tres",
-	"res://resources/patterns/brelan.tres",
-	"res://resources/patterns/carre_poker.tres",
-	"res://resources/patterns/fibonacci.tres",
-	"res://resources/patterns/minima.tres",
-	"res://resources/patterns/maxima.tres",
-	"res://resources/patterns/prime.tres",
+const SHEET_PATHS: Array[String] = [
+	"res://resources/sheets/line_family_3.tres",
+	"res://resources/sheets/square_family.tres",
+	# "res://resources/sheets/square_number.tres",
+	"res://resources/sheets/diamond_rock.tres",
+	"res://resources/sheets/line_family_4.tres",
+	"res://resources/sheets/line_family_5.tres",
+	"res://resources/sheets/diamond_family.tres",
+	"res://resources/sheets/plus_family.tres",
+	"res://resources/sheets/cross_family.tres",
+	"res://resources/sheets/ring_family.tres",
+	"res://resources/sheets/t_family.tres",
+	"res://resources/sheets/square_rainbow.tres",
+	"res://resources/sheets/diamond_rainbow.tres",
+	"res://resources/sheets/line_4_rainbow.tres",
+	"res://resources/sheets/suite.tres",
+	"res://resources/sheets/brelan.tres",
+	"res://resources/sheets/carre_poker.tres",
+	"res://resources/sheets/fibonacci.tres",
+	"res://resources/sheets/minima.tres",
+	"res://resources/sheets/maxima.tres",
+	"res://resources/sheets/prime.tres",
+]
+
+## Petit pool a part (session 20) — jamais dans SHEET_PATHS/le tirage uniforme
+## normal. Chaque slot "sheet" (unitaire ou candidat de pack) a une chance
+## independante (GameRules.LEGENDARY_SHEET_CHANCE) de piocher ici plutot que
+## dans le pool normal. Voir SheetData.is_legendary et _draw_sheet_candidate.
+const LEGENDARY_SHEET_PATHS: Array[String] = [
+	"res://resources/sheets/legendary_lost_corners.tres",
+	"res://resources/sheets/legendary_royal_square.tres",
+	"res://resources/sheets/legendary_last_trick.tres",
 ]
 
 ## Speciaux achetables (SpecialItem).
@@ -47,7 +57,7 @@ const SPECIAL_PATHS: Array[String] = [
 
 ## Badges achetables (BadgeData).
 ## Numerologie retire du catalogue actif : boost la rule "value", plus aucun
-## Tag ne l'utilise (voir TAG_PATHS ci-dessus).
+## Sheet ne l.utilise (voir SHEET_PATHS ci-dessus).
 const BADGE_PATHS: Array[String] = [
 	"res://resources/badges/badge_flies_cascade.tres",
 	"res://resources/badges/badge_cell_triple.tres",
@@ -108,14 +118,15 @@ const DECK_TOOL_PATHS: Array[String] = [
 ## Categories tirables pour un pack (pas de "pack de Des a coudre" — le
 ## Des a coudre a deja son propre tirage-et-choix-1 sur les outils de deck,
 ## voir draw_deck_tool_choices).
-const PACK_CATEGORIES: Array[String] = ["tag", "badge", "special", "button"]
+const PACK_CATEGORIES: Array[String] = ["sheet", "badge", "special", "button"]
 
 ## Categories tirables pour un slot unitaire (visible directement).
-const UNITAIRE_CATEGORIES: Array[String] = ["tag", "badge", "special", "button", "des_a_coudre"]
+const UNITAIRE_CATEGORIES: Array[String] = ["sheet", "badge", "special", "button", "des_a_coudre"]
 
 ## Pools complets, charges une fois. L'offre visible est une curation
 ## regeneree a chaque visite (regenerate_offer).
-var _all_tags: Array[PatternData] = []
+var _all_sheets: Array[SheetData] = []
+var _all_legendary_sheets: Array[SheetData] = []
 var _all_specials: Array[SpecialItem] = []
 var _all_badges: Array[BadgeData] = []
 var _all_deck_tools: Array[DeckToolData] = []
@@ -133,11 +144,17 @@ func _ready() -> void:
 
 
 func _load_pools() -> void:
-	_all_tags.clear()
-	for path in TAG_PATHS:
-		var tag: PatternData = load(path) as PatternData
-		if tag != null:
-			_all_tags.append(tag)
+	_all_sheets.clear()
+	for path in SHEET_PATHS:
+		var sheet: SheetData = load(path) as SheetData
+		if sheet != null:
+			_all_sheets.append(sheet)
+
+	_all_legendary_sheets.clear()
+	for path in LEGENDARY_SHEET_PATHS:
+		var legendary: SheetData = load(path) as SheetData
+		if legendary != null:
+			_all_legendary_sheets.append(legendary)
 
 	_all_specials.clear()
 	for path in SPECIAL_PATHS:
@@ -174,16 +191,14 @@ func reroll_unitaires(run_manager: RunManager) -> void:
 ## avant, chaque slot tirait sa categorie independamment (randi() % size),
 ## donc rien n'empechait de retomber sur "special" sur toute la rangee (voire
 ## les deux rangees a la fois). Contraire au principe "pas de RNG punitif"
-## deja applique ailleurs (deck de depart, Entity). Un shuffle plutot qu'une
-## vraie ponderation par progression (piste Balatro evoquee, plus gros
-## chantier) : le nombre de slots par rangee reste toujours <= au nombre de
-## categories, donc jamais besoin de retirage.
+## deja applique ailleurs (deck de depart, Entity). Ponderee par
+## GameRules.CATEGORY_WEIGHTS depuis la session 20 (avant : shuffle uniforme) —
+## le nombre de slots par rangee reste toujours <= au nombre de categories,
+## donc jamais besoin de retirage.
 func _regenerate_packs(_run_manager: RunManager) -> void:
 	_pack_slots.clear()
-	var categories: Array[String] = PACK_CATEGORIES.duplicate()
-	categories.shuffle()
-	for i in range(GameRules.SHOP_PACK_SLOT_COUNT):
-		var category: String = categories[i]
+	var categories: Array[String] = _weighted_sample_categories(PACK_CATEGORIES, GameRules.SHOP_PACK_SLOT_COUNT)
+	for category in categories:
 		_pack_slots.append({
 			"format": "pack",
 			"category": category,
@@ -194,10 +209,8 @@ func _regenerate_packs(_run_manager: RunManager) -> void:
 
 func _regenerate_unitaires(run_manager: RunManager) -> void:
 	_unitaire_slots.clear()
-	var categories: Array[String] = UNITAIRE_CATEGORIES.duplicate()
-	categories.shuffle()
-	for i in range(GameRules.SHOP_UNITAIRE_SLOT_COUNT):
-		var category: String = categories[i]
+	var categories: Array[String] = _weighted_sample_categories(UNITAIRE_CATEGORIES, GameRules.SHOP_UNITAIRE_SLOT_COUNT)
+	for category in categories:
 		var slot: Dictionary = _build_unitaire_slot(category, run_manager)
 		if not slot.is_empty():
 			_unitaire_slots.append(slot)
@@ -215,7 +228,7 @@ func _build_unitaire_slot(category: String, run_manager: RunManager) -> Dictiona
 
 func _pack_price(category: String) -> int:
 	match category:
-		"tag": return GameRules.PACK_PRICE_TAG
+		"sheet": return GameRules.PACK_PRICE_SHEET
 		"badge": return GameRules.PACK_PRICE_BADGE
 		"special": return GameRules.PACK_PRICE_SPECIAL
 		"button": return GameRules.PACK_PRICE_BUTTON
@@ -224,11 +237,8 @@ func _pack_price(category: String) -> int:
 
 func _draw_unitaire(category: String, run_manager: RunManager) -> Variant:
 	match category:
-		"tag":
-			# Tirage uniforme (session 19) : les Partitions n'ont plus de rarite,
-			# voir PatternData pour le raisonnement.
-			var pool: Array[PatternData] = _available_tags(run_manager)
-			return pool[randi() % pool.size()] if not pool.is_empty() else null
+		"sheet":
+			return _draw_sheet_candidate(run_manager)
 		"badge":
 			var pool: Array[BadgeData] = _available_badges(run_manager)
 			return _weighted_pick(pool)
@@ -242,7 +252,7 @@ func _draw_unitaire(category: String, run_manager: RunManager) -> Variant:
 ## Tirage pondere par rarete (GameRules.RARITY_WEIGHTS). Marche sur n'importe
 ## quel pool de Resource exposant un champ "rarity" (BadgeData, DeckToolData) —
 ## Speciaux, Boutons et Partitions n'en ont pas, ils restent tires uniformement
-## ailleurs (session 19 pour les Partitions, voir PatternData).
+## ailleurs (session 19 pour les Partitions, voir SheetData).
 static func _weighted_pick(pool: Array) -> Variant:
 	if pool.is_empty():
 		return null
@@ -274,13 +284,62 @@ static func _weighted_sample(pool: Array, count: int) -> Array:
 	return picked
 
 
-func _available_tags(run_manager: RunManager) -> Array[PatternData]:
-	var equipped: Array[PatternData] = run_manager.get_equipped_tags()
-	var pool: Array[PatternData] = []
-	for tag in _all_tags:
-		if not tag.locked and not equipped.has(tag):
-			pool.append(tag)
+## Meme principe que _weighted_pick/_weighted_sample mais pour les categories
+## de slot (String), ponderees par GameRules.CATEGORY_WEIGHTS plutot que par
+## une rarete portee par la Resource elle-meme.
+static func _weighted_sample_categories(categories: Array[String], count: int) -> Array[String]:
+	var remaining: Array[String] = categories.duplicate()
+	var picked: Array[String] = []
+	while remaining.size() > 0 and picked.size() < count:
+		var weights: Array[float] = []
+		var total: float = 0.0
+		for category in remaining:
+			var w: float = GameRules.CATEGORY_WEIGHTS.get(category, 1.0) as float
+			weights.append(w)
+			total += w
+
+		var roll: float = randf() * total
+		var cumulative: float = 0.0
+		var chosen_index: int = remaining.size() - 1
+		for i in range(remaining.size()):
+			cumulative += weights[i]
+			if roll < cumulative:
+				chosen_index = i
+				break
+
+		picked.append(remaining[chosen_index])
+		remaining.remove_at(chosen_index)
+	return picked
+
+
+func _available_sheets(run_manager: RunManager) -> Array[SheetData]:
+	var equipped: Array[SheetData] = run_manager.get_equipped_sheets()
+	var pool: Array[SheetData] = []
+	for sheet in _all_sheets:
+		if not sheet.locked and not equipped.has(sheet):
+			pool.append(sheet)
 	return pool
+
+
+func _available_legendary_sheets(run_manager: RunManager) -> Array[SheetData]:
+	var equipped: Array[SheetData] = run_manager.get_equipped_sheets()
+	var pool: Array[SheetData] = []
+	for sheet in _all_legendary_sheets:
+		if not equipped.has(sheet):
+			pool.append(sheet)
+	return pool
+
+
+## Un slot "sheet" (unitaire ou candidat de pack) a une petite chance
+## independante de piocher dans le pool legendaire plutot que le pool normal
+## uniforme — voir GameRules.LEGENDARY_SHEET_CHANCE et SheetData.is_legendary.
+func _draw_sheet_candidate(run_manager: RunManager) -> SheetData:
+	if randf() < GameRules.LEGENDARY_SHEET_CHANCE:
+		var legendary_pool: Array[SheetData] = _available_legendary_sheets(run_manager)
+		if not legendary_pool.is_empty():
+			return legendary_pool[randi() % legendary_pool.size()]
+	var pool: Array[SheetData] = _available_sheets(run_manager)
+	return pool[randi() % pool.size()] if not pool.is_empty() else null
 
 
 func _available_badges(run_manager: RunManager) -> Array[BadgeData]:
@@ -310,10 +369,10 @@ func get_unitaire_slots() -> Array[Dictionary]:
 	return _unitaire_slots
 
 
-## Retourne le label d'un item (PatternData, SpecialItem, BadgeData ou TokenData).
+## Retourne le label d'un item (SheetData, SpecialItem, BadgeData ou TokenData).
 static func get_label(item: Variant) -> String:
-	if item is PatternData:
-		return (item as PatternData).label
+	if item is SheetData:
+		return (item as SheetData).label
 	if item is SpecialItem:
 		return (item as SpecialItem).label
 	if item is BadgeData:
@@ -328,8 +387,8 @@ static func get_label(item: Variant) -> String:
 
 ## Retourne le texte de hover d'un item.
 static func get_description(item: Variant) -> String:
-	if item is PatternData:
-		return (item as PatternData).describe()
+	if item is SheetData:
+		return (item as SheetData).describe()
 	if item is SpecialItem:
 		return (item as SpecialItem).description
 	if item is BadgeData:
@@ -352,8 +411,8 @@ static func get_rarity(item: Variant) -> int:
 
 ## Retourne le prix unitaire d'un item.
 static func get_price(item: Variant) -> int:
-	if item is PatternData:
-		return (item as PatternData).price
+	if item is SheetData:
+		return (item as SheetData).price
 	if item is SpecialItem:
 		return (item as SpecialItem).price
 	if item is BadgeData:
@@ -374,11 +433,11 @@ func can_purchase(item: Variant, run_manager: RunManager) -> bool:
 ## Badge). Ne verifie pas le prix — utilise par can_purchase (achat unitaire)
 ## et par choose_from_pack (deja paye, slots seulement).
 func can_equip_slot(item: Variant, run_manager: RunManager) -> bool:
-	if item is PatternData:
-		var equipped_tags: Array[PatternData] = run_manager.get_equipped_tags()
-		if equipped_tags.size() >= GameRules.MAX_PATTERN_SLOTS:
+	if item is SheetData:
+		var equipped_sheets: Array[SheetData] = run_manager.get_equipped_sheets()
+		if equipped_sheets.size() >= GameRules.MAX_SHEET_SLOTS:
 			return false
-		if equipped_tags.has(item):
+		if equipped_sheets.has(item):
 			return false
 	elif item is BadgeData:
 		var equipped_badges: Array[BadgeData] = run_manager.get_equipped_badges()
@@ -408,8 +467,8 @@ func purchase(item: Variant, run_manager: RunManager) -> bool:
 
 
 func _apply_item(item: Variant, run_manager: RunManager) -> void:
-	if item is PatternData:
-		run_manager.equip_tag(item as PatternData)
+	if item is SheetData:
+		run_manager.equip_sheet(item as SheetData)
 	elif item is SpecialItem:
 		run_manager.add_special((item as SpecialItem).special_type)
 	elif item is BadgeData:
@@ -439,11 +498,21 @@ func open_pack(slot: Dictionary, run_manager: RunManager) -> Array:
 	var category: String = slot["category"] as String
 	var size: int = slot["size"] as int
 	match category:
-		"tag":
-			# Tirage uniforme (session 19), meme raisonnement que _draw_unitaire.
-			var pool: Array[PatternData] = _available_tags(run_manager)
-			pool.shuffle()
-			return pool.slice(0, min(size, pool.size()))
+		"sheet":
+			# Chaque candidat revele a sa propre chance de legendaire (voir
+			# _draw_sheet_candidate) — distincts, sans doublon, comme un tirage
+			# uniforme classique.
+			var candidates: Array[SheetData] = []
+			var seen: Dictionary = {}
+			var attempts: int = 0
+			while candidates.size() < size and attempts < size * 10:
+				attempts += 1
+				var candidate: SheetData = _draw_sheet_candidate(run_manager)
+				if candidate == null or seen.has(candidate):
+					continue
+				seen[candidate] = true
+				candidates.append(candidate)
+			return candidates
 		"badge":
 			var pool: Array[BadgeData] = _available_badges(run_manager)
 			return _weighted_sample(pool, size)

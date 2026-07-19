@@ -1,6 +1,9 @@
-## Affiche les comptes agreges (famille+valeur, rocks, speciaux) du deck
-## restant a tirer cette manche. L'ordre de tirage n'est jamais revele —
-## seulement des totaux, pour ne pas casser la tension du stream.
+## Affiche les comptes agreges (famille+valeur, rocks, speciaux) du deck.
+## En manche, montre ce qu'il reste a tirer (deck_manager). Hors manche (shop,
+## ouverture de pack) ou deck_manager est null, retombe sur un apercu de la
+## composition qui alimentera la prochaine manche (run_manager) pour que le
+## joueur puisse toujours consulter son deck. L'ordre de tirage n'est jamais
+## revele — seulement des totaux, pour ne pas casser la tension du stream.
 class_name DeckInspectorUI
 extends Control
 
@@ -8,6 +11,7 @@ extends Control
 @onready var close_button: Button = $Box/VBox/CloseButton
 
 var deck_manager: DeckManager = null
+var run_manager: RunManager = null
 
 
 func _ready() -> void:
@@ -22,11 +26,17 @@ func toggle() -> void:
 
 
 func _refresh() -> void:
-	if deck_manager == null:
+	var tokens: Array[TokenData]
+	var header: String
+	if deck_manager != null:
+		tokens = deck_manager.get_remaining_tokens()
+		header = "RESTANT CETTE MANCHE"
+	elif run_manager != null:
+		tokens = run_manager.build_next_round_deck_preview()
+		header = "PROCHAINE MANCHE"
+	else:
 		content_label.text = ""
 		return
-
-	var tokens: Array[TokenData] = deck_manager.get_remaining_tokens()
 	var base_counts: Dictionary = {}
 	var rock_count: int = 0
 	var special_counts: Dictionary = {}
@@ -42,7 +52,7 @@ func _refresh() -> void:
 				var label: String = TokenData.special_type_label(token.special_type)
 				special_counts[label] = (special_counts.get(label, 0) as int) + 1
 
-	var lines: Array[String] = []
+	var lines: Array[String] = [header, ""]
 
 	var total_base: int = 0
 	for c in base_counts.values():

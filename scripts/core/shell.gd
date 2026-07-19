@@ -8,7 +8,7 @@ class_name Shell
 extends Control
 
 @onready var content_container: Control = $ContentContainer
-@onready var tags_ui: TagsUI = $TagsUI
+@onready var sheets_ui: SheetsUI = $SheetsUI
 @onready var badges_ui: BadgesUI = $BadgesUI
 @onready var deck_button: Button = $DeckButton
 @onready var deck_inspector_ui: DeckInspectorUI = $DeckInspectorUI
@@ -19,8 +19,8 @@ var _current_content: Node = null
 func _ready() -> void:
 	SceneRouter.shell = self
 
-	tags_ui.run_manager = RunService.run_manager
-	tags_ui.setup()
+	sheets_ui.run_manager = RunService.run_manager
+	sheets_ui.setup()
 	badges_ui.run_manager = RunService.run_manager
 	badges_ui.setup()
 	# Tilt sur le slot d'un Badge des qu'il ajoute des mouches (Vertige,
@@ -30,8 +30,11 @@ func _ready() -> void:
 	RunService.badge_manager.badge_triggered.connect(badges_ui.tilt_badge)
 
 	deck_button.pressed.connect(deck_inspector_ui.toggle)
-	# Pas de manche active tant que GameScene n'a pas cable son deck_manager
-	# (voir GameScene._wire_references) — rien a inspecter avant ca.
+	deck_inspector_ui.run_manager = RunService.run_manager
+	# Desactive tant qu'aucune run n'a demarre (ecran de choix du pack de
+	# depart) — des qu'une run existe (Game, Shop, ouverture de pack...),
+	# DeckInspectorUI sait toujours quoi afficher (voir sa propre logique de
+	# fallback deck_manager/run_manager).
 	deck_button.disabled = true
 
 	# Shell est la scene principale du projet — premier ecran a charger.

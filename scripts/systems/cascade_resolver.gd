@@ -2,7 +2,7 @@ class_name CascadeResolver
 extends RefCounted
 
 ## Types d'evenements dans la timeline
-enum EventType { GRAVITY, MATCH, REMOVE, UPGRADE, ROCKIFY }
+enum EventType { GRAVITY, MATCH, REMOVE, UPGRADE, ROCKIFY, TRANSFORM }
 
 
 ## Resout toutes les cascades sur la grille. `holes` (Vector2i -> true) sont
@@ -25,7 +25,7 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 	var cascade_level: int = 0
 
 	while true:
-		var candidates: Array[Dictionary] = PatternMatcher.find_all(grid, cols, rows, context)
+		var candidates: Array[Dictionary] = SheetMatcher.find_all(grid, cols, rows, context)
 		if candidates.size() == 0:
 			break
 
@@ -144,6 +144,40 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 		for cell in cells_to_remove.keys():
 			removed_cells.append(cell as Vector2i)
 
+		# Legendaire "Last Trick" (session 20) : son centre n'entre jamais dans
+		# cells_to_remove (diamond family, voir plus haut) — il reste en place
+		# tel quel normalement. Ici on le transforme en jeton LAST_TRICK_VALUE
+		# AJOUTE DEFINITIVEMENT au pool (voir GameRules.LAST_TRICK_VALUE et
+		# TurnController pour l'application reelle sur RunManager — meme
+		# principe que EventType.UPGRADE, CascadeResolver reste de la logique
+		# pure sans reference a RunManager). Un seul jet par match decide de
+		# tout l'effet (LAST_TRICK_TRIGGER_CHANCE) — Diamond+famille se
+		# declenche trop souvent pour un moteur permanent systematique. Famille
+		# prise sur un des 4 BRAS, jamais sur le centre lui-meme : le centre
+		# peut etre n'importe quoi (Rock, Entity, Special, Residu, ou un Base
+		# d'une autre famille — voir find_diamonds, le centre n'entre jamais
+		# dans la condition de match), et TokenData.family vaut BATONS par
+		# defaut pour tout ce qui n'est pas Kind.BASE — le lire directement
+		# aurait toujours donne BATONS, jamais la vraie famille voulue. Les 4
+		# bras, eux, sont deja garantis de la meme famille par la regle
+		# "family" elle-meme. Case vide (trou de grille ou autre) au centre :
+		# rien a transformer, on saute.
+		var last_trick_transforms: Array[Dictionary] = []  # {"cell", "family"}
+		for group in groups:
+			if group.get("sheet_name", &"") == &"last_trick" and group.has("center"):
+				if randf() >= GameRules.LAST_TRICK_TRIGGER_CHANCE:
+					continue
+				var center: Vector2i = group["center"] as Vector2i
+				if grid[center.x][center.y] == null:
+					continue
+				var arm_cells: Array = group["cells"]
+				if arm_cells.is_empty():
+					continue
+				var arm_cell: Vector2i = arm_cells[0] as Vector2i
+				var arm_token: TokenData = grid[arm_cell.x][arm_cell.y] as TokenData
+				if arm_token != null:
+					last_trick_transforms.append({"cell": center, "family": arm_token.family})
+
 		# Evenement match
 		timeline.append({
 			"type": EventType.MATCH,
@@ -187,6 +221,16 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 				"cells": rock_replacements,
 			})
 
+		if last_trick_transforms.size() > 0:
+			for entry in last_trick_transforms:
+				var cell: Vector2i = entry["cell"] as Vector2i
+				var family: TokenData.Family = entry["family"] as TokenData.Family
+				grid[cell.x][cell.y] = TokenData.make_base(family, GameRules.LAST_TRICK_VALUE)
+			timeline.append({
+				"type": EventType.TRANSFORM,
+				"transforms": last_trick_transforms,
+			})
+
 		total_score += earned
 
 		# Gravite post-removal
@@ -206,19 +250,19 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 
 
 ## Calcule le score d'un groupe.
-## Toutes les formes (lignes comprises) : multiplicateur fixe defini sur le tag.
+## Toutes les formes (lignes comprises) : multiplicateur fixe defini sur le sheet.
 ## Cellules modifiees : chaque cellule concernee multiplie le total par son coef (HALF/BOOST/DOUBLE/TRIPLE).
 ## rule_mult : multiplicateur applique selon la rule du pattern (ex: "family" x2 via badge),
 ## voir RunContext.get_rule_multiplier — combine par produit si plusieurs badges.
-## tag_level_multipliers : multiplicateur selon le niveau de la Partition qui a matche (level up).
+## sheet_level_multipliers : multiplicateur selon le niveau de la Partition qui a matche (level up).
 func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: RunContext) -> int:
 	var grid_modifiers: Dictionary = context.grid_modifiers
-	var tag_level_multipliers: Dictionary = context.tag_level_multipliers
+	var sheet_level_multipliers: Dictionary = context.sheet_level_multipliers
 	var cascade_mult: float = pow(GameRules.CASCADE_MULTIPLIER_BASE, cascade_level)
 	var rule: StringName = group.get("match_rule", &"") as StringName
 	var rule_mult: float = context.get_rule_multiplier(rule)
-	var tag_name: StringName = group.get("tag_name", &"") as StringName
-	var level_mult: float = tag_level_multipliers.get(tag_name, 1.0) as float
+	var sheet_name: StringName = group.get("sheet_name", &"") as StringName
+	var level_mult: float = sheet_level_multipliers.get(sheet_name, 1.0) as float
 	var global_mult: float = context.get_global_multiplier()
 	# Scaling permanent (session 17) : facteur additif qui grossit sur toute
 	# la run (ex: Jetons sacres, +0.1 par special joue), distinct de global_mult
@@ -226,14 +270,14 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	var scaling_mult: float = 1.0 + context.scaling_mult_bonus
 
 	# Diamond : le centre n'entre jamais dans la condition de match (voir
-	# PatternMatcher.find_diamonds), mais son role dans le SCORE depend de la
+	# SheetMatcher.find_diamonds), mais son role dans le SCORE depend de la
 	# rule. Rock : les 4 jetons du losange sont des rocks, sans valeur — c'est
 	# le centre qui est "recolte", il doit donc etre scorable. Family (et
 	# futures rules) : les 4 jetons du losange sont deja garantis scorables
 	# par le match, le centre est vraiment ignore — on somme les 4 jetons,
 	# comme une ligne ou un carre.
 	if group["shape"] == &"diamond":
-		var tag_mult: float = group.get("score_multiplier", 4.0) as float
+		var sheet_mult: float = group.get("score_multiplier", 4.0) as float
 		var raw_value: int = 0
 		var scored_cells: Array = []
 
@@ -263,11 +307,13 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		# cascade_mult exclu du breakdown affiche : la banniere de resolution
 		# lui dedie sa propre annonce (voir GridVisual._animate_match), pas
 		# noye dans le MULTI generique. Le score reel l'inclut toujours.
-		var diamond_base_mult: float = tag_mult * diamond_grid_mult * level_mult
+		var diamond_base_mult: float = sheet_mult * diamond_grid_mult * level_mult
 		_attach_breakdown(group, context, raw_value, base_value, diamond_base_mult, diamond_sum_bonus["contributions"] as Dictionary, diamond_mult_contribs)
 		if rock_roll >= 0:
 			(group["score_breakdown"] as Dictionary)["roll"] = rock_roll
-		return int(base_value * tag_mult * cascade_mult * diamond_grid_mult * rule_mult * level_mult * global_mult * diamond_value_bonus_mult * scaling_mult)
+			(group["score_breakdown"] as Dictionary)["roll_min"] = GameRules.DIAMOND_ROCK_ROLL_MIN
+			(group["score_breakdown"] as Dictionary)["roll_max"] = GameRules.DIAMOND_ROCK_ROLL_MAX
+		return int(base_value * sheet_mult * cascade_mult * diamond_grid_mult * rule_mult * level_mult * global_mult * diamond_value_bonus_mult * scaling_mult)
 
 	var raw_value: int = 0
 	for cell in group["cells"]:
@@ -280,9 +326,19 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	group["upgrade_candidates"] = _roll_upgrades(group["cells"], grid, context) + _roll_face_promotions(group["cells"], grid)
 	group["scored_tokens"] = _snapshot_scored_tokens(group["cells"], grid)
 
-	# Multiplicateur fixe du tag, meme regle pour toutes les formes (les lignes
+	# Multiplicateur fixe du sheet, meme regle pour toutes les formes (les lignes
 	# ne sont plus recompensees selon leur direction de resolution, session 16).
 	var shape_mult: float = group.get("score_multiplier", 1.0) as float
+
+	# Legendaires (session 20) : multiplicateur dynamique code en dur par
+	# sheet_name plutot que le score_multiplier fixe de la ressource — voir
+	# SheetData.is_legendary pour le raisonnement.
+	var legendary_roll: int = -1
+	if sheet_name == &"lost_corners":
+		shape_mult = float(_bottom_row_value_sum(grid))
+	elif sheet_name == &"royal_square":
+		legendary_roll = randi_range(GameRules.ROYAL_SQUARE_ROLL_MIN, GameRules.ROYAL_SQUARE_ROLL_MAX)
+		shape_mult = float(legendary_roll)
 
 	var grid_mult: float = _grid_modifier_multiplier(group["cells"], grid_modifiers)
 	var value_bonus_mult: float = _value_bonus_multiplier(group["cells"], grid, context)
@@ -290,7 +346,26 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	# cascade_mult exclu du breakdown affiche, meme raison que la branche diamond.
 	var base_mult: float = shape_mult * grid_mult * level_mult
 	_attach_breakdown(group, context, raw_value, value_sum, base_mult, sum_bonus["contributions"] as Dictionary, mult_contribs)
+	if legendary_roll >= 0:
+		(group["score_breakdown"] as Dictionary)["roll"] = legendary_roll
+		(group["score_breakdown"] as Dictionary)["roll_min"] = GameRules.ROYAL_SQUARE_ROLL_MIN
+		(group["score_breakdown"] as Dictionary)["roll_max"] = GameRules.ROYAL_SQUARE_ROLL_MAX
 	return int(value_sum * shape_mult * cascade_mult * grid_mult * rule_mult * level_mult * global_mult * value_bonus_mult * scaling_mult)
+
+
+## Somme des valeurs des jetons scorables (kind BASE) sur la ligne du bas
+## entiere de la grille (row 0, meme convention que _top_row_occupied) —
+## multiplicateur dynamique de la legendaire "Lost Corners". Rocks/Residus/
+## Speciaux/Entity ne comptent pas (is_scorable() == false), comme partout
+## ailleurs dans ce fichier.
+func _bottom_row_value_sum(grid: Array) -> int:
+	var bottom_row: int = 0
+	var sum: int = 0
+	for col in range(GameRules.COLS):
+		var token: TokenData = grid[col][bottom_row] as TokenData
+		if token != null and token.is_scorable():
+			sum += token.value
+	return sum
 
 
 ## Chaque cellule modifiee dans la liste multiplie le total par son coefficient
@@ -555,7 +630,7 @@ func _attach_breakdown(group: Dictionary, context: RunContext, raw_value: int, b
 			badge_steps.append({"source": id, "label": badge.label, "kind": "mult", "amount": mult_contributions[id]})
 
 	group["score_breakdown"] = {
-		"label": _tag_label(group.get("tag_name", &"") as StringName, context),
+		"label": _sheet_label(group.get("sheet_name", &"") as StringName, context),
 		"raw_value": raw_value,
 		"base_value": base_value,
 		"base_mult": base_mult,
@@ -563,8 +638,8 @@ func _attach_breakdown(group: Dictionary, context: RunContext, raw_value: int, b
 	}
 
 
-func _tag_label(tag_name: StringName, context: RunContext) -> String:
-	for tag in context.equipped_tags:
-		if tag.tag_name == tag_name:
-			return tag.label
+func _sheet_label(sheet_name: StringName, context: RunContext) -> String:
+	for sheet in context.equipped_sheets:
+		if sheet.sheet_name == sheet_name:
+			return sheet.label
 	return ""

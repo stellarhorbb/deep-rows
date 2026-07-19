@@ -19,7 +19,7 @@ extends Node2D
 @onready var flies_label: Label = $SaltLabel
 
 # --- UI persistante, portee par le Shell (voir scripts/core/shell.gd) ---
-var tags_ui: TagsUI
+var sheets_ui: SheetsUI
 var badges_ui: BadgesUI
 var deck_button: Button
 var deck_inspector_ui: DeckInspectorUI
@@ -29,7 +29,7 @@ var turn_controller: TurnController
 var grid_manager: GridManager
 var deck_manager: DeckManager
 var score_manager: ScoreManager
-var pattern_manager: PatternManager
+var sheet_manager: SheetManager
 var entity_manager: EntityManager
 
 var _displayed_score: int = 0
@@ -38,7 +38,7 @@ var _score_tween: Tween = null
 
 func _ready() -> void:
 	RunService.ensure_run_started()
-	tags_ui = SceneRouter.shell.tags_ui
+	sheets_ui = SceneRouter.shell.sheets_ui
 	badges_ui = SceneRouter.shell.badges_ui
 	deck_button = SceneRouter.shell.deck_button
 	deck_inspector_ui = SceneRouter.shell.deck_inspector_ui
@@ -61,16 +61,16 @@ func _create_managers() -> void:
 	score_manager.name = "ScoreManager"
 	add_child(score_manager)
 
-	pattern_manager = PatternManager.new()
-	pattern_manager.name = "PatternManager"
-	add_child(pattern_manager)
+	sheet_manager = SheetManager.new()
+	sheet_manager.name = "SheetManager"
+	add_child(sheet_manager)
 
 	turn_controller = TurnController.new()
 	turn_controller.name = "TurnController"
 	turn_controller.grid_manager = grid_manager
 	turn_controller.deck_manager = deck_manager
 	turn_controller.score_manager = score_manager
-	turn_controller.pattern_manager = pattern_manager
+	turn_controller.sheet_manager = sheet_manager
 	turn_controller.run_manager = RunService.run_manager
 	add_child(turn_controller)
 
@@ -89,7 +89,7 @@ func _wire_references() -> void:
 	grid_visual.setup()
 	stream_ui.deck_manager = deck_manager
 	stream_ui.setup()
-	# tags_ui / badges_ui sont cables au run_manager (global) une seule fois
+	# sheets_ui / badges_ui sont cables au run_manager (global) une seule fois
 	# par le Shell — rien a refaire ici a chaque manche.
 	input_handler.grid_visual = grid_visual
 	input_handler.stream_ui = stream_ui
@@ -203,21 +203,25 @@ func _on_round_won(final_score: int, target: int) -> void:
 		SceneRouter.go_to_end_screen()
 		return
 
-	# Manche gagnee (hors derniere) : recompense detaillee (base + bonus jetons
-	# restants + bonus badges on_round_end) puis transition vers le shop apres
+	# Manche gagnee (hors derniere) : recompense detaillee (base + bonus pack
+	# de demarrage + bonus jetons restants + bonus badges on_round_end) puis
+	# transition vers le shop apres
 	# que le joueur ait clique "ENCAISSER" sur YouWinUI. Le compteur mouches
 	# (flies_label) ne doit visuellement bouger qu'a ce clic, pas avant — on
 	# suspend l'ecoute de flies_changed pendant que le detail s'affiche pour
 	# eviter de spoiler le total, puis on resynchronise l'affichage a la main.
-	var base_flies: int = GameRules.FLIES_PER_ROUND_WON + RunService.run_manager.get_flies_per_round_bonus()
+	var base_flies: int = GameRules.FLIES_PER_ROUND_WON
+	var starter_pack: StarterPackData = RunService.run_manager.get_starter_pack()
+	var starter_bonus: int = RunService.run_manager.get_flies_per_round_bonus()
 	var token_bonus: int = GameRules.get_round_end_flies_bonus(deck_manager.get_remaining())
 
 	RunService.run_manager.flies_changed.disconnect(_on_flies_changed)
-	RunService.run_manager.add_flies(base_flies + token_bonus)
+	RunService.run_manager.add_flies(base_flies + starter_bonus + token_bonus)
 	var badge_breakdown: Dictionary = RunService.badge_manager.dispatch_round_end()
 
 	RunService.game_flow = RunService.GameFlow.SHOPPING
-	await you_win_ui.show_reward(base_flies, token_bonus, badge_breakdown)
+	var starter_pack_name: String = starter_pack.pack_name if starter_pack != null else ""
+	await you_win_ui.show_reward(base_flies, starter_pack_name, starter_bonus, token_bonus, badge_breakdown)
 
 	RunService.run_manager.flies_changed.connect(_on_flies_changed)
 	_on_flies_changed(RunService.run_manager.get_flies())

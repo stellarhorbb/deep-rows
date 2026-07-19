@@ -2,47 +2,86 @@
 
 [ext_resource type="Script" uid="uid://higudnau71dy" path="res://scripts/ui/starter_pack_select_ui.gd" id="1_script"]
 
-[node name="StarterPackSelect" type="Control" unique_id=1363823527]
+[node name="StarterPackSelect" type="Control" unique_id=173482611]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 1920.0
 offset_bottom = 1080.0
 script = ExtResource("1_script")
 
-[node name="Background" type="ColorRect" parent="." unique_id=1456799459]
+[node name="Background" type="ColorRect" parent="." unique_id=2140032103]
 layout_mode = 0
 offset_right = 1920.0
 offset_bottom = 1080.0
 color = Color(0.722, 0.8, 0.847, 1)
 
-[node name="Panel" type="PanelContainer" parent="." unique_id=134661045]
+[node name="Panel" type="PanelContainer" parent="." unique_id=1047291511]
 layout_mode = 0
 offset_left = 160.0
-offset_top = 300.0
+offset_top = 260.0
 offset_right = 1760.0
-offset_bottom = 780.0
+offset_bottom = 820.0
 
-[node name="VBox" type="VBoxContainer" parent="Panel" unique_id=828691665]
+[node name="VBox" type="VBoxContainer" parent="Panel" unique_id=1505826427]
 layout_mode = 2
 theme_override_constants/separation = 32
 alignment = 1
 
-[node name="TitleLabel" type="Label" parent="Panel/VBox" unique_id=1166282973]
+[node name="TitleLabel" type="Label" parent="Panel/VBox" unique_id=2081769985]
 layout_mode = 2
 text = "CHOISIS TON PACK DE DÉPART"
 horizontal_alignment = 1
 
-[node name="SubtitleLabel" type="Label" parent="Panel/VBox" unique_id=1252022527]
+[node name="SubtitleLabel" type="Label" parent="Panel/VBox" unique_id=192443177]
 layout_mode = 2
-text = "Déterministe, fixe pour toute la run — survole une carte pour le détail"
+text = "Déterministe, fixe pour toute la run"
 horizontal_alignment = 1
 
-[node name="CardsContainer" type="HBoxContainer" parent="Panel/VBox" unique_id=1723385293]
+[node name="CarouselRow" type="HBoxContainer" parent="Panel/VBox" unique_id=1379609364]
 layout_mode = 2
-theme_override_constants/separation = 24
+theme_override_constants/separation = 32
 alignment = 1
 
-[node name="ConfirmButton" type="Button" parent="Panel/VBox" unique_id=509344814]
+[node name="LeftButton" type="Button" parent="Panel/VBox/CarouselRow" unique_id=117301763]
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
-disabled = true
+size_flags_vertical = 4
+text = "<"
+
+[node name="CardPanel" type="PanelContainer" parent="Panel/VBox/CarouselRow" unique_id=164411181]
+custom_minimum_size = Vector2(900, 320)
+layout_mode = 2
+
+[node name="CardVBox" type="VBoxContainer" parent="Panel/VBox/CarouselRow/CardPanel" unique_id=999189291]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="PackNameLabel" type="Label" parent="Panel/VBox/CarouselRow/CardPanel/CardVBox" unique_id=1039846090]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 1
+
+[node name="PackDescriptionLabel" type="Label" parent="Panel/VBox/CarouselRow/CardPanel/CardVBox" unique_id=443967123]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="PackSheetsLabel" type="Label" parent="Panel/VBox/CarouselRow/CardPanel/CardVBox" unique_id=479944038]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="RightButton" type="Button" parent="Panel/VBox/CarouselRow" unique_id=1089899317]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+size_flags_vertical = 4
+text = ">"
+
+[node name="PageLabel" type="Label" parent="Panel/VBox" unique_id=849721116]
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="Panel/VBox" unique_id=2136387968]
+layout_mode = 2
 text = "COMMENCER"

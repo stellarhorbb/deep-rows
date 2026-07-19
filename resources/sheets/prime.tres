@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SheetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/sheet_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+sheet_name = &"prime"
+shape = &"line"
+rule = &"prime"
+min_size = 3
+direction = &"any"
+score_multiplier = 2.0
+label = "PRIME"
+price = 14

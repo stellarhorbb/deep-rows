@@ -17,12 +17,12 @@
 class_name RunContext
 extends Resource
 
-@export var equipped_tags: Array[PatternData] = []
+@export var equipped_sheets: Array[SheetData] = []
 
 # Badges equipes, DANS L'ORDRE DES SLOTS (session 17) — permet a la banniere
 # de resolution de faire resoudre les Badges "de gauche a droite" plutot que
 # dans un ordre arbitraire de dictionnaire. Snapshot au round_start comme
-# equipped_tags.
+# equipped_sheets.
 @export var equipped_badges: Array[BadgeData] = []
 
 # Cellules modifiees pour la manche en cours : Vector2i -> Array[StringName]
@@ -42,10 +42,10 @@ extends Resource
 # Combine par PRODUIT.
 @export var global_multiplier_contributions: Dictionary = {} # badge_id -> float
 
-# Multiplicateur de score par Partition (tag_name -> float), selon son niveau
+# Multiplicateur de score par Partition (sheet_name -> float), selon son niveau
 # (score cumule sur le run). Pas Badge-driven, pas de collision possible —
-# une seule source (le niveau du Tag lui-meme), reste un simple dictionnaire.
-@export var tag_level_multipliers: Dictionary = {}
+# une seule source (le niveau du Sheet lui-meme), reste un simple dictionnaire.
+@export var sheet_level_multipliers: Dictionary = {}
 
 # Bonus additif au multiplicateur d'une figure par valeur de jeton presente
 # (ex: 1 -> Petites Mains -> 0.25), keyed. Combine par SOMME : chaque jeton

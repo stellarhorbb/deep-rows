@@ -24,7 +24,7 @@ var _state: State = State.AWAITING_INPUT
 @export var grid_manager: GridManager
 @export var deck_manager: DeckManager
 @export var score_manager: ScoreManager
-@export var pattern_manager: PatternManager
+@export var sheet_manager: SheetManager
 @export var run_manager: RunManager
 
 
@@ -51,7 +51,7 @@ func start_round(round_number: int) -> void:
 	# 3. Publie le dict final pour l'UI et snapshot le contexte.
 	run_manager.notify_grid_modifiers_ready()
 	var context: RunContext = run_manager.build_context()
-	pattern_manager.set_active_tags(context.equipped_tags)
+	sheet_manager.set_active_sheets(context.equipped_sheets)
 	grid_manager.set_run_context(context)
 
 	deck_manager.hold_capacity = GameRules.BASE_HOLD_SLOTS + context.hold_slot_bonus
@@ -138,8 +138,8 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 			var scores: Array = event["scores"] as Array
 			for i in range(groups.size()):
 				var group: Dictionary = groups[i] as Dictionary
-				var tag_name: StringName = group.get("tag_name", &"") as StringName
-				run_manager.add_tag_score(tag_name, scores[i] as int)
+				var sheet_name: StringName = group.get("sheet_name", &"") as StringName
+				run_manager.add_sheet_score(sheet_name, scores[i] as int)
 			cascade_step_resolved.emit(event["cascade_level"] as int, event["total_earned"] as int)
 		elif event["type"] == CascadeResolver.EventType.UPGRADE:
 			for entry in (event["upgrades"] as Array):
@@ -152,6 +152,14 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 					run_manager.promote_matching_button(family, value)
 				else:
 					run_manager.upgrade_matching_button(family, value)
+		elif event["type"] == CascadeResolver.EventType.TRANSFORM:
+			# Legendaire "Last Trick" : le tirage (chance + famille) a deja eu
+			# lieu dans CascadeResolver — ici on ajoute reellement le jeton au
+			# pool possede, definitivement (voir GameRules.LAST_TRICK_VALUE).
+			for entry in (event["transforms"] as Array):
+				var data: Dictionary = entry as Dictionary
+				var family: TokenData.Family = data["family"] as TokenData.Family
+				run_manager.add_button(family, GameRules.LAST_TRICK_VALUE)
 
 	turn_resolved.emit(timeline)
 

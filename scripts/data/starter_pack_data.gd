@@ -8,21 +8,21 @@ extends Resource
 @export_multiline var description: String = ""
 
 ## 1-2 Partitions equipees gratuitement des le debut de la run. Deux champs
-## simples plutot qu'un Array[PatternData] — tous les packs du roster en
+## simples plutot qu'un Array[SheetData] — tous les packs du roster en
 ## portent exactement 2, pas besoin de la flexibilite d'un tableau.
-@export var fixed_tag_a: PatternData = null
-@export var fixed_tag_b: PatternData = null
+@export var fixed_sheet_a: SheetData = null
+@export var fixed_sheet_b: SheetData = null
 
 
 ## Les Partitions fixes de ce pack, sans les entrees nulles (pour un pack a
 ## une seule Partition fixe le cas echeant).
-func get_fixed_tags() -> Array[PatternData]:
-	var tags: Array[PatternData] = []
-	if fixed_tag_a != null:
-		tags.append(fixed_tag_a)
-	if fixed_tag_b != null:
-		tags.append(fixed_tag_b)
-	return tags
+func get_fixed_sheets() -> Array[SheetData]:
+	var sheets: Array[SheetData] = []
+	if fixed_sheet_a != null:
+		sheets.append(fixed_sheet_a)
+	if fixed_sheet_b != null:
+		sheets.append(fixed_sheet_b)
+	return sheets
 
 ## Modificateurs de regle/economie — un curseur sur un systeme existant.
 ## Tous a 0 = pack "neutre" (Le Simplet). Permanents pour toute la run,

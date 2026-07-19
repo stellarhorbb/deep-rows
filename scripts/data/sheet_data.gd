@@ -1,12 +1,22 @@
-class_name PatternData
+class_name SheetData
 extends Resource
 
-@export var tag_name: StringName = &""
-@export var shape: StringName = &""       # &"line" | &"square" | &"diamond" | &"plus" | &"cross" | &"ring" | &"t"
+@export var sheet_name: StringName = &""
+@export var shape: StringName = &""       # &"line" | &"square" | &"diamond" | &"plus" | &"cross" | &"ring" | &"t" | &"corners"
 @export var rule: StringName = &""        # &"family" | &"value" | &"suite" | &"rock" | &"rainbow" | &"fibonacci" | &"minima" | &"maxima" | &"prime"
 @export var min_size: int = 3             # 3 pour lignes, 4 pour carres (2x2 = 4 cells)
 @export var direction: StringName = &"any"  # &"horizontal" | &"diagonal" | &"any" (jamais &"vertical")
 @export var score_multiplier: float = 1.0   # Multiplicateur applique au score du groupe
+
+## Petit pool a part (session 20), jamais dans le tirage uniforme normal du
+## catalogue (voir ShopManager.LEGENDARY_SHEET_PATHS) — narratif : le joueur
+## ouvre des packs "au cas ou" meme un build deja bon, en esperant en croiser
+## une. Flat, ne level up jamais (voir RunManager.add_sheet_score) : la
+## puissance vient de la rarete/du multiplicateur dynamique, pas d'un
+## investissement en plus — cumuler les deux ferait un objet strictement
+## superieur a tout le reste du jeu. Effet reel code en dur dans
+## CascadeResolver/SheetMatcher par sheet_name, pas via un systeme generique.
+@export var is_legendary: bool = false
 
 ## Shop
 ## Pas de champ rarity (session 19) : contrairement aux Badges (bonus optionnel,
@@ -24,8 +34,14 @@ extends Resource
 ## construite) — a cocher une fois le systeme d'unlock du Shore implemente.
 @export var locked: bool = false
 
+## DEBUG : si true, cette Partition est equipee des le debut du run (bypass
+## shop) — meme principe que BadgeData.debug_start_equipped. Pratique pour
+## tester une legendaire sans attendre son tirage. A laisser a false pour un
+## run normal.
+@export var debug_start_equipped: bool = false
 
-## Texte de hover en langage clair, reutilise en jeu (TagsUI) et au shop.
+
+## Texte de hover en langage clair, reutilise en jeu (SheetsUI) et au shop.
 func describe() -> String:
 	var shape_desc: String
 	match shape:
@@ -36,6 +52,7 @@ func describe() -> String:
 		&"cross":   shape_desc = "Croix diagonale (centre inclus)"
 		&"ring":    shape_desc = "Cadre 3x3 autour d'un centre"
 		&"t":       shape_desc = "Tétromino T, 4 jetons, orientation libre"
+		&"corners": shape_desc = "Les 2 coins inférieurs de la grille"
 		_:          shape_desc = "Figure"
 
 	var rule_desc: String
@@ -56,7 +73,9 @@ func describe() -> String:
 	if rule_desc != "":
 		text += ", " + rule_desc
 
-	if score_multiplier > 1.0:
+	if is_legendary:
+		text += "\nMultiplicateur variable (légendaire)"
+	elif score_multiplier > 1.0:
 		text += "\nMultiplicateur fixe x%.1f" % score_multiplier
 
 	return text

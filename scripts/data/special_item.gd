@@ -1,5 +1,5 @@
 ## Item special vendable au shop (bombe, fantome, maree...).
-## Les Pattern Tags portent leurs label + price directement sur PatternData —
+## Les Sheets portent leurs label + price directement sur SheetData —
 ## SpecialItem n'est utilise que pour les jetons speciaux.
 class_name SpecialItem
 extends Resource

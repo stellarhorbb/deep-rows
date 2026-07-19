@@ -1,17 +1,17 @@
-## Porte les donnees qui evoluent au cours d'un run (tags equipes, deck,
+## Porte les donnees qui evoluent au cours d'un run (sheets equipes, deck,
 ## mouches, plus tard badges/states/niveaux). Mute uniquement par l'orchestration
 ## (TurnController, ShopManager a venir). Les autres lisent via build_context().
 class_name RunManager
 extends Node
 
 signal flies_changed(amount: int)
-signal tags_changed(equipped: Array[PatternData])
+signal sheets_changed(equipped: Array[SheetData])
 signal badges_changed(equipped: Array[BadgeData])
 signal deck_composition_changed()
 signal grid_modifiers_changed(modifiers: Dictionary)
 signal button_pool_changed()
-signal tag_leveled_up(tag_name: StringName, new_level: int)
-signal tag_progress_changed(tag_name: StringName)
+signal sheet_leveled_up(sheet_name: StringName, new_level: int)
+signal sheet_progress_changed(sheet_name: StringName)
 
 ## Chemins des packs de demarrage day-one (session 19) — toujours debloques,
 ## une save neuve propose donc un vrai choix des la premiere run. Les 6 packs
@@ -26,7 +26,7 @@ const STARTER_PACK_PATHS: Array[String] = [
 ]
 
 var _flies: int = 0
-var _equipped_tags: Array[PatternData] = []
+var _equipped_sheets: Array[SheetData] = []
 var _equipped_badges: Array[BadgeData] = []
 var _button_pool: Array[TokenData] = []
 var _deck_composition: Dictionary = {
@@ -76,7 +76,7 @@ var _token_upgrade_chances: Dictionary = {}  # StringName -> float
 ## pour Jetons sacres). Cle = StringName propre a chaque badge. Reset
 ## uniquement par init_run (nouvelle run).
 var _run_badge_state: Dictionary = {}
-var _tag_progress: Dictionary = {}      # StringName (tag_name) -> {"cumulative": int, "level": int}
+var _sheet_progress: Dictionary = {}      # StringName (sheet_name) -> {"cumulative": int, "level": int}
 
 ## Pack de demarrage choisi pour cette run (voir apply_starter_pack). Ses
 ## bonus de slots/mouches sont permanents pour toute la run, contrairement
@@ -102,8 +102,17 @@ var _active_context: RunContext = null
 func init_run() -> void:
 	_flies = 0
 
-	_equipped_tags.clear()
+	_equipped_sheets.clear()
 	_starter_pack = null
+	# DEBUG : equipe au demarrage les sheets (dont legendaires) dont
+	# debug_start_equipped == true. Flag a activer dans chaque .tres via
+	# l'editeur Godot. Avant apply_starter_pack (appele juste apres par
+	# StarterPackSelectUI), qui ajoute par-dessus les Partitions fixes du pack
+	# choisi — respecte donc MAX_SHEET_SLOTS comme un equipement normal.
+	for path in ShopManager.SHEET_PATHS + ShopManager.LEGENDARY_SHEET_PATHS:
+		var sheet: SheetData = load(path) as SheetData
+		if sheet != null and sheet.debug_start_equipped:
+			equip_sheet(sheet)
 
 	_equipped_badges.clear()
 	# DEBUG : equipe au demarrage les badges dont debug_start_equipped == true.
@@ -114,7 +123,7 @@ func init_run() -> void:
 			_equipped_badges.append(badge)
 
 	_button_pool = _generate_starter_buttons()
-	_tag_progress.clear()
+	_sheet_progress.clear()
 
 	_deck_composition = {
 		"bombe_count": 0,
@@ -128,7 +137,7 @@ func init_run() -> void:
 	_apply_debug_specials_to_deck()
 
 	flies_changed.emit(_flies)
-	tags_changed.emit(_equipped_tags)
+	sheets_changed.emit(_equipped_sheets)
 	badges_changed.emit(_equipped_badges)
 	deck_composition_changed.emit()
 
@@ -169,8 +178,8 @@ func get_available_starter_packs() -> Array[StarterPackData]:
 ## reset_round_modifiers, qui repeuple hold/preview a chaque manche).
 func apply_starter_pack(pack: StarterPackData) -> void:
 	_starter_pack = pack
-	for tag in pack.get_fixed_tags():
-		equip_tag(tag)
+	for sheet in pack.get_fixed_sheets():
+		equip_sheet(sheet)
 
 
 func get_starter_pack() -> StarterPackData:
@@ -194,11 +203,11 @@ func get_flies_per_round_bonus() -> int:
 ## Construit un snapshot lu par les systemes.
 func build_context() -> RunContext:
 	var ctx: RunContext = RunContext.new()
-	ctx.equipped_tags = _equipped_tags.duplicate()
+	ctx.equipped_sheets = _equipped_sheets.duplicate()
 	ctx.equipped_badges = _equipped_badges.duplicate()
 	ctx.grid_modifiers = _grid_modifiers.duplicate()
 	ctx.rule_multiplier_contributions = _rule_multiplier_contributions.duplicate(true)
-	ctx.tag_level_multipliers = _build_tag_level_multipliers()
+	ctx.sheet_level_multipliers = _build_sheet_level_multipliers()
 	ctx.value_bonus_multiplier_contributions = _value_bonus_multiplier_contributions.duplicate(true)
 	ctx.global_multiplier_contributions = _global_multiplier_contributions.duplicate()
 	ctx.retrigger_value_contributions = _retrigger_value_contributions.duplicate(true)
@@ -225,49 +234,60 @@ func _sum_dict_values(d: Dictionary) -> float:
 	return total
 
 
-func _build_tag_level_multipliers() -> Dictionary:
+func _build_sheet_level_multipliers() -> Dictionary:
 	var result: Dictionary = {}
-	for tag in _equipped_tags:
-		result[tag.tag_name] = GameRules.get_pattern_level_multiplier(get_tag_level(tag.tag_name))
+	for sheet in _equipped_sheets:
+		result[sheet.sheet_name] = GameRules.get_sheet_level_multiplier(get_sheet_level(sheet.sheet_name))
 	return result
 
 
 # --- Level up des Partitions ---
 
-## Ajoute du score cumule a une Partition (par tag_name) et met a jour son
+## Ajoute du score cumule a une Partition (par sheet_name) et met a jour son
 ## niveau. Appele par TurnController a chaque groupe resolu. Le multiplicateur
 ## resultant n'est lu par le scoring qu'a la prochaine manche (snapshot dans
-## build_context, comme rule_multipliers).
-func add_tag_score(tag_name: StringName, amount: int) -> void:
-	if amount <= 0 or tag_name == &"":
+## build_context, comme rule_multipliers). Les legendaires (session 20) ne
+## level up jamais — voir SheetData.is_legendary, leur puissance vient de la
+## rarete/d'un effet code en dur, pas d'un investissement en plus.
+func add_sheet_score(sheet_name: StringName, amount: int) -> void:
+	if amount <= 0 or sheet_name == &"":
 		return
-	if not _tag_progress.has(tag_name):
-		_tag_progress[tag_name] = {"cumulative": 0, "level": 1}
+	if _is_legendary_sheet(sheet_name):
+		return
+	if not _sheet_progress.has(sheet_name):
+		_sheet_progress[sheet_name] = {"cumulative": 0, "level": 1}
 
-	var progress: Dictionary = _tag_progress[tag_name]
+	var progress: Dictionary = _sheet_progress[sheet_name]
 	var cumulative: int = (progress["cumulative"] as int) + amount
 	var old_level: int = progress["level"] as int
-	var new_level: int = GameRules.compute_pattern_level(cumulative)
+	var new_level: int = GameRules.compute_sheet_level(cumulative)
 
 	progress["cumulative"] = cumulative
 	progress["level"] = new_level
-	_tag_progress[tag_name] = progress
+	_sheet_progress[sheet_name] = progress
 
-	tag_progress_changed.emit(tag_name)
+	sheet_progress_changed.emit(sheet_name)
 	if new_level != old_level:
-		tag_leveled_up.emit(tag_name, new_level)
+		sheet_leveled_up.emit(sheet_name, new_level)
 
 
-func get_tag_level(tag_name: StringName) -> int:
-	if not _tag_progress.has(tag_name):
+func get_sheet_level(sheet_name: StringName) -> int:
+	if not _sheet_progress.has(sheet_name):
 		return 1
-	return (_tag_progress[tag_name] as Dictionary)["level"] as int
+	return (_sheet_progress[sheet_name] as Dictionary)["level"] as int
 
 
-func get_tag_cumulative_score(tag_name: StringName) -> int:
-	if not _tag_progress.has(tag_name):
+func _is_legendary_sheet(sheet_name: StringName) -> bool:
+	for sheet in _equipped_sheets:
+		if sheet.sheet_name == sheet_name:
+			return sheet.is_legendary
+	return false
+
+
+func get_sheet_cumulative_score(sheet_name: StringName) -> int:
+	if not _sheet_progress.has(sheet_name):
 		return 0
-	return (_tag_progress[tag_name] as Dictionary)["cumulative"] as int
+	return (_sheet_progress[sheet_name] as Dictionary)["cumulative"] as int
 
 
 ## Reset la couche "modifiers de manche" : grid modifiers + rule multipliers.
@@ -544,40 +564,40 @@ func spend_flies(n: int) -> bool:
 	return true
 
 
-# --- Tags ---
+# --- Sheets ---
 
-func get_equipped_tags() -> Array[PatternData]:
-	return _equipped_tags
+func get_equipped_sheets() -> Array[SheetData]:
+	return _equipped_sheets
 
 
-func equip_tag(tag: PatternData) -> bool:
-	if _equipped_tags.size() >= GameRules.MAX_PATTERN_SLOTS:
+func equip_sheet(sheet: SheetData) -> bool:
+	if _equipped_sheets.size() >= GameRules.MAX_SHEET_SLOTS:
 		return false
-	if _equipped_tags.has(tag):
+	if _equipped_sheets.has(sheet):
 		return false
-	_equipped_tags.append(tag)
-	tags_changed.emit(_equipped_tags)
+	_equipped_sheets.append(sheet)
+	sheets_changed.emit(_equipped_sheets)
 	return true
 
 
 ## Retire une Partition equipee (vente). Retourne false si elle n'etait pas
 ## equipee. N'affecte pas la resolution de la manche en cours (deja snapshotee
-## dans PatternManager au round_start) — prend effet a la manche suivante,
+## dans SheetManager au round_start) — prend effet a la manche suivante,
 ## comme le level up des Partitions.
-func unequip_tag(tag: PatternData) -> bool:
-	if not _equipped_tags.has(tag):
+func unequip_sheet(sheet: SheetData) -> bool:
+	if not _equipped_sheets.has(sheet):
 		return false
-	_equipped_tags.erase(tag)
-	tags_changed.emit(_equipped_tags)
+	_equipped_sheets.erase(sheet)
+	sheets_changed.emit(_equipped_sheets)
 	return true
 
 
 ## Vend une Partition equipee contre GameRules.SELL_REFUND_RATIO de son prix
 ## d'achat, en mouches. Aucun plancher : vendable jusqu'a 0 Partition equipee.
-func sell_tag(tag: PatternData) -> bool:
-	if not unequip_tag(tag):
+func sell_sheet(sheet: SheetData) -> bool:
+	if not unequip_sheet(sheet):
 		return false
-	add_flies(int(tag.price * GameRules.SELL_REFUND_RATIO))
+	add_flies(int(sheet.price * GameRules.SELL_REFUND_RATIO))
 	return true
 
 
@@ -647,6 +667,20 @@ func sell_badge(badge: BadgeData) -> bool:
 ## les instances possedees en les consommant sur la grille.
 func get_button_pool() -> Array[TokenData]:
 	return _button_pool.duplicate()
+
+
+## Deck de la prochaine manche pour l'affichage hors-manche (shop, ouverture
+## de pack) — aucun DeckManager de manche n'existe encore a ce moment (il est
+## instancie par GameScene a chaque nouvelle manche, voir TurnController.
+## start_round). Construit un DeckManager jetable avec la meme logique
+## (build_deck) pour ne pas dupliquer la composition ailleurs, puis le libere.
+func build_next_round_deck_preview() -> Array[TokenData]:
+	var preview: DeckManager = DeckManager.new()
+	preview.rock_count_bonus = build_context().rock_count_bonus
+	preview.build_deck(get_deck_composition(), get_button_pool())
+	var tokens: Array[TokenData] = preview.get_remaining_tokens()
+	preview.free()
+	return tokens
 
 
 ## Ajoute un bouton possede au pool (achat unitaire au shop).
