@@ -17,6 +17,7 @@ extends Node2D
 @onready var zone_label: Label = $ZoneLabel
 @onready var background: ColorRect = $Background
 @onready var flies_label: Label = $SaltLabel
+@onready var shake_button: Button = $ShakeButton
 
 # --- UI persistante, portee par le Shell (voir scripts/core/shell.gd) ---
 var sheets_ui: SheetsUI
@@ -72,6 +73,7 @@ func _create_managers() -> void:
 	turn_controller.score_manager = score_manager
 	turn_controller.sheet_manager = sheet_manager
 	turn_controller.run_manager = RunService.run_manager
+	turn_controller.boss_malus_manager = RunService.boss_malus_manager
 	add_child(turn_controller)
 
 	entity_manager = EntityManager.new()
@@ -112,8 +114,11 @@ func _wire_signals() -> void:
 	grid_manager.special_executed.connect(_on_special_executed)
 	grid_manager.residues_exploded.connect(_on_residues_exploded)
 	grid_manager.holes_changed.connect(grid_visual.set_holes)
+	grid_manager.blocked_column_changed.connect(grid_visual.set_blocked_column)
 	RunService.run_manager.flies_changed.connect(_on_flies_changed)
 	RunService.run_manager.grid_modifiers_changed.connect(grid_visual.set_grid_modifiers)
+	RunService.run_manager.shake_charges_changed.connect(_on_shake_charges_changed)
+	shake_button.pressed.connect(_on_shake_pressed)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -130,9 +135,17 @@ func _start_round() -> void:
 	# Centrer le pivot du score label pour le scale bump
 	score_label.pivot_offset = score_label.size * 0.5
 	turn_controller.start_round(RunService.current_round)
+
+	# Malus de boss GRANDE FAIM : l'Entity lache un skull 2x plus frequemment
+	# pour la manche (voir BossMalusManager, entity_manager vit ici et pas
+	# dans TurnController).
+	if RunService.boss_malus_manager.active_malus == BossMalusManager.Type.GRANDE_FAIM:
+		entity_manager.drop_interval_override = maxi(1, GameRules.ENTITY_DROP_INTERVAL / 2)
+
 	_update_score_display()
 	_update_zone_display()
 	_on_flies_changed(RunService.run_manager.get_flies())
+	_on_shake_charges_changed(RunService.run_manager.get_shake_charges())
 	grid_visual.refresh()
 	stream_ui.queue_redraw()
 
@@ -152,11 +165,28 @@ func _update_zone_display() -> void:
 	var round_in_zone: int = (RunService.current_round - 1) % GameRules.ROUNDS_PER_ZONE + 1
 	var biome_index: int = clampi(zone - 1, 0, GameRules.BIOME_NAMES.size() - 1)
 	zone_label.text = GameRules.BIOME_NAMES[biome_index] + "\nMANCHE " + str(round_in_zone) + "/" + str(GameRules.ROUNDS_PER_ZONE)
+	# Hover sur le label pour voir ce que fait le malus actif — Label ignore
+	# la souris par defaut, il faut l'activer pour que le tooltip declenche.
+	zone_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	if RunService.boss_malus_manager.active_malus != -1:
+		zone_label.text += "\nMALUS : " + RunService.boss_malus_manager.get_active_label()
+		zone_label.tooltip_text = RunService.boss_malus_manager.get_active_description()
+	else:
+		zone_label.tooltip_text = ""
 	background.color = GameRules.BIOME_BACKGROUND_COLORS[biome_index]
 
 
 func _on_flies_changed(amount: int) -> void:
 	flies_label.text = "MOUCHES\n" + str(amount)
+
+
+func _on_shake_charges_changed(amount: int) -> void:
+	shake_button.text = "SHAKE (%d)" % amount
+	shake_button.disabled = amount <= 0
+
+
+func _on_shake_pressed() -> void:
+	turn_controller.request_shake()
 
 
 ## La reveal visuelle du score suit la banniere de resolution, pas l'ajout
@@ -173,10 +203,14 @@ func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
 		await grid_visual.play_timeline(timeline)
 	grid_visual.refresh()
 
+	var meche_courte_active: bool = RunService.boss_malus_manager.active_malus == BossMalusManager.Type.MECHE_COURTE
+
 	# Entity : drop un jeton skull tous les ENTITY_DROP_INTERVAL tours
 	var entity_col: int = entity_manager.on_turn_resolved()
 	if entity_col >= 0:
 		var entity_token: TokenData = TokenData.make_entity()
+		if meche_courte_active:
+			entity_token.entity_countdown = GameRules.MECHE_COURTE_START_COUNTDOWN
 		var entity_row: int = grid_manager.place_token_direct(entity_col, entity_token)
 		if entity_row >= 0:
 			await grid_visual.animate_drop(entity_col, entity_row, entity_token)

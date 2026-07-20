@@ -3,6 +3,7 @@ extends Node
 
 signal deck_built(size: int)
 signal stream_updated(current: TokenData, hold: Array[TokenData], preview: Array[TokenData])
+signal shaken()
 
 ## Nombre de slots de hold pour la manche — 1 par defaut, augmentable par
 ## Badge (ex: "Benediction", +1 slot). Pose par TurnController.start_round
@@ -177,6 +178,42 @@ func force_hold_to_current() -> void:
 		return
 	_current = _hold[slot]
 	_hold[slot] = null
+	_emit_stream_updated()
+
+
+## "Shake" (bouton d'urgence, charge limitee par run -- voir RunManager.
+## spend_shake_charge) : remelange TOUT ce qui reste a jouer cette manche --
+## current + hold + pioche -- sans jamais changer la composition (get_
+## remaining_tokens(), donc l'Inspecteur de deck, n'est pas affecte). Inclure
+## le current est deliberement : c'est souvent lui le vrai point de blocage
+## (jeton injouable en main), pas l'ordre du reste de la pioche. Le nombre de
+## slots de hold occupes est preserve (un shake ne remplit/vide pas de slot),
+## mais pas forcement les MEMES slots -- un jeton tenu peut changer de slot.
+func shake() -> void:
+	var had_current: bool = _current != null
+	var filled_hold_count: int = 0
+	for h in _hold:
+		if h != null:
+			filled_hold_count += 1
+
+	var pool: Array[TokenData] = get_remaining_tokens()
+	pool.shuffle()
+
+	_current = null
+	for i in range(_hold.size()):
+		_hold[i] = null
+
+	if had_current and pool.size() > 0:
+		_current = pool.pop_back()
+	for i in range(_hold.size()):
+		if filled_hold_count <= 0 or pool.size() == 0:
+			break
+		_hold[i] = pool.pop_back()
+		filled_hold_count -= 1
+
+	_deck = pool
+
+	shaken.emit()
 	_emit_stream_updated()
 
 

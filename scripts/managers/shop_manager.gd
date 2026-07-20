@@ -357,8 +357,25 @@ func _random_button() -> TokenData:
 	if randf() < GameRules.SHOP_BUTTON_RARE_VALUE_CHANCE:
 		value = GameRules.MAX_BUTTON_VALUE
 	else:
-		value = randi() % GameRules.TOKEN_MAX_VALUE + GameRules.TOKEN_MIN_VALUE
+		value = _weighted_button_value()
 	return TokenData.make_base(family as TokenData.Family, value)
+
+
+## Tirage pondere sur 1..TOKEN_MAX_VALUE (voir GameRules.SHOP_BUTTON_VALUE_WEIGHTS) —
+## plus une valeur est haute, plus elle est rare. Le jackpot MAX_BUTTON_VALUE
+## reste gere a part par SHOP_BUTTON_RARE_VALUE_CHANCE, avant cet appel.
+static func _weighted_button_value() -> int:
+	var weights: Array[float] = GameRules.SHOP_BUTTON_VALUE_WEIGHTS
+	var total: float = 0.0
+	for w in weights:
+		total += w
+	var roll: float = randf() * total
+	var cumulative: float = 0.0
+	for i in range(weights.size()):
+		cumulative += weights[i]
+		if roll < cumulative:
+			return GameRules.TOKEN_MIN_VALUE + i
+	return GameRules.TOKEN_MAX_VALUE
 
 
 func get_pack_slots() -> Array[Dictionary]:
@@ -398,14 +415,19 @@ static func get_description(item: Variant) -> String:
 	return ""
 
 
-## Retourne la rarete d'un item, -1 si le type n'en a pas (Special, Bouton,
-## Partition depuis la session 19) — RarityButton retombe alors sur le
-## tooltip texte simple.
+## Retourne la rarete d'un item, -1 si le type n'en a pas (Special, Bouton) —
+## RarityButton retombe alors sur le tooltip texte simple. Les Partitions
+## normales restent aussi a -1 (tirage uniforme, session 19 : pas de gating
+## par rarete) — seules les legendaires (SheetData.is_legendary) remontent en
+## LEGENDARY, pour le badge colore/dopamine a la reveal (pack et shop),
+## sans toucher au tirage lui-meme (LEGENDARY_SHEET_CHANCE inchange).
 static func get_rarity(item: Variant) -> int:
 	if item is BadgeData:
 		return (item as BadgeData).rarity
 	if item is DeckToolData:
 		return (item as DeckToolData).rarity
+	if item is SheetData and (item as SheetData).is_legendary:
+		return BadgeData.Rarity.LEGENDARY
 	return -1
 
 

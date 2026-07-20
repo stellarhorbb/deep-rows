@@ -83,6 +83,16 @@ offset_bottom = 760.0
 mouse_filter = 2
 script = ExtResource("3_stream")
 
+[node name="ShakeButton" type="Button" parent="." unique_id=1000000400]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 1320.0
+offset_top = 780.0
+offset_right = 1420.0
+offset_bottom = 830.0
+focus_mode = 0
+text = "SHAKE"
+
 [node name="MessageDisplay" type="Label" parent="." unique_id=753821877]
 visible = false
 offset_left = 480.0

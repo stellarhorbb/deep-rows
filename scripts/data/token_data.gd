@@ -17,6 +17,11 @@ var locked: bool = false
 var value: int = 1
 var special_type: SpecialType = SpecialType.NONE
 
+## Malus de boss MÈCHE COURTE (voir BossMalusManager) : nombre de tours avant
+## explosion pour un jeton entity-skull (kind ENTITY). -1 = pas de countdown
+## (malus inactif ou jeton non concerne).
+var entity_countdown: int = -1
+
 
 static func make_base(p_family: Family, p_value: int) -> TokenData:
 	var token: TokenData = TokenData.new()

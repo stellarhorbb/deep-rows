@@ -26,6 +26,7 @@ var _state: State = State.AWAITING_INPUT
 @export var score_manager: ScoreManager
 @export var sheet_manager: SheetManager
 @export var run_manager: RunManager
+@export var boss_malus_manager: BossMalusManager
 
 
 func _ready() -> void:
@@ -45,6 +46,27 @@ func start_round(round_number: int) -> void:
 	# 1. Reset de la couche modifiers de manche.
 	run_manager.reset_round_modifiers()
 
+	# 1b. Malus de boss (manche 5, 10, 15, 20) : pose ses verrous/bonus via les
+	# memes hooks qu'un Badge on_round_start, avant que le contexte ne soit construit.
+	boss_malus_manager.apply_for_round(round_number, run_manager)
+
+	# 1c. L'ÉTAU / CIEL BAS : trous fixes en plus de la grille cabossee
+	# aleatoire ci-dessus, colonnes/rangee entierement bloquees pour la manche.
+	match boss_malus_manager.active_malus:
+		BossMalusManager.Type.ETAU:
+			var etau_cells: Array[Vector2i] = []
+			for col in boss_malus_manager.etau_columns:
+				for row in range(GameRules.ROWS):
+					etau_cells.append(Vector2i(col, row))
+			grid_manager.add_holes(etau_cells)
+		BossMalusManager.Type.CIEL_BAS:
+			var ciel_bas_cells: Array[Vector2i] = []
+			for col in range(GameRules.COLS):
+				ciel_bas_cells.append(Vector2i(col, GameRules.ROWS - 1))
+			grid_manager.add_holes(ciel_bas_cells)
+
+	_reroll_colonne_maudite()
+
 	# 2. Les badges on_round_start peuplent grid_modifiers et rule_multipliers.
 	round_started.emit()
 
@@ -54,7 +76,7 @@ func start_round(round_number: int) -> void:
 	sheet_manager.set_active_sheets(context.equipped_sheets)
 	grid_manager.set_run_context(context)
 
-	deck_manager.hold_capacity = GameRules.BASE_HOLD_SLOTS + context.hold_slot_bonus
+	deck_manager.hold_capacity = 0 if context.hold_locked else GameRules.BASE_HOLD_SLOTS + context.hold_slot_bonus
 	deck_manager.preview_bonus = context.preview_size_bonus
 	deck_manager.rock_count_bonus = context.rock_count_bonus
 	deck_manager.build_deck(run_manager.get_deck_composition(), run_manager.get_button_pool())
@@ -76,12 +98,39 @@ func play_current_to(col: int, row: int) -> void:
 
 	_state = State.DROPPING
 	deck_manager.consume_current()
+	await _drop_token(token, col)
 
-	# Place le jeton (logique + signals)
-	grid_manager.place_token(token, col, row)
-	token_dropped.emit(token, col, row)
+	# Malus de boss BOURRASQUE (voir BossMalusManager) : le jeton suivant du
+	# stream tombe automatiquement dans la meme colonne, juste au-dessus,
+	# avant toute resolution. S'il n'y a plus de place, il reste simplement
+	# current pour le prochain tour (pas de perte de jeton).
+	if boss_malus_manager.active_malus == BossMalusManager.Type.BOURRASQUE:
+		deck_manager.advance_stream()
+		var bonus_token: TokenData = deck_manager.get_current()
+		if bonus_token != null and grid_manager.can_play_token(bonus_token, col, 0):
+			deck_manager.consume_current()
+			await _drop_token(bonus_token, col)
 
-	# Attendre l'animation de chute
+	# Malus de boss MÈCHE COURTE (voir BossMalusManager) : decompte/detone les
+	# entity-skulls AVANT resolve(), pour que la gravite et les matchs eventuels
+	# de la chute soient pris en compte dans le meme cycle de resolution — pas
+	# apres coup, sinon rien ne se resout tant que le joueur n'a pas rejoue.
+	if boss_malus_manager.active_malus == BossMalusManager.Type.MECHE_COURTE:
+		grid_manager.tick_entity_countdowns()
+
+	# Resolution cascade
+	_state = State.RESOLVING
+	grid_manager.resolve()
+
+
+## Place un jeton (logique + animation + effet special) et attend que
+## l'animation de chute (et l'effet special, le cas echeant) soit terminee.
+## Factorise pour que BOURRASQUE puisse rejouer la meme sequence sur un 2e
+## jeton dans la meme colonne (voir play_current_to).
+func _drop_token(token: TokenData, col: int) -> void:
+	grid_manager.place_token(token, col, 0)
+	token_dropped.emit(token, col, 0)
+
 	await drop_animated
 
 	# Pour les specials : executer l'effet apres la chute, attendre l'animation
@@ -92,10 +141,6 @@ func play_current_to(col: int, row: int) -> void:
 		run_manager.consume_special(token.special_type)
 		grid_manager.execute_special(token, col)
 		await special_effect_done
-
-	# Resolution cascade
-	_state = State.RESOLVING
-	grid_manager.resolve()
 
 
 func notify_drop_complete() -> void:
@@ -110,6 +155,20 @@ func request_hold(slot_index: int = -1) -> void:
 	if _state != State.AWAITING_INPUT:
 		return
 	deck_manager.do_hold(slot_index)
+
+
+## Bouton d'urgence "Shake" (voir GameRules.SHAKE_CHARGES_DEFAULT) : remelange
+## current + hold + pioche (voir DeckManager.shake). Ne fait rien si aucune
+## charge restante -- l'UI se base sur run_manager.shake_charges_changed pour
+## se desactiver, mais on regarde quand meme la charge reelle ici, seule
+## source de verite.
+func request_shake() -> void:
+	if _state != State.AWAITING_INPUT:
+		return
+	if run_manager.is_shake_locked():
+		return
+	if run_manager.spend_shake_charge():
+		deck_manager.shake()
 
 
 func get_state() -> State:
@@ -186,6 +245,10 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 
 	deck_manager.force_hold_to_current()
 
+	# Malus de boss COLONNE MAUDITE : re-tiree avant le check de coup legal
+	# pour que celui-ci reflete la colonne que le joueur va reellement affronter.
+	_reroll_colonne_maudite()
+
 	# Grille pleine, deck pas vide : aucun coup legal possible (sauf un
 	# Fantome en main/hold, qui peut cibler une colonne pleine). Sans lui, le
 	# joueur serait bloque indefiniment — meme traitement que le deck vide.
@@ -195,6 +258,16 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 
 	_state = State.AWAITING_INPUT
 	awaiting_input.emit()
+
+
+## Malus de boss COLONNE MAUDITE (voir BossMalusManager) : re-tire la colonne
+## bloquee a chaque retour en attente d'un coup du joueur (round_start et
+## apres chaque tour resolu). Relache le verrou si le malus n'est pas actif.
+func _reroll_colonne_maudite() -> void:
+	if boss_malus_manager.active_malus == BossMalusManager.Type.COLONNE_MAUDITE:
+		grid_manager.set_blocked_column(randi() % GameRules.COLS)
+	else:
+		grid_manager.set_blocked_column(-1)
 
 
 ## Verifie si le jeton courant ou l'un des jetons tenus (voir hold_capacity,

@@ -8,12 +8,17 @@ signal resolution_complete(timeline: Array[Dictionary], total_score: int)
 signal grid_reset()
 signal residues_exploded(positions: Array[Vector2i])
 signal holes_changed(holes: Dictionary)
+signal blocked_column_changed(col: int)
 
 var _grid: Array = []
 var _cols: int = GameRules.COLS
 var _rows: int = GameRules.ROWS
 var _run_context: RunContext = null
 var _holes: Dictionary = {}  # Vector2i -> true
+
+## Malus de boss COLONNE MAUDITE (voir BossMalusManager) : colonne injouable
+## jusqu'au prochain drop, -1 si aucune. Re-tiree par TurnController.
+var _blocked_column: int = -1
 
 
 func init_grid() -> void:
@@ -25,6 +30,7 @@ func init_grid() -> void:
 			column[r] = null
 		_grid.append(column)
 	_holes.clear()
+	set_blocked_column(-1)
 	grid_reset.emit()
 
 
@@ -45,7 +51,19 @@ func column_height(col: int) -> int:
 
 
 func can_play_token(token: TokenData, col: int, row: int) -> bool:
+	if col == _blocked_column:
+		return false
 	return SpecialEffects.can_play(_grid, token, col, row, _cols, _rows, _holes)
+
+
+## Voir _blocked_column (COLONNE MAUDITE).
+func set_blocked_column(col: int) -> void:
+	_blocked_column = col
+	blocked_column_changed.emit(col)
+
+
+func get_blocked_column() -> int:
+	return _blocked_column
 
 
 ## Place un jeton basique ou rock sur la grille.
@@ -107,6 +125,42 @@ func generate_random_holes(count: int) -> void:
 
 func get_holes() -> Dictionary:
 	return _holes.duplicate()
+
+
+## Ajoute des trous fixes en plus de ceux deja generes (grille cabossee),
+## sans effacer les existants — voir BossMalusManager (L'ÉTAU, CIEL BAS).
+func add_holes(cells: Array[Vector2i]) -> void:
+	for cell in cells:
+		_holes[cell] = true
+	holes_changed.emit(_holes.duplicate())
+
+
+## Malus de boss MÈCHE COURTE (voir BossMalusManager) : decompte le countdown
+## de chaque entity-skull deja sur la grille, detone ceux qui atteignent 0
+## (lui et ses 2 voisins directs sur la meme rangee, sans les scorer). Ne
+## regle PAS la gravite ici — appele juste avant resolve() (voir
+## TurnController.play_current_to), qui s'en charge et anime la chute comme
+## n'importe quelle autre cascade.
+func tick_entity_countdowns() -> void:
+	var detonated: Array[Vector2i] = []
+	for c in range(_cols):
+		for r in range(_rows):
+			var token: TokenData = _grid[c][r]
+			if token == null or token.kind != TokenData.Kind.ENTITY or token.entity_countdown < 0:
+				continue
+			token.entity_countdown -= 1
+			if token.entity_countdown <= 0:
+				detonated.append(Vector2i(c, r))
+	for cell in detonated:
+		_detonate_entity_skull(cell)
+
+
+func _detonate_entity_skull(cell: Vector2i) -> void:
+	for dc in range(-1, 2):
+		var cc: int = cell.x + dc
+		if cc < 0 or cc >= _cols:
+			continue
+		_grid[cc][cell.y] = null
 
 
 ## Lance la resolution des cascades.

@@ -104,6 +104,25 @@ extends Resource
 # importe combien de badges le partagent.
 @export var rock_leaving_sources: Dictionary = {}
 
+# Verrous poses par le malus de boss actif de la manche (voir
+# BossMalusManager) : MAIN LIÉE et COUR ENDORMIE. Pas de dictionnaire par
+# source, contrairement aux canaux Badge ci-dessus — un seul emetteur possible.
+@export var hold_locked: bool = false
+@export var figure_promotion_locked: bool = false
+
+# Malus de boss FAMILLE TERNIE / PARTITION TERNIE (voir BossMalusManager),
+# deux axes symetriques de la meme formule value_sum * multi :
+# - score_capped_family (TokenData.Family, -1 = aucune) : chaque jeton de
+#   cette famille scort comme s'il valait 1 (voir CascadeResolver.
+#   _effective_token_value) — les multi (sheet + Badges) s'appliquent ensuite
+#   normalement sur ce total reduit.
+# - score_capped_sheet_name (sheet_name, "" = aucune) : le multiplicateur
+#   PROPRE a cette Partition (base + niveau, y compris legendaire dynamique)
+#   est neutralise a 1.0 — les tickets des jetons et les multi de Badges
+#   restent normaux (voir CascadeResolver._score_group).
+@export var score_capped_family: int = -1
+@export var score_capped_sheet_name: StringName = &""
+
 
 ## --- Combinaison des contributions --------------------------------------
 ## Chaque canal "keyed" ou "flat" a une seule methode qui sait le combiner —

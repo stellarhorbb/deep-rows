@@ -5,6 +5,7 @@ class_name RunManager
 extends Node
 
 signal flies_changed(amount: int)
+signal shake_charges_changed(amount: int)
 signal sheets_changed(equipped: Array[SheetData])
 signal badges_changed(equipped: Array[BadgeData])
 signal deck_composition_changed()
@@ -26,6 +27,7 @@ const STARTER_PACK_PATHS: Array[String] = [
 ]
 
 var _flies: int = 0
+var _shake_charges: int = GameRules.SHAKE_CHARGES_DEFAULT
 var _equipped_sheets: Array[SheetData] = []
 var _equipped_badges: Array[BadgeData] = []
 var _button_pool: Array[TokenData] = []
@@ -59,6 +61,15 @@ var _hold_slot_bonuses: Dictionary = {}
 var _preview_size_bonuses: Dictionary = {}
 var _rock_count_bonuses: Dictionary = {}
 var _rock_leaving_sources: Dictionary = {}  # StringName -> true
+
+## Verrous poses par le malus de boss actif (voir BossMalusManager). Simples
+## booleens, pas de dictionnaire par source : seul le malus de boss les pose
+## aujourd'hui, contrairement aux canaux ci-dessus qui combinent plusieurs Badges.
+var _hold_locked: bool = false
+var _shake_locked: bool = false
+var _figure_promotion_locked: bool = false
+var _score_capped_family: int = -1
+var _score_capped_sheet_name: StringName = &""
 
 ## Contribution actuelle de chaque badge "scaling permanent" au facteur
 ## scaling_mult / au flat_score_bonus : StringName (id du badge) -> float/int.
@@ -101,6 +112,7 @@ var _active_context: RunContext = null
 ## qui appelle apply_starter_pack() avec le choix du joueur avant le debut de la manche 1.
 func init_run() -> void:
 	_flies = 0
+	_shake_charges = GameRules.SHAKE_CHARGES_DEFAULT
 
 	_equipped_sheets.clear()
 	_starter_pack = null
@@ -137,6 +149,7 @@ func init_run() -> void:
 	_apply_debug_specials_to_deck()
 
 	flies_changed.emit(_flies)
+	shake_charges_changed.emit(_shake_charges)
 	sheets_changed.emit(_equipped_sheets)
 	badges_changed.emit(_equipped_badges)
 	deck_composition_changed.emit()
@@ -223,6 +236,10 @@ func build_context() -> RunContext:
 	ctx.preview_size_bonus = int(_sum_dict_values(_preview_size_bonuses))
 	ctx.rock_count_bonus = int(_sum_dict_values(_rock_count_bonuses))
 	ctx.rock_leaving_sources = _rock_leaving_sources.duplicate()
+	ctx.hold_locked = _hold_locked
+	ctx.figure_promotion_locked = _figure_promotion_locked
+	ctx.score_capped_family = _score_capped_family
+	ctx.score_capped_sheet_name = _score_capped_sheet_name
 	_active_context = ctx
 	return ctx
 
@@ -305,6 +322,11 @@ func reset_round_modifiers() -> void:
 	_preview_size_bonuses.clear()
 	_rock_count_bonuses.clear()
 	_rock_leaving_sources.clear()
+	_hold_locked = false
+	_shake_locked = false
+	_figure_promotion_locked = false
+	_score_capped_family = -1
+	_score_capped_sheet_name = &""
 	_badge_state.clear()
 	_active_context = null
 
@@ -410,6 +432,32 @@ func add_preview_size_bonus(bonus: int, source: StringName = &"") -> void:
 ## de rocks ajoutes au deck chaque manche (voir GameRules.DECK_ROCK_COUNT).
 func add_rock_count_bonus(bonus: int, source: StringName = &"") -> void:
 	_rock_count_bonuses[source] = bonus
+
+
+## --- Verrous de malus de boss (voir BossMalusManager) ---------------------
+
+func set_hold_locked(locked: bool) -> void:
+	_hold_locked = locked
+
+
+func set_shake_locked(locked: bool) -> void:
+	_shake_locked = locked
+
+
+func is_shake_locked() -> bool:
+	return _shake_locked
+
+
+func set_figure_promotion_locked(locked: bool) -> void:
+	_figure_promotion_locked = locked
+
+
+func set_score_capped_family(family: int) -> void:
+	_score_capped_family = family
+
+
+func set_score_capped_sheet(sheet_name: StringName) -> void:
+	_score_capped_sheet_name = sheet_name
 
 
 ## Active, pour cette manche, l'effet "un jeton aleatoire d'une Partition
@@ -561,6 +609,23 @@ func spend_flies(n: int) -> bool:
 		return false
 	_flies -= n
 	flies_changed.emit(_flies)
+	return true
+
+
+# --- Shake ---
+
+func get_shake_charges() -> int:
+	return _shake_charges
+
+
+## Consomme une charge de Shake (voir DeckManager.shake). Retourne false sans
+## rien faire si plus aucune charge -- au consommateur (TurnController) de
+## n'appeler deck_manager.shake() que si ceci retourne true.
+func spend_shake_charge() -> bool:
+	if _shake_charges <= 0:
+		return false
+	_shake_charges -= 1
+	shake_charges_changed.emit(_shake_charges)
 	return true
 
 

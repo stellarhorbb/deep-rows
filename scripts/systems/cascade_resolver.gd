@@ -140,6 +140,18 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 			# normalement a la gravite qui suit si sa colonne s'est videe.
 			if group.has("center") and group.get("match_rule") == &"rock":
 				cells_to_remove[group["center"] as Vector2i] = true
+			# Legendaire "Lost Corners" : son multiplicateur = somme de TOUTE
+			# la rangee du bas (_bottom_row_value_sum), pas seulement les 2
+			# coins qui declenchent le match. Sans ca, rien n'empeche
+			# d'empiler la rangee et de retrigger le combo indefiniment sans
+			# jamais le "depenser" — on vide donc la rangee du bas (jetons
+			# scorables uniquement, sans les scorer une 2e fois) des qu'elle
+			# a servi de carburant au multi.
+			if group.get("sheet_name", &"") == &"lost_corners":
+				for c in range(cols):
+					var bottom_token: TokenData = grid[c][0] as TokenData
+					if bottom_token != null and bottom_token.is_scorable():
+						cells_to_remove[Vector2i(c, 0)] = true
 		var removed_cells: Array[Vector2i] = []
 		for cell in cells_to_remove.keys():
 			removed_cells.append(cell as Vector2i)
@@ -264,6 +276,16 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	var sheet_name: StringName = group.get("sheet_name", &"") as StringName
 	var level_mult: float = sheet_level_multipliers.get(sheet_name, 1.0) as float
 	var global_mult: float = context.get_global_multiplier()
+
+	# Malus de boss PARTITION TERNIE (voir BossMalusManager) : en miroir de
+	# FAMILLE TERNIE (qui plafonne chaque JETON a 1, voir _effective_token_value),
+	# on neutralise ici le multiplicateur PROPRE a la Partition ciblee (son
+	# score_multiplier de base, y compris legendaire dynamique, + son niveau)
+	# plutot que le total du groupe — les tickets des jetons et les multi de
+	# Badges (rule/global/scaling/etc.) restent normaux.
+	var partition_targeted: bool = context.score_capped_sheet_name != &"" and sheet_name == context.score_capped_sheet_name
+	if partition_targeted:
+		level_mult = 1.0
 	# Scaling permanent (session 17) : facteur additif qui grossit sur toute
 	# la run (ex: Jetons sacres, +0.1 par special joue), distinct de global_mult
 	# pour ne pas entrer en collision avec Dernier Carre/Regularite.
@@ -278,6 +300,8 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	# comme une ligne ou un carre.
 	if group["shape"] == &"diamond":
 		var sheet_mult: float = group.get("score_multiplier", 4.0) as float
+		if partition_targeted:
+			sheet_mult = 1.0
 		var raw_value: int = 0
 		var scored_cells: Array = []
 
@@ -288,20 +312,20 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 			if center_token == null or not center_token.is_scorable():
 				return 0
 			rock_roll = randi_range(GameRules.DIAMOND_ROCK_ROLL_MIN, GameRules.DIAMOND_ROCK_ROLL_MAX)
-			raw_value = center_token.value + rock_roll
+			raw_value = _effective_token_value(center_token, context) + rock_roll
 			scored_cells = [center]
 		else:
 			for cell in group["cells"]:
 				var token: TokenData = grid[cell.x][cell.y] as TokenData
 				if token != null and token.is_scorable():
-					raw_value += token.value
+					raw_value += _effective_token_value(token, context)
 			scored_cells = group["cells"]
 
 		var diamond_grid_mult: float = _grid_modifier_multiplier(scored_cells, grid_modifiers)
 		var diamond_value_bonus_mult: float = _value_bonus_multiplier(scored_cells, grid, context)
 		var diamond_sum_bonus: Dictionary = _value_sum_bonus(group, scored_cells, grid, context)
 		var base_value: int = raw_value + (diamond_sum_bonus["amount"] as int)
-		group["upgrade_candidates"] = _roll_upgrades(scored_cells, grid, context) + _roll_face_promotions(scored_cells, grid)
+		group["upgrade_candidates"] = _roll_upgrades(scored_cells, grid, context) + _roll_face_promotions(scored_cells, grid, context)
 		group["scored_tokens"] = _snapshot_scored_tokens(scored_cells, grid)
 		var diamond_mult_contribs: Dictionary = _mult_contributions(scored_cells, grid, context, rule)
 		# cascade_mult exclu du breakdown affiche : la banniere de resolution
@@ -319,11 +343,11 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	for cell in group["cells"]:
 		var token: TokenData = grid[cell.x][cell.y] as TokenData
 		if token != null and token.is_scorable():
-			raw_value += token.value
+			raw_value += _effective_token_value(token, context)
 
 	var sum_bonus: Dictionary = _value_sum_bonus(group, group["cells"], grid, context)
 	var value_sum: int = raw_value + (sum_bonus["amount"] as int)
-	group["upgrade_candidates"] = _roll_upgrades(group["cells"], grid, context) + _roll_face_promotions(group["cells"], grid)
+	group["upgrade_candidates"] = _roll_upgrades(group["cells"], grid, context) + _roll_face_promotions(group["cells"], grid, context)
 	group["scored_tokens"] = _snapshot_scored_tokens(group["cells"], grid)
 
 	# Multiplicateur fixe du sheet, meme regle pour toutes les formes (les lignes
@@ -339,6 +363,9 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	elif sheet_name == &"royal_square":
 		legendary_roll = randi_range(GameRules.ROYAL_SQUARE_ROLL_MIN, GameRules.ROYAL_SQUARE_ROLL_MAX)
 		shape_mult = float(legendary_roll)
+
+	if partition_targeted:
+		shape_mult = 1.0
 
 	var grid_mult: float = _grid_modifier_multiplier(group["cells"], grid_modifiers)
 	var value_bonus_mult: float = _value_bonus_multiplier(group["cells"], grid, context)
@@ -505,14 +532,28 @@ func _roll_upgrades(cells: Array, grid: Array, context: RunContext) -> Array:
 	return upgrades
 
 
+## Malus de boss FAMILLE TERNIE : un jeton de la famille ciblee pour la manche
+## scort comme s'il valait 1, peu importe sa vraie valeur — le sheet_mult/
+## cascade_mult/etc. s'appliquent ensuite normalement sur ce total reduit
+## (ex: Line 3 en 5/2/2 sur la famille ciblee -> 1+1+1=3 avant multi, pas 9).
+static func _effective_token_value(token: TokenData, context: RunContext) -> int:
+	if context.score_capped_family >= 0 and int(token.family) == context.score_capped_family:
+		return 1
+	return token.value
+
+
 ## Contrairement a _roll_upgrades (Poker Face, probabiliste), la promotion en
 ## figure (arcanes mineurs) est une regle de base toujours active : un jeton
 ## deja a MAX_BUTTON_VALUE (ou plus loin dans la suite) qui score avance
 ## automatiquement d'un cran (voir GameRules.next_face_value). Chemin
 ## exclusivement accessible par le score. Un jeton verrouille (action "Fixer"
-## des Des a coudre) n'est jamais propose ici, meme s'il rescore.
-func _roll_face_promotions(cells: Array, grid: Array) -> Array:
+## des Des a coudre) n'est jamais propose ici, meme s'il rescore. Le malus de
+## boss "Cour endormie" (voir BossMalusManager) coupe entierement ce chemin
+## pour la manche.
+func _roll_face_promotions(cells: Array, grid: Array, context: RunContext) -> Array:
 	var promotions: Array = []
+	if context.figure_promotion_locked:
+		return promotions
 	for cell in cells:
 		var c: Vector2i = cell as Vector2i
 		var token: TokenData = grid[c.x][c.y] as TokenData

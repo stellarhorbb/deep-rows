@@ -21,6 +21,14 @@ const CASCADE_MULTIPLIER_BASE: float = 2.0
 # Deck
 const DECK_ROCK_COUNT: int = 4
 
+# Malus de boss "Pluie de cailloux" — rocks supplementaires injectes dans le
+# deck pour la manche, en plus de DECK_ROCK_COUNT (voir BossMalusManager).
+const BOSS_MALUS_ROCK_COUNT: int = 4
+
+# Malus de boss "Mèche courte" — countdown de depart d'un entity-skull avant
+# qu'il explose (voir GridManager.tick_entity_countdowns).
+const MECHE_COURTE_START_COUNTDOWN: int = 5
+
 # "Grille cabossee" — trous generes au debut de chaque manche (jamais en row 0,
 # le sol reste toujours garanti). Un jeton qui tombe les traverse sans pouvoir
 # s'y arreter — different d'un Rock, qui bloque et sert d'appui.
@@ -30,6 +38,14 @@ const ROUND_START_HOLES_MAX: int = 8
 # Stream
 const PREVIEW_SIZE: int = 3
 const BASE_HOLD_SLOTS: int = 1
+
+## "Shake" -- bouton d'urgence qui remelange TOUT ce qui reste a jouer cette
+## manche (current en main + hold + pioche), jamais la composition -- pas
+## d'ajout/retrait/recuperation de jetons deja joues, donc aucune contradiction
+## avec le "un seul passage, pas de reshuffle" du deck (voir docs/gdd/manche/
+## deck.md). Completement aleatoire, peut ne rien ameliorer. Charge limitee
+## PAR RUN (pas par manche) -- voir RunManager._shake_charges.
+const SHAKE_CHARGES_DEFAULT: int = 2
 
 ## Score cible par manche (session 18, remplace l'ancien BASE_TARGET +
 ## TARGET_INCREMENT lineaire). Valeurs hardcodees pour faciliter le retuning
@@ -159,7 +175,11 @@ const DIAMOND_ROCK_ROLL_MAX: int = 5
 ## plutot qu'un tirage normal — additif, ne retire jamais de chances au pool
 ## de base. Effets codes en dur par sheet_name dans CascadeResolver/
 ## SheetMatcher, pas de systeme d'effets generique (voir SheetData.is_legendary).
-const LEGENDARY_SHEET_CHANCE: float = 0.05
+## 0.05 -> 0.03 (session 22) : a 5%, ~7-10% de chance de tomber sur les 3
+## legendaires en une seule run (calcul sur ~19 tirages de Partition/run avec
+## CATEGORY_WEIGHTS actuels) — trop frequent pour rester "legendaire". A 3%,
+## la probabilite du grand chelem tombe a ~2%.
+const LEGENDARY_SHEET_CHANCE: float = 0.03
 
 ## Royal Square (Carre 2x2 famille) : le multiplicateur EST le roll, pas un
 ## bonus ajoute a autre chose (contrairement au roll de Diamond Rock) — flat,
@@ -230,6 +250,11 @@ const MAX_BUTTON_VALUE: int = 10
 ## de Fusion. Les figures (Valet+) restent exclusivement accessibles par le
 ## score, jamais par le shop (session 18) : voir FACE_CARD_VALUES ci-dessous.
 const SHOP_BUTTON_RARE_VALUE_CHANCE: float = 0.01
+
+## Poids de tirage des valeurs 1-5 en boutique (hors jackpot ci-dessus) —
+## plus une valeur est haute, plus elle est rare. Index 0 = TOKEN_MIN_VALUE.
+## 25/25/25/15/10 : 1, 2 et 3 a poids egal, 4 et 5 degressifs.
+const SHOP_BUTTON_VALUE_WEIGHTS: Array[float] = [25.0, 25.0, 25.0, 15.0, 10.0]
 
 ## Suite des figures (arcanes mineurs, session 18) : un jeton de base deja a
 ## MAX_BUTTON_VALUE qui score avance automatiquement d'un cran dans cette

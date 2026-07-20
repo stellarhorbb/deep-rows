@@ -11,4 +11,3 @@ min_size = 4
 is_legendary = true
 label = "ROYAL SQUARE"
 price = 20
-debug_start_equipped = true

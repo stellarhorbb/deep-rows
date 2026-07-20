@@ -10,6 +10,8 @@ signal group_score_revealed(amount: int)
 @export var cell_gap: float = 6.0
 @export var empty_cell_color: Color = Color("e8e8e8")
 @export var hole_color: Color = Color("2a2a38")
+@export var blocked_column_color: Color = Color(0.15, 0.15, 0.15, 0.5)
+@export var entity_blink_interval: float = 0.3  # MÈCHE COURTE, voir _setup_entity_countdown_sprite
 @export var residue_color: Color = Color("b8b3d6")
 @export var modifier_border_width: float = 6.0
 
@@ -38,6 +40,7 @@ signal group_score_revealed(amount: int)
 var _token_sprites: Dictionary = {}  # Vector2i -> Sprite2D
 var _grid_modifiers: Dictionary = {}  # Vector2i -> Array[StringName]
 var _holes: Dictionary = {}  # Vector2i -> true
+var _blocked_column: int = -1  # COLONNE MAUDITE, voir GridManager
 var _is_animating: bool = false
 var _popup_font: Font = null
 
@@ -63,6 +66,8 @@ func _draw() -> void:
 			var center: Vector2 = _cell_center(c, visual_row)
 			var is_hole: bool = _holes.has(Vector2i(c, r))
 			draw_circle(center, cell_size / 2.0, hole_color if is_hole else empty_cell_color)
+			if c == _blocked_column:
+				draw_circle(center, cell_size / 2.0, blocked_column_color)
 
 	# Contour des cellules modifiees (par dessus le fond, sous les sprites).
 	# Plusieurs modifiers empiles sur une meme case = plusieurs anneaux
@@ -97,6 +102,12 @@ func set_grid_modifiers(modifiers: Dictionary) -> void:
 ## Appele par game_scene quand GridManager emet holes_changed.
 func set_holes(holes: Dictionary) -> void:
 	_holes = holes
+	queue_redraw()
+
+
+## Appele par game_scene quand GridManager emet blocked_column_changed.
+func set_blocked_column(col: int) -> void:
+	_blocked_column = col
 	queue_redraw()
 
 
@@ -564,12 +575,15 @@ func _create_sprite(cell: Vector2i, token: TokenData) -> Sprite2D:
 			sprite.scale = Vector2(target_scale, target_scale)
 			sprite.modulate.a = 0.5
 	elif token.kind == TokenData.Kind.ENTITY:
-		var tex: Texture2D = load("res://assets/tokens/entity-skull.png") as Texture2D
-		if tex != null:
-			sprite.texture = tex
-			var tex_size: float = maxf(tex.get_width(), tex.get_height())
-			var target_scale: float = cell_size / tex_size
-			sprite.scale = Vector2(target_scale, target_scale)
+		if token.entity_countdown >= 0:
+			_setup_entity_countdown_sprite(sprite, token)
+		else:
+			var tex: Texture2D = load("res://assets/tokens/entity-skull.png") as Texture2D
+			if tex != null:
+				sprite.texture = tex
+				var tex_size: float = maxf(tex.get_width(), tex.get_height())
+				var target_scale: float = cell_size / tex_size
+				sprite.scale = Vector2(target_scale, target_scale)
 	else:
 		var tex: Texture2D = TokenVisual.get_texture(token)
 		if tex != null:
@@ -610,6 +624,50 @@ func _add_value_label(sprite: Sprite2D, value: int, tex_size: Vector2) -> void:
 	var size_ratio: float = 0.4 if text.length() <= 2 else 0.18
 	label.add_theme_font_size_override("font_size", int(tex_size.y * size_ratio))
 	sprite.add_child(label)
+
+
+## Malus de boss MÈCHE COURTE : texture qui clignote rouge/noir + countdown
+## toujours visible (contrairement a _add_value_label, pas derriere le flag
+## debug — c'est le telegraphing du malus, pas juste un aide-debug).
+func _setup_entity_countdown_sprite(sprite: Sprite2D, token: TokenData) -> void:
+	var red_tex: Texture2D = load("res://assets/entity/skull-red.png") as Texture2D
+	var black_tex: Texture2D = load("res://assets/entity/skull-black.png") as Texture2D
+	var tex: Texture2D = red_tex if red_tex != null else black_tex
+	if tex == null:
+		return
+	sprite.texture = tex
+	var tex_size: float = maxf(tex.get_width(), tex.get_height())
+	sprite.scale = Vector2(cell_size / tex_size, cell_size / tex_size)
+
+	var label: Label = Label.new()
+	label.text = str(token.entity_countdown)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.size = tex.get_size()
+	label.pivot_offset = label.size / 2.0
+	label.position = -label.pivot_offset
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", Color.WHITE)
+	if _popup_font != null:
+		label.add_theme_font_override("font", _popup_font)
+	label.add_theme_font_size_override("font_size", int(tex.get_size().y * 0.4))
+	sprite.add_child(label)
+
+	if red_tex == null or black_tex == null:
+		return
+	var blink: Tween = create_tween().set_loops()
+	blink.tween_callback(func() -> void:
+		if is_instance_valid(sprite):
+			sprite.texture = black_tex
+		else:
+			blink.kill()
+	).set_delay(entity_blink_interval)
+	blink.tween_callback(func() -> void:
+		if is_instance_valid(sprite):
+			sprite.texture = red_tex
+		else:
+			blink.kill()
+	).set_delay(entity_blink_interval)
 
 
 func _grid_to_pixel(col: int, row: int) -> Vector2:
