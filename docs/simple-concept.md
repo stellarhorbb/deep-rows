@@ -34,7 +34,7 @@ reroll croissant
 
 entity = petit skull lâché dans une colonne random tous les 6 tours, survit à tout, brise le stacking
 
-run = 4 zones x 3 manches, monnaie de progression = tickets
+run = 4 zones x 5 manches (4 + boss), score = tickets
 fin de run → the shore (meta-progression, unlocks pour les futures runs)
 
 ton : conte bizarre hand-drawn, OTGW / Gravity Falls, cute-dérangeant, double lecture

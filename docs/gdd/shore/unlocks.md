@@ -39,7 +39,7 @@ Une fois débloqué par n'importe lequel de ces trois chemins, le contenu reste 
 
 À trancher. Pistes :
 
-- **Tickets** accumulés en fin de run (proportionnel à la progression atteinte)
+- **Compteur de progression** accumulé en fin de run (proportionnel à la progression atteinte), nom à trouver — pas "Tickets", qui désigne déjà le score (voir [Monnaies](../progression/monnaies.md))
 - **Découvertes** : certains unlocks se font par des achievements en jeu ("former un pattern de 6+ pour la première fois", "finir une manche avec exactement le score cible", "compléter une run sans acheter de spécial", "faire 5 cascades d'affilée")
 - **Progression par biome** : atteindre un biome pour la première fois débloque son contenu thématique (voir ci-dessus) — un troisième pilier à côté des deux précédents, pas juste une variante des découvertes puisqu'il est lié à la position dans la descente, pas à un exploit de jeu
 - **Combinaison** des trois

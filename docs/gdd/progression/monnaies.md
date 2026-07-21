@@ -27,24 +27,11 @@ En fin de manche (hors dernière manche du run), un écran dédié décompose la
 
 Voir [Économie du shop](../shop/economie.md) pour la hiérarchie des prix.
 
-## Tickets — monnaie de progression
+## Tickets — le score
 
-Donnent accès aux **zones** suivantes. Monnaie différente des mouches — les tickets ne servent pas au shop.
+Pas une monnaie séparée : "Tickets" est simplement le nom diégétique donné au score. Les jetons rapportent des tickets (modifiés par le multiplicateur de Sheet + Badges) quand une figure score, et atteindre le total de tickets requis sur une manche fait passer à la suivante — jusqu'au boss de zone, qui ouvre la zone suivante. C'est tout : pas de coût d'accès distinct, pas de solde à gérer entre les manches, rien à formaliser en plus de ce qui existe déjà (`ScoreManager`, `GameRules.ROUND_TARGETS`).
 
-**Attention, homonymie (session 13)** : l'UI affiche désormais "TICKETS" partout où le score/cible de manche apparaît (`TICKETS : 1234`, `TICKETS REQUIS : 100`) — pur habillage textuel décidé en session 13, le score reste le score, ça ne touche à aucune économie. Ce n'est **pas** la monnaie de progression décrite ci-dessous, qui reste un concept à mécanique non formalisée. Les deux partagent juste le même mot pour l'instant — à trancher si ça reste ambigu une fois la vraie économie de Tickets formalisée (peut-être un renommage de l'un des deux à ce moment-là).
-
-### Statut
-
-Concept validé dans `brainstorm-univers.md`, **mécanique exacte à formaliser** :
-- Combien de tickets gagnés par manche / par zone ?
-- Coût d'accès à une zone (fixe ? croissant ?)
-- Les tickets non dépensés sont-ils conservés ?
-- Conversion en ressource de meta-progression au [Shore](../shore/unlocks.md) ?
-
-### Questions ouvertes
-
-- **Mouches non dépensées en fin de run** — converties en tickets pour le Shore ? Perdues ?
-- **Surplus de tickets** — utilité au Shore ou au cours du run suivant ?
+Ancienne piste abandonnée : une "vraie" monnaie de progression nommée Tickets, distincte du score, avait été envisagée dans `brainstorm-univers.md` puis renommée par-dessus le score en session 13 — les deux ont coexisté un temps sous le même nom (voir historique `Session 13.md`). Tranché le 2026-07-21 : il n'y a jamais eu qu'une seule chose.
 
 ## Liens
 

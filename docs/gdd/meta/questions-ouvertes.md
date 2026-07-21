@@ -27,8 +27,7 @@ Ce qui reste à trancher, par le proto ou par réflexion.
 
 ## Économie
 
-- **[Tickets](../progression/monnaies.md)** — mécanique exacte à formaliser (combien par manche / zone, coût d'accès à une zone, conversion en meta-progression ?).
-- **Mouches non dépensées en fin de run** — converties en tickets pour le Shore ? Perdues ?
+- **Mouches non dépensées en fin de run** — converties en ressource de meta-progression pour le [Shore](../shore/unlocks.md) ? Perdues ?
 - **Courbe de prix au shop** — les prix augmentent-ils avec les zones ?
 - **Surplus de score** — bonus de mouches ? À tester.
 - **Pondération par rareté dans le shop** — implémentée en session 14 (voir [Génération de l'offre](../shop/generation-offre.md)). Poids (10/5/2/1) posés au jugé, à retuner au playtest.
