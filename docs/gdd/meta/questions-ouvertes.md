@@ -4,7 +4,6 @@ Ce qui reste à trancher, par le proto ou par réflexion.
 
 ## Gameplay
 
-- **Multiplicateur de cascade (`CASCADE_MULTIPLIER_BASE = 2.0`)** — s'est révélé fragile lors du proto swap-sur-plateau-plein de la session 12 (explosion à 100k points en 10 coups dès que la profondeur de cascade augmente). Le family-only + la grille cabossée visent justement à augmenter la fréquence des cascades — à surveiller en priorité au prochain playtest : si les scores partent en vrille dès qu'une cascade de 3-4 niveaux se déclenche, c'est ce multiplicateur qu'il faut baisser (x1.5 ?), pas autre chose.
 - **Intensité de la [grille cabossée](../grille/trous.md)** — 5-8 trous/manche, jamais row 0. Premier jet, à retuner au ressenti.
 - **Taille de la preview du stream** — 3 jetons actuellement. À tester si 2 est plus tendu.
 - **Seuils et multiplicateurs du [level up des Partitions](../partitions/level-up.md)** — vocabulaire musical (Pianissimo → Maestro) et valeurs `[1.0, 1.25, 1.5, 1.75, 2.0]` gardés tels quels (session 16). Ce qui reste ouvert : la formule des "dan" au-delà de Maestro (seuil et multiplicateur par palier, génériques pour ne pas dépendre d'un nombre de manches précis) — à trancher maintenant que la [courbe du score cible](../manche/score-cible.md) et la [longueur du run](../progression/structure-run.md#dimensions) (20 manches, figées session 18) sont posées.
