@@ -3,7 +3,7 @@
 ## Trigger : on_level_up
 extends BadgeEffect
 
-const BONUS_PER_LEVEL_UP: float = 0.25
+const BONUS_PER_LEVEL_UP: float = 0.5
 const STATE_KEY: StringName = &"escalade_musicale_level_ups"
 
 

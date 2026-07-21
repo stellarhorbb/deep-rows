@@ -183,9 +183,14 @@ const LEGENDARY_SHEET_CHANCE: float = 0.03
 
 ## Royal Square (Carre 2x2 famille) : le multiplicateur EST le roll, pas un
 ## bonus ajoute a autre chose (contrairement au roll de Diamond Rock) — flat,
-## ne level up jamais.
+## ne level up jamais. Declencheur identique a Square Family (facile a
+## provoquer volontairement), donc beaucoup de tentatives possibles par run —
+## 20 -> 12 (session 22) apres 3 manches de suite explosees par un roll
+## moyen/haut combine a une cellule doublee. Plage reduite mais toujours
+## uniforme (pas de ponderation) : un roll reste un vrai jet de des, pas
+## truque, meme si la plage est plus resserree.
 const ROYAL_SQUARE_ROLL_MIN: int = 1
-const ROYAL_SQUARE_ROLL_MAX: int = 20
+const ROYAL_SQUARE_ROLL_MAX: int = 12
 
 ## Last Trick (Losange famille) : le centre (jamais requis par le match, voir
 ## SheetMatcher.find_diamonds) se transforme en jeton de cette valeur, AJOUTE
