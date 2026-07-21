@@ -78,9 +78,9 @@ Un ajustement final : Le Collectionneur utilisait Brelan comme Le Simplet (nouve
 
 | Pack              | Statut                                         | Modificateur                                   | Partitions fixes        |
 | ----------------- | ---------------------------------------------- | ---------------------------------------------- | ----------------------- |
-| Le Simplet        | **Day-one**                                    | Aucun (deck/règles par défaut)                 | Line 3 + Brelan         |
-| Le Généreux       | **Day-one**                                    | +2 mouches par manche gagnée                   | Diamond + Fibonacci     |
-| Le Prévoyant      | **Day-one**                                    | +1 slot de hold, preview -1 (2 au lieu de 3)   | Line 4 + Suite          |
+| Le Simplet        | **Day-one**                                    | Aucun (deck/règles par défaut)                 | Line 3 + Suite          |
+| Le Généreux       | **Day-one**                                    | +2 mouches par manche gagnée                   | Small T + Fibonacci     |
+| Le Prévoyant      | **Day-one**                                    | +1 slot de hold, preview -1 (2 au lieu de 3)   | Line 4 + Diamond        |
 | Le Collectionneur | **Day-one**                                    | +1 emplacement de Badge, +2 rocks dans le deck | Square + Prime          |
 | Le Clairvoyant    | À débloquer                                    | Preview à 4                                    | Line 5 + Carré          |
 | Le Marchand       | À débloquer                                    | 1er reroll gratuit                             | Square Rainbow + Minima |
@@ -88,6 +88,8 @@ Un ajustement final : Le Collectionneur utilisait Brelan comme Le Simplet (nouve
 | Le Risque-Tout    | À débloquer — vecteur **Ring**                 | +1 slot de Badge, 0 slot de hold               | Brelan + Ring           |
 | Le Fortifié       | À débloquer — vecteur **Cross + Diamond Rock** | Grille -1 colonne, 2 spéciaux garantis         | Cross + Diamond Rock    |
 | L'Ermite          | À débloquer — vecteur **Maxima**               | Aucun rock dans le deck                        | T Family + Maxima       |
+
+**Paires des 4 day-one retravaillées (session 22)** — constat après playtest : Line 3 + Small T (Simplet) étaient toutes les deux rule `family` et toutes les deux au multiplicateur le plus bas (×1.5), aucun vrai écart interne au pack. Les 4 paires day-one recomposées à partir des 8 mêmes Partitions (aucune nouvelle) pour garantir un vrai contraste facile/dur par pack — multiplicateur ET type de règle (family = matcher une couleur, plus facile ; casino = valeurs précises, plus rare) : Simplet passe à Line 3 + Suite, Généreux à Small T + Fibonacci, Prévoyant à Line 4 + Diamond, Collectionneur inchangé (Square + Prime avait déjà ce contraste). Suite recalibrée au passage (minimum 3→4 jetons, multiplicateur 2.0→2.5, pour matcher la Google Sheet).
 
 Reste ouvert : les conditions de déblocage précises (Découverte ou biome) pour les 6 packs à débloquer — voir [Questions ouvertes](../gdd/meta/questions-ouvertes.md).
 

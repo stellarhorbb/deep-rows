@@ -14,7 +14,7 @@ Les slots équipés affichent `tag.label` tel quel (ex: "PRIME", "BRELAN"), le m
 | Line 4 Rainbow  | Ligne             | 4 familles distinctes                               | 4          | any       | ×1    | 10   |
 | Square Rainbow  | Carré 2×2         | 4 familles distinctes                               | 4          | —         | ×1    | 12   |
 | Line 5          | Ligne             | Famille                                             | 5          | any       | ×2.5  | 10   |
-| Suite           | Ligne             | Valeurs consécutives (any sens)                     | 3          | any       | ×2.5  | 14   |
+| Suite           | Ligne             | Valeurs consécutives (any sens)                     | 4          | any       | ×2.5  | 14   |
 | Carré           | Ligne             | Même valeur (clin d'œil poker, pas la forme carrée) | 4          | any       | ×2.5  | 8    |
 | Fibonacci       | Ligne             | 4 valeurs consécutives de 1,1,2,3,5,8 (any fenêtre, any sens) | 4          | any       | ×2.5  | 14   |
 | Diamond         | Losange           | 4 jetons même famille, centre indifférent           | 4          | —         | ×2.5 (somme des 4) | 10   |
@@ -25,7 +25,7 @@ Les slots équipés affichent `tag.label` tel quel (ex: "PRIME", "BRELAN"), le m
 | Diamond Rock    | Losange           | 4 rocks autour d'un centre scorable                 | 4          | —         | ×4 (sur centre + roll casino 1-5) | 12   |
 | Minima          | Ligne             | Toutes les valeurs < 3                              | 3          | any       | ×1.5  | 6    |
 | Maxima          | Ligne             | Toutes les valeurs > 7                              | 3          | any       | ×3    | 14   |
-| Prime           | Ligne             | Au moins 3 valeurs consécutives de 2,3,5,7 (any fenêtre, any sens) | 3          | any       | ×2    | 14   |
+| Prime           | Ligne             | Au moins 3 valeurs consécutives de 2,3,5,7,11 (any fenêtre, any sens) | 3          | any       | ×2    | 14   |
 
 Le multiplicateur ne dépend plus de la direction du match, y compris pour les Partitions "any direction" (Rainbow/Suite/Brelan/Carré/Fibonacci, qui vivent toutes sur la forme Ligne, voir [Formes](formes.md)) — chacune porte son propre `score_multiplier` fixe sur son `.tres`.
 
@@ -74,7 +74,7 @@ Détection dans `PatternMatcher` :
 - **Rainbow** (Square/Diamond/Line 4) — `_all_families_distinct()`, un nouveau helper. Plafonné à taille 4 par `GameRules.FAMILY_COUNT` (4 familles existantes, impossible d'aligner plus sans répétition). Square/Diamond étendent `find_squares`/`find_diamonds` existants ; Line 4 Rainbow a sa propre fonction `find_line_rainbow` (fenêtre fixe, pas d'extension incrémentale comme les lignes famille).
 - **Suite/Brelan/Carré** — aucune nouvelle logique de détection : ce sont les anciennes Partitions dormantes "chiffre" (`line_number_3`, `line_number_4_horizontal`, `suite_3_diagonal`) simplement renommées/relabellées (`brelan.tres`, `carre_poker.tres`, `suite.tres`) et remises dans `ShopManager.TAG_PATHS`. Le moteur (`find_lines`, rules `value`/`suite`) n'a pas changé.
 - **Fibonacci** — fonction dédiée `find_fibonacci`, teste toutes les fenêtres de `GameRules.FIBONACCI_WINDOW_SIZE` (4) valeurs consécutives dans `GameRules.FIBONACCI_SEQUENCE` (1,1,2,3,5,8 — étendu session 19, initialement limité à la seule fenêtre 1,1,2,3), dans un sens ou l'autre le long de l'axe.
-- **Prime** (session 19) — même mécanique que Fibonacci, factorisée dans un helper commun (`PatternMatcher._sequence_windows`/`_find_sequence_matches`) : fenêtre **minimale** `GameRules.PRIME_MIN_WINDOW` (3) plutôt que fixe, dans `GameRules.PRIME_SEQUENCE` (2,3,5,7) — matche 2,3,5 / 3,5,7 / 2,3,5,7.
+- **Prime** (session 19) — même mécanique que Fibonacci, factorisée dans un helper commun (`PatternMatcher._sequence_windows`/`_find_sequence_matches`) : fenêtre **minimale** `GameRules.PRIME_MIN_WINDOW` (3) plutôt que fixe, dans `GameRules.PRIME_SEQUENCE` (2,3,5,7,11 depuis la session 22 — un Valet est premier) — matche 2,3,5 / 3,5,7 / 5,7,11 / 2,3,5,7 / etc. La fenêtre avec 11 reste une extension haute rare (un Valet suppose d'avoir déjà poussé un jeton à MAX_BUTTON_VALUE puis de l'avoir fait promouvoir), le plancher de difficulté (2,3,5) ne change pas.
 - **Minima/Maxima** (session 19) — deux nouvelles rules dans `find_lines` (`&"minima"`, `&"maxima"`), même mécanique d'extension que Suite/Family mais sur un seuil individuel par jeton (`value <= GameRules.MINIMA_MAX_VALUE` (2) / `value >= GameRules.MAXIMA_MIN_VALUE` (8) — seuils stricts "< 3"/"> 7" côté Sheet, encodés en constantes inclusives) plutôt qu'une comparaison entre jetons voisins.
 - Le Badge Numérologie (`rule == "value"` ×2) reste hors catalogue actif mais boosterait déjà Brelan/Carré sans changement — non réactivé pour l'instant, à décider séparément.
 

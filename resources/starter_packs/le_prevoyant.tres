@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/data/starter_pack_data.gd" id="1_script"]
 [ext_resource type="Resource" path="res://resources/sheets/line_family_4.tres" id="2_sheet_a"]
-[ext_resource type="Resource" path="res://resources/sheets/suite.tres" id="3_sheet_b"]
+[ext_resource type="Resource" path="res://resources/sheets/diamond_family.tres" id="3_sheet_b"]
 
 [resource]
 script = ExtResource("1_script")
