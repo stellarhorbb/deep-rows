@@ -11,7 +11,7 @@ signal group_score_revealed(amount: int)
 @export var empty_cell_color: Color = Color("e8e8e8")
 @export var hole_color: Color = Color("2a2a38")
 @export var blocked_column_color: Color = Color(0.15, 0.15, 0.15, 0.5)
-@export var entity_blink_interval: float = 0.3  # MÈCHE COURTE, voir _setup_entity_countdown_sprite
+@export var entity_blink_interval: float = 0.3  # jetons a countdown (MÈCHE COURTE, PETARD_A_MECHE), voir _setup_countdown_sprite
 @export var residue_color: Color = Color("b8b3d6")
 @export var modifier_border_width: float = 6.0
 
@@ -217,7 +217,31 @@ func is_animating() -> bool:
 
 func refresh() -> void:
 	sync_sprites()
+	_refresh_countdown_labels()
 	queue_redraw()
+
+
+## Les jetons a countdown (entity-skull de MÈCHE COURTE, special PETARD_A_MECHE)
+## affichent leur chiffre dans un Label enfant du sprite (voir
+## _setup_countdown_sprite), qui ne se met a jour que si on le repousse
+## explicitement — sync_sprites ne fait que creer/detruire des sprites,
+## jamais rafraichir le contenu d'un sprite deja existant. Sans ca, le
+## chiffre affiche reste fige sur sa valeur de creation meme si le countdown
+## logique continue de descendre (le jeton explose bien au bon moment, seul
+## l'affichage etait fige).
+func _refresh_countdown_labels() -> void:
+	for cell_key in _token_sprites:
+		var cell: Vector2i = cell_key as Vector2i
+		var token: TokenData = grid_manager.get_cell(cell.x, cell.y)
+		if token == null or token.countdown < 0:
+			continue
+		var is_countdown_kind: bool = token.kind == TokenData.Kind.ENTITY or (token.kind == TokenData.Kind.SPECIAL and token.special_type == TokenData.SpecialType.PETARD_A_MECHE)
+		if not is_countdown_kind:
+			continue
+		var sprite: Sprite2D = _token_sprites[cell] as Sprite2D
+		for child in sprite.get_children():
+			if child is Label:
+				(child as Label).text = str(token.countdown)
 
 
 ## --- Hover preview ---
@@ -240,17 +264,11 @@ func update_hover(col: int, token: TokenData) -> void:
 	_hover_sprite = Sprite2D.new()
 	_hover_sprite.centered = true
 
-	var tex: Texture2D = null
-	if token.kind == TokenData.Kind.SPECIAL:
-		match token.special_type:
-			TokenData.SpecialType.FANTOME:
-				tex = load("res://assets/special-tokens/ghost.png") as Texture2D
-			TokenData.SpecialType.BOMBE:
-				tex = load("res://assets/special-tokens/bomb.png") as Texture2D
-			TokenData.SpecialType.MAREE:
-				tex = load("res://assets/special-tokens/tide.png") as Texture2D
-	else:
-		tex = TokenVisual.get_texture(token)
+	# TokenVisual.SPECIAL_SPRITES couvre deja tous les speciaux (sprite neutre
+	# pre-pose) : plus besoin de dupliquer la liste ici comme avant
+	# (Fantome/Bombe/Maree en dur), qui laissait tout special ajoute depuis
+	# sans preview au hover.
+	var tex: Texture2D = TokenVisual.get_texture(token)
 
 	if tex == null:
 		_hover_sprite.queue_free()
@@ -456,9 +474,13 @@ func _animate_rockify(event: Dictionary) -> void:
 	await get_tree().create_timer(rockify_pause).timeout
 
 
-## Anime le centre d'un Diamond "Last Trick" (legendaire) qui se transforme en
-## jeton LAST_TRICK_VALUE de sa famille au lieu de disparaitre normalement —
-## meme squelette que _animate_rockify (flash puis swap de sprite).
+## Anime une case qui se transforme en jeton de base au lieu de disparaitre
+## normalement — Diamond "Last Trick" (legendaire, toujours LAST_TRICK_VALUE)
+## OU special "Hypercube" (family/value du jeton duplique, voir
+## CascadeResolver.resolve) — meme squelette que _animate_rockify (flash puis
+## swap de sprite). Last Trick ne porte pas de cle "value" dans son entry
+## (fallback LAST_TRICK_VALUE), Hypercube si — meme convention que
+## TurnController._on_resolution_complete.
 func _animate_transform(event: Dictionary) -> void:
 	var transforms: Array = event.get("transforms", []) as Array
 	if transforms.is_empty():
@@ -476,7 +498,8 @@ func _animate_transform(event: Dictionary) -> void:
 		var data: Dictionary = entry as Dictionary
 		var cell: Vector2i = data["cell"] as Vector2i
 		var family: TokenData.Family = data["family"] as TokenData.Family
-		replace_sprite(cell, TokenData.make_base(family, GameRules.LAST_TRICK_VALUE))
+		var value: int = data.get("value", GameRules.LAST_TRICK_VALUE) as int
+		replace_sprite(cell, TokenData.make_base(family, value))
 
 	await get_tree().create_timer(rockify_pause).timeout
 
@@ -575,8 +598,8 @@ func _create_sprite(cell: Vector2i, token: TokenData) -> Sprite2D:
 			sprite.scale = Vector2(target_scale, target_scale)
 			sprite.modulate.a = 0.5
 	elif token.kind == TokenData.Kind.ENTITY:
-		if token.entity_countdown >= 0:
-			_setup_entity_countdown_sprite(sprite, token)
+		if token.countdown >= 0:
+			_setup_countdown_sprite(sprite, token, "res://assets/entity/skull-red.png", "res://assets/entity/skull-black.png")
 		else:
 			var tex: Texture2D = load("res://assets/tokens/entity-skull.png") as Texture2D
 			if tex != null:
@@ -584,6 +607,8 @@ func _create_sprite(cell: Vector2i, token: TokenData) -> Sprite2D:
 				var tex_size: float = maxf(tex.get_width(), tex.get_height())
 				var target_scale: float = cell_size / tex_size
 				sprite.scale = Vector2(target_scale, target_scale)
+	elif token.kind == TokenData.Kind.SPECIAL and token.special_type == TokenData.SpecialType.PETARD_A_MECHE and token.countdown >= 0:
+		_setup_countdown_sprite(sprite, token, "res://assets/special-tokens/petard-red.png", "res://assets/special-tokens/petard-black.png")
 	else:
 		var tex: Texture2D = TokenVisual.get_texture(token)
 		if tex != null:
@@ -626,12 +651,14 @@ func _add_value_label(sprite: Sprite2D, value: int, tex_size: Vector2) -> void:
 	sprite.add_child(label)
 
 
-## Malus de boss MÈCHE COURTE : texture qui clignote rouge/noir + countdown
-## toujours visible (contrairement a _add_value_label, pas derriere le flag
-## debug — c'est le telegraphing du malus, pas juste un aide-debug).
-func _setup_entity_countdown_sprite(sprite: Sprite2D, token: TokenData) -> void:
-	var red_tex: Texture2D = load("res://assets/entity/skull-red.png") as Texture2D
-	var black_tex: Texture2D = load("res://assets/entity/skull-black.png") as Texture2D
+## Texture qui clignote rouge/noir + countdown toujours visible pour tout
+## jeton a decompte (contrairement a _add_value_label, pas derriere le flag
+## debug — c'est le telegraphing du danger/de l'imminence, pas un aide-debug
+## seulement). Partage par l'entity-skull (malus MÈCHE COURTE) et le special
+## PETARD_A_MECHE — seuls les chemins de texture different.
+func _setup_countdown_sprite(sprite: Sprite2D, token: TokenData, red_path: String, black_path: String) -> void:
+	var red_tex: Texture2D = load(red_path) as Texture2D
+	var black_tex: Texture2D = load(black_path) as Texture2D
 	var tex: Texture2D = red_tex if red_tex != null else black_tex
 	if tex == null:
 		return
@@ -640,7 +667,7 @@ func _setup_entity_countdown_sprite(sprite: Sprite2D, token: TokenData) -> void:
 	sprite.scale = Vector2(cell_size / tex_size, cell_size / tex_size)
 
 	var label: Label = Label.new()
-	label.text = str(token.entity_countdown)
+	label.text = str(token.countdown)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.size = tex.get_size()
 	label.pivot_offset = label.size / 2.0

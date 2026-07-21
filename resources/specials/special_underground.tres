@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SpecialItem" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_item.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+label = "UNDERGROUND"
+description = "Descend d'une case par tour en repoussant tout vers le haut, disparaît en touchant le fond."
+price = 3
+special_type = 10

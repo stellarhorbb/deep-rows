@@ -6,7 +6,7 @@ enum Kind { BASE, ROCK, RESIDUE, SPECIAL, ENTITY }
 ## remplace CORAL/SHELL/RUST/INK. Ordre d'enum inchange pour ne pas perturber
 ## les entiers stockes (ex: target_family dans les .tres de Des a coudre).
 enum Family { BATONS, COUPES, EPEES, DENIERS }
-enum SpecialType { NONE, FANTOME, BOMBE, MAREE }
+enum SpecialType { NONE, FANTOME, BOMBE, MAREE, ENCLUME, PETARD_A_MECHE, CAVALIER, FROG, LIANE, CROW, UNDERGROUND, HYPERCUBE }
 
 var kind: Kind = Kind.BASE
 var family: Family = Family.BATONS
@@ -17,10 +17,21 @@ var locked: bool = false
 var value: int = 1
 var special_type: SpecialType = SpecialType.NONE
 
-## Malus de boss MÈCHE COURTE (voir BossMalusManager) : nombre de tours avant
-## explosion pour un jeton entity-skull (kind ENTITY). -1 = pas de countdown
-## (malus inactif ou jeton non concerne).
-var entity_countdown: int = -1
+## Compteur generique pour tout jeton dont l'effet se joue sur plusieurs
+## tours : nombre de tours avant explosion (entity-skull du malus MÈCHE
+## COURTE, special PETARD_A_MECHE), nombre de deplacements/croissances
+## restants (CAVALIER, FROG, LIANE — tete uniquement, voir GridManager.
+## tick_mobile_specials), ou etat idle/actif (CROW). -1 = pas de countdown
+## (malus inactif, jeton non concerne, ou segment de corps de LIANE).
+var countdown: int = -1
+
+## Vrai pour un jeton a countdown/mobile qui vient d'etre pose CE TOUR-CI
+## (voir GridManager._place_persistent_special) — les fonctions de tick
+## (tick_special_countdowns, tick_mobile_specials) sautent son tour de jeu
+## et remettent ce flag a false, pour qu'il n'agisse/ne decompte qu'a partir
+## du PROCHAIN jeton joue, jamais des le tour ou il est pose (les deux
+## fonctions de tick tournent juste apres le drop, dans le meme appel).
+var just_placed: bool = false
 
 
 static func make_base(p_family: Family, p_value: int) -> TokenData:
@@ -80,7 +91,15 @@ static func value_label(value: int) -> String:
 
 static func special_type_label(t: SpecialType) -> String:
 	match t:
-		SpecialType.FANTOME: return "FANTOME"
-		SpecialType.BOMBE:   return "BOMBE"
-		SpecialType.MAREE:   return "MAREE"
-		_:                   return "?"
+		SpecialType.FANTOME:        return "FANTOME"
+		SpecialType.BOMBE:          return "BOMBE"
+		SpecialType.MAREE:          return "MAREE"
+		SpecialType.ENCLUME:        return "ENCLUME"
+		SpecialType.PETARD_A_MECHE: return "PÉTARD À MÈCHE"
+		SpecialType.CAVALIER:       return "CAVALIER"
+		SpecialType.FROG:           return "FROG"
+		SpecialType.LIANE:          return "LIANE"
+		SpecialType.CROW:           return "CROW"
+		SpecialType.UNDERGROUND:    return "UNDERGROUND"
+		SpecialType.HYPERCUBE:      return "HYPERCUBE"
+		_:                          return "?"

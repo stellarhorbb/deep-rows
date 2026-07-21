@@ -9,6 +9,14 @@ signal grid_reset()
 signal residues_exploded(positions: Array[Vector2i])
 signal holes_changed(holes: Dictionary)
 signal blocked_column_changed(col: int)
+## Emis quand un special mobile a deplace/reorganise silencieusement des
+## jetons sur la grille (voir tick_mobile_specials) — contrairement a
+## Fantome/Enclume/Maree (execute_special -> special_executed), ce
+## rearrangement n'a pas de point de sortie visuel dedie. Le visuel doit
+## faire un rebuild complet des sprites, sync_sprites (creation/destruction
+## seulement) ne suffit pas a reconcilier "cette case a maintenant un autre
+## contenu" — voir GameScene._on_mobile_specials_ticked.
+signal mobile_specials_ticked()
 
 var _grid: Array = []
 var _cols: int = GameRules.COLS
@@ -93,7 +101,39 @@ func execute_special(token: TokenData, col: int) -> void:
 		TokenData.SpecialType.MAREE:
 			var landing_row: int = column_height(col)
 			SpecialEffects.execute_maree(_grid, col, landing_row, _cols, _holes)
+		TokenData.SpecialType.ENCLUME:
+			SpecialEffects.execute_enclume(_grid, col, _rows, _holes)
+		# A partir d'ici : speciaux qui PERSISTENT sur la grille (contrairement
+		# a Fantome/Bombe/Maree/Enclume qui rearrangent puis disparaissent) —
+		# se placent eux-memes au sommet de la colonne plutot que d'executer un
+		# effet immediat. Voir tick_special_countdowns/tick_mobile_specials.
+		TokenData.SpecialType.PETARD_A_MECHE:
+			_place_persistent_special(token, col, GameRules.PETARD_A_MECHE_START_COUNTDOWN)
+		TokenData.SpecialType.CAVALIER:
+			_place_persistent_special(token, col, GameRules.CAVALIER_MOVES)
+		TokenData.SpecialType.FROG:
+			_place_persistent_special(token, col, GameRules.FROG_MOVES)
+		TokenData.SpecialType.LIANE:
+			_place_persistent_special(token, col, GameRules.LIANE_GROWTH_TICKS)
+		TokenData.SpecialType.CROW:
+			_place_persistent_special(token, col, GameRules.CROW_IDLE_TICKS)
+		TokenData.SpecialType.UNDERGROUND:
+			_place_persistent_special(token, col)
+		TokenData.SpecialType.HYPERCUBE:
+			_place_persistent_special(token, col)
 	special_executed.emit(token.special_type, col, 0, result)
+
+
+## Place un special "pose" au sommet de la colonne, avec un countdown initial
+## optionnel (-1 = aucun, ex: Underground/Hypercube qui n'en ont pas besoin —
+## leur fin est positionnelle/reactive, pas un decompte de tours).
+func _place_persistent_special(token: TokenData, col: int, initial_countdown: int = -1) -> void:
+	var landing_row: int = column_height(col)
+	if landing_row >= _rows:
+		return
+	token.countdown = initial_countdown
+	token.just_placed = true
+	_grid[col][landing_row] = token
 
 
 ## Place un jeton directement dans la grille, sans pipeline de resolution ni
@@ -146,10 +186,10 @@ func tick_entity_countdowns() -> void:
 	for c in range(_cols):
 		for r in range(_rows):
 			var token: TokenData = _grid[c][r]
-			if token == null or token.kind != TokenData.Kind.ENTITY or token.entity_countdown < 0:
+			if token == null or token.kind != TokenData.Kind.ENTITY or token.countdown < 0:
 				continue
-			token.entity_countdown -= 1
-			if token.entity_countdown <= 0:
+			token.countdown -= 1
+			if token.countdown <= 0:
 				detonated.append(Vector2i(c, r))
 	for cell in detonated:
 		_detonate_entity_skull(cell)
@@ -161,6 +201,152 @@ func _detonate_entity_skull(cell: Vector2i) -> void:
 		if cc < 0 or cc >= _cols:
 			continue
 		_grid[cc][cell.y] = null
+
+
+## Special "Pétard à mèche" : decompte le countdown de chaque exemplaire pose
+## sur la grille, detone ceux qui atteignent 0 (voir _detonate_petard).
+## Contrairement a tick_entity_countdowns (gate par le malus de boss MÈCHE
+## COURTE), appele inconditionnellement a chaque tour — voir
+## TurnController.play_current_to. Retourne le score total gagne.
+func tick_special_countdowns() -> int:
+	var to_detonate: Array[Vector2i] = []
+	for c in range(_cols):
+		for r in range(_rows):
+			var token: TokenData = _grid[c][r]
+			if token == null or token.kind != TokenData.Kind.SPECIAL:
+				continue
+			if token.special_type != TokenData.SpecialType.PETARD_A_MECHE or token.countdown < 0:
+				continue
+			if token.just_placed:
+				token.just_placed = false
+				continue
+			token.countdown -= 1
+			if token.countdown <= 0:
+				to_detonate.append(Vector2i(c, r))
+	var total_score: int = 0
+	for cell in to_detonate:
+		total_score += _detonate_petard(cell)
+	return total_score
+
+
+## Tick des speciaux "mobiles" (Cavalier, Frog, Liane, Crow, Underground) —
+## chacun avance sa propre logique d'un cran. Cavalier/Frog/Liane sont des
+## "mangeurs/scoreurs" (session 22) : atterrir/grandir sur une case occupee
+## mange son contenu et score sa valeur brute, plutot que de la decaler
+## (Underground/Crow restent de purs "demenageurs", aucun score). Snapshot
+## des positions AVANT mutation (meme raison que tick_special_countdowns) :
+## un jeton deplace pendant le scan pourrait sinon etre retraite deux fois
+## dans la meme passe. Appele inconditionnellement a chaque tour, avant
+## resolve() (comme tick_special_countdowns) — voir TurnController.
+## play_current_to. Retourne le score total gagne.
+func tick_mobile_specials() -> int:
+	var cells: Array[Vector2i] = []
+	for c in range(_cols):
+		for r in range(_rows):
+			var token: TokenData = _grid[c][r]
+			if token != null and token.kind == TokenData.Kind.SPECIAL:
+				cells.append(Vector2i(c, r))
+
+	var total_score: int = 0
+	for cell in cells:
+		var token: TokenData = _grid[cell.x][cell.y]
+		if token == null or token.kind != TokenData.Kind.SPECIAL:
+			continue  # deja deplace/efface par un autre mobile plus tot dans cette passe
+
+		if token.just_placed:
+			token.just_placed = false
+			continue  # pose ce tour-ci : n'agit qu'a partir du prochain jeton joue
+
+		match token.special_type:
+			TokenData.SpecialType.CAVALIER:
+				var result: Dictionary = SpecialEffects.move_cavalier(_grid, cell.x, cell.y, _cols, _rows, _holes)
+				var dest: Vector2i = result["dest"] as Vector2i
+				if dest != cell:
+					total_score += result["score"] as int
+					token.countdown -= 1
+					if token.countdown <= 0:
+						_grid[dest.x][dest.y] = null
+			TokenData.SpecialType.FROG:
+				var result: Dictionary = SpecialEffects.move_frog(_grid, cell.x, cell.y, _cols, _rows, _holes)
+				var dest: Vector2i = result["dest"] as Vector2i
+				if dest != cell:
+					total_score += result["score"] as int
+					token.countdown -= 1
+					if token.countdown <= 0:
+						_grid[dest.x][dest.y] = null
+			TokenData.SpecialType.LIANE:
+				if token.countdown < 0:
+					continue  # segment de corps, pas la tete : rien a piloter ici
+				total_score += SpecialEffects.grow_liane(_grid, cell.x, cell.y, _cols, _rows, _holes)
+				token.countdown -= 1
+				if token.countdown <= 0:
+					SpecialEffects.wither_liane(_grid, cell.x, cell.y, _cols)
+			TokenData.SpecialType.CROW:
+				if token.countdown > 0:
+					token.countdown -= 1
+				else:
+					SpecialEffects.steal_row_token(_grid, cell.x, cell.y, _cols, _rows, _holes)
+					_grid[cell.x][cell.y] = null
+			TokenData.SpecialType.UNDERGROUND:
+				SpecialEffects.dig_underground(_grid, cell.x, cell.y, _rows, _holes)
+
+	if cells.size() > 0:
+		mobile_specials_ticked.emit()
+	return total_score
+
+
+## Dernier Souffle : les jetons speciaux poses explosent (decision verrouillee,
+## voir CLAUDE.md) — un Pétard à mèche encore actif detone immediatement,
+## countdown ou pas, en miroir de explode_residues pour les Rocks/Residus
+## (voir TurnController._trigger_last_breath). Retourne le score gagne.
+func detonate_remaining_petards() -> int:
+	var to_detonate: Array[Vector2i] = []
+	for c in range(_cols):
+		for r in range(_rows):
+			var token: TokenData = _grid[c][r]
+			if token != null and token.kind == TokenData.Kind.SPECIAL and token.special_type == TokenData.SpecialType.PETARD_A_MECHE:
+				to_detonate.append(Vector2i(c, r))
+	var total_score: int = 0
+	for cell in to_detonate:
+		total_score += _detonate_petard(cell)
+	return total_score
+
+
+## Dernier Souffle : les speciaux mobiles/reactifs encore actifs (Cavalier,
+## Frog, Liane, Crow, Underground, Hypercube) disparaissent silencieusement —
+## pas de scoring, contrairement au Pétard à mèche qui explose (voir
+## detonate_remaining_petards). Traite a part d'explode_residues pour ne pas
+## les confondre avec les Rocks/Residus.
+func clear_remaining_mobile_specials() -> void:
+	var types: Array = [
+		TokenData.SpecialType.CAVALIER, TokenData.SpecialType.FROG,
+		TokenData.SpecialType.LIANE, TokenData.SpecialType.CROW,
+		TokenData.SpecialType.UNDERGROUND, TokenData.SpecialType.HYPERCUBE,
+	]
+	for c in range(_cols):
+		for r in range(_rows):
+			var token: TokenData = _grid[c][r]
+			if token != null and token.kind == TokenData.Kind.SPECIAL and types.has(token.special_type):
+				_grid[c][r] = null
+
+
+## Detone un Pétard à mèche : lui + ses 2 voisins directs sur la meme rangee
+## disparaissent, les voisins SCORABLES sont scores (leur valeur brute, sans
+## multiplicateur — meme logique que la Bombe, un special reste hors de la
+## chaine de multiplicateurs des Partitions). Contrairement a
+## _detonate_entity_skull (MÈCHE COURTE), qui ne score jamais ses voisins.
+func _detonate_petard(cell: Vector2i) -> int:
+	var score: int = 0
+	for dc in range(-1, 2):
+		var cc: int = cell.x + dc
+		if cc < 0 or cc >= _cols:
+			continue
+		if dc != 0:
+			var neighbor: TokenData = _grid[cc][cell.y]
+			if neighbor != null and neighbor.is_scorable():
+				score += neighbor.value
+		_grid[cc][cell.y] = null
+	return score
 
 
 ## Lance la resolution des cascades.
@@ -193,6 +379,19 @@ func explode_residues() -> void:
 
 func get_grid() -> Array:
 	return _grid
+
+
+## Compte les Rocks actuellement sur la grille (ex: badge "Cairn", qui lit ce
+## total en fin de manche boss avant que le Dernier Souffle ne les fasse
+## disparaitre — voir explode_residues).
+func count_rocks() -> int:
+	var count: int = 0
+	for c in range(_cols):
+		for r in range(_rows):
+			var token: TokenData = _grid[c][r]
+			if token != null and token.kind == TokenData.Kind.ROCK:
+				count += 1
+	return count
 
 
 func _get_special_landing_row(token: TokenData, col: int) -> int:

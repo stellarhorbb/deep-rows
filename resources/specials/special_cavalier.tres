@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SpecialItem" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_item.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+label = "CAVALIER"
+description = "Se déplace 3 fois en L (comme aux échecs) de manière aléatoire, mangeant et scorant tout jeton sur lequel il atterrit, avant de disparaître."
+price = 3
+special_type = 6

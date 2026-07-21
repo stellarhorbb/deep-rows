@@ -1,6 +1,6 @@
 # Badges implémentés
 
-**37 Badges actifs** dans le proto (8 batchs). Couvrent les 8 triggers (session 13 : `on_token_drop` a eu son premier consommateur, Dernier Carré ; session 16 : `on_round_end` ajouté, premier consommateur Pourboire, voir [Monnaies](../progression/monnaies.md) ; session 17 : `on_level_up` et `on_deck_grown` ajoutés, voir [Triggers](triggers.md)).
+**49 Badges actifs** dans le proto (9 batchs). Couvrent les 12 triggers (session 13 : `on_token_drop` a eu son premier consommateur, Dernier Carré ; session 16 : `on_round_end` ajouté, premier consommateur Pourboire, voir [Monnaies](../progression/monnaies.md) ; session 17 : `on_level_up` et `on_deck_grown` ajoutés ; session 22 : `on_shake_used`, `on_sheet_sold`, `on_figure_promoted` et `on_deck_tool_shown` ajoutés — voir [Triggers](triggers.md)).
 
 | Badge                  | Trigger            | Effet                                                                                                           | Rareté   |
 | ---------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------- | -------- |
@@ -41,6 +41,18 @@
 | **Amélioration continue** | `on_level_up`   | Chaque level up de Partition cumule +5 points, cumulé sur toute la run — scaling permanent (session 17)          | Uncommon |
 | **Gourmand**           | `on_deck_grown`    | Chaque jeton ajouté au deck (achat ou scission) cumule +5 points, cumulé sur toute la run — scaling permanent (session 17) | Rare |
 | **Économe**            | (aucun — voir note)| Un reroll gratuit par visite au shop, vérifié directement par `ShopUI` (session 17)                              | Common   |
+| **Couronne**           | `on_round_start`   | Chaque Roi qui score ajoute +1.0 au multi de sa figure (session 22)                                              | Rare     |
+| **Diadème**            | `on_round_start`   | Chaque Dame qui score ajoute +3.0 au multi de sa figure — bonus plus haut que Couronne, une Dame est plus fragile à conserver sans la Fixer (session 22) | Epic |
+| **Regain**             | `on_level_up`      | +1 charge de Shake à chaque level up de Partition (session 22)                                                   | Uncommon |
+| **Sang-froid**         | `on_turn_resolved` | +5 points par charge de Shake actuellement disponible — lecture live, récompense de les garder (session 22)      | Uncommon |
+| **Nouvelle Donne**      | `on_shake_used`    | Chaque Shake déclenché cumule +3 points, cumulé sur toute la run — scaling permanent, en tension avec Sang-froid (session 22) | Uncommon |
+| **Brocante**           | `on_sheet_sold`    | Chaque Partition vendue cumule +3 points, cumulé sur toute la run — scaling permanent (session 22)               | Uncommon |
+| **Adoubement**         | `on_figure_promoted` | Chaque promotion de figure cumule des points (Valet+1, Chevalier+2, Dame+3, Roi+4), cumulé sur toute la run (session 22) | Rare |
+| **Rescapé**            | `on_round_end`     | Chaque manche boss survécue cumule +2.0 au multi global, cumulé sur toute la run — scaling permanent (session 22) | Epic     |
+| **Cairn**              | `on_round_end`     | Compte les Rocks sur la grille à chaque manche gagnée (pas seulement boss, depuis la clarification session 22) ; chaque Rock cumule +0.1 au multi global (retravaillé de "tous les 10" à "par Rock" — même ordre de grandeur qu'Escalade musicale en fin de run) — pousse à ne pas les faire exploser au Dernier Souffle | Epic |
+| **Petit Point**        | `on_deck_tool_shown` | Chaque Dé à coudre vu au shop cumule +2 points, cumulé sur toute la run — scaling permanent (session 22)        | Uncommon |
+| **Refrain**            | `on_turn_resolved` | Chaque fois qu'une Partition score, cumule +0.1 à SON PROPRE multi (indépendant des autres Partitions équipées) — contrairement à Escalade musicale (global, level up), récompense de spammer une seule Partition favorite (session 22) | Rare |
+| **Artificier**         | `on_turn_resolved` | 1 chance sur 4 de créer un [spécial](../jetons/specials.md) "Pétard à mèche" à chaque fois qu'un jeton de valeur 5 score (session 22, débloqué par l'ajout du spécial) | Rare |
 
 Chaque Badge = 1 script d'effet (`scripts/badges/effect_*.gd`) + 1 resource (`resources/badges/badge_*.tres`). Les 9 Badges "bonus flat au value_sum" et les 3 Badges "scaling permanent" de session 17 partagent chacun une fondation commune : voir [Scoring — bonus flat au value_sum](../partitions/scoring.md#bonus-flat-au-value_sum-session-17) et [Scoring — scaling permanent](../partitions/scoring.md#scaling-permanent-session-17).
 

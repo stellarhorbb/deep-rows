@@ -75,6 +75,8 @@ func _ready() -> void:
 	_reroll_count = 0
 	_free_reroll_available = _run_manager.has_badge(&"econome")
 	_shop_manager.regenerate_offer(_run_manager)
+	if _shop_manager.has_deck_tool_offer():
+		RunService.badge_manager.dispatch_deck_tool_shown()
 	_refresh_flies()
 	_rebuild_packs()
 	_rebuild_unitaires()

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SpecialItem" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_item.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+label = "LIANE"
+description = "Grandit vers la droite pendant 3 tours, mangeant et scorant tout jeton sur les cases où elle pousse, avant de faner et disparaître."
+price = 3
+special_type = 8

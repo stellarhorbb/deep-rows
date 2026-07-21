@@ -16,6 +16,22 @@ static func can_play(grid: Array, token: TokenData, col: int, _row: int, cols: i
 				return _column_height(grid, col, rows, holes) < rows
 			TokenData.SpecialType.MAREE:
 				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.ENCLUME:
+				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.PETARD_A_MECHE:
+				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.CAVALIER:
+				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.FROG:
+				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.LIANE:
+				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.CROW:
+				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.UNDERGROUND:
+				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.HYPERCUBE:
+				return _column_height(grid, col, rows, holes) < rows
 
 	return false
 
@@ -110,6 +126,193 @@ static func execute_maree(grid: Array, col: int, row: int, cols: int, holes: Dic
 		if holes.has(Vector2i(c, row)):
 			continue
 		grid[c][row] = new_row[c]
+
+
+## Enclume : pousse le premier jeton sur lequel elle tombe (le sommet actuel
+## de la colonne) tout au fond de la grille — le reste de la colonne se
+## decale d'un cran pour combler l'espace libere. Meme structure que
+## execute_fantome (liste des cases utiles, en ignorant les trous), mais une
+## rotation plutot qu'un residu + decalage. Colonne vide ou a 1 seul jeton :
+## rien a pousser, no-op.
+static func execute_enclume(grid: Array, col: int, rows: int, holes: Dictionary = {}) -> void:
+	var usable_rows: Array[int] = []
+	for r in range(rows):
+		if not holes.has(Vector2i(col, r)):
+			usable_rows.append(r)
+	if usable_rows.is_empty():
+		return
+
+	var col_tokens: Array[TokenData] = []
+	for r in usable_rows:
+		if grid[col][r] != null:
+			col_tokens.append(grid[col][r] as TokenData)
+	if col_tokens.size() <= 1:
+		return
+
+	var top_token: TokenData = col_tokens.pop_back()
+	col_tokens.insert(0, top_token)
+
+	for r in usable_rows:
+		grid[col][r] = null
+	for i in range(col_tokens.size()):
+		grid[col][usable_rows[i]] = col_tokens[i]
+
+
+## Mange le contenu d'une case pour un special "mangeur/scoreur" (Cavalier,
+## Frog, Liane) : un jeton scorable present y est retire et sa valeur brute
+## (sans multiplicateur — meme convention que la Bombe/le Pétard) est
+## retournee comme score. Un jeton non scorable (Rock, Special, Entity) est
+## quand meme retire (nettoyage de la case), mais ne rapporte rien. Case
+## vide : rien a manger, retourne 0.
+static func _eat_cell(grid: Array, cell: Vector2i) -> int:
+	var token: TokenData = grid[cell.x][cell.y] as TokenData
+	if token == null:
+		return 0
+	var score: int = token.value if token.is_scorable() else 0
+	grid[cell.x][cell.y] = null
+	return score
+
+
+## Cavalier : deplacement d'echecs en L (8 destinations possibles), tire au
+## hasard parmi celles valides (dans la grille, hors trous). Case occupee :
+## mange son contenu (voir _eat_cell) au lieu de le decaler. Retourne
+## {"dest": Vector2i, "score": int} — dest = (col, row) inchange si aucune
+## destination n'est valide (rarissime, seulement si les 8 sont hors grille
+## ou trouees) ; l'appelant (GridManager.tick_mobile_specials) ne consomme un
+## des deplacements restants que si la position a reellement change.
+static func move_cavalier(grid: Array, col: int, row: int, cols: int, rows: int, holes: Dictionary = {}) -> Dictionary:
+	var deltas: Array[Vector2i] = [
+		Vector2i(1, 2), Vector2i(1, -2), Vector2i(-1, 2), Vector2i(-1, -2),
+		Vector2i(2, 1), Vector2i(2, -1), Vector2i(-2, 1), Vector2i(-2, -1),
+	]
+	var candidates: Array[Vector2i] = []
+	for delta in deltas:
+		var c: Vector2i = Vector2i(col + delta.x, row + delta.y)
+		if c.x < 0 or c.x >= cols or c.y < 0 or c.y >= rows:
+			continue
+		if holes.has(c):
+			continue
+		candidates.append(c)
+	if candidates.is_empty():
+		return {"dest": Vector2i(col, row), "score": 0}
+	var dest: Vector2i = candidates[randi() % candidates.size()]
+	var score: int = _eat_cell(grid, dest)
+	var token: TokenData = grid[col][row] as TokenData
+	grid[col][row] = null
+	grid[dest.x][dest.y] = token
+	return {"dest": dest, "score": score}
+
+
+## Frog : saute en diagonale haut-gauche ou haut-droite, tiree au hasard.
+## Meme regle de case occupee (mange, voir _eat_cell) et de retour dest
+## inchange si aucune des deux n'est valide (bord/trou).
+static func move_frog(grid: Array, col: int, row: int, cols: int, rows: int, holes: Dictionary = {}) -> Dictionary:
+	var deltas: Array[Vector2i] = [Vector2i(-1, 1), Vector2i(1, 1)]
+	var candidates: Array[Vector2i] = []
+	for delta in deltas:
+		var c: Vector2i = Vector2i(col + delta.x, row + delta.y)
+		if c.x < 0 or c.x >= cols or c.y < 0 or c.y >= rows:
+			continue
+		if holes.has(c):
+			continue
+		candidates.append(c)
+	if candidates.is_empty():
+		return {"dest": Vector2i(col, row), "score": 0}
+	var dest: Vector2i = candidates[randi() % candidates.size()]
+	var score: int = _eat_cell(grid, dest)
+	var token: TokenData = grid[col][row] as TokenData
+	grid[col][row] = null
+	grid[dest.x][dest.y] = token
+	return {"dest": dest, "score": score}
+
+
+## Liane : fait grandir la vigne d'un cran vers la droite, a partir de la
+## case la plus a droite d'un segment LIANE contigu commencant a (col, row)
+## sur la meme rangee. Case occupee : mange son contenu (voir _eat_cell) au
+## lieu de le decaler. Retourne le score gagne (0 si rien mange, aussi 0 si
+## bloquee par le bord de la grille ou une case trouee — le minuteur continue
+## quand meme de descendre cote appelant, voir GridManager.
+## tick_mobile_specials).
+static func grow_liane(grid: Array, col: int, row: int, cols: int, rows: int, holes: Dictionary = {}) -> int:
+	var tip_col: int = col
+	while tip_col + 1 < cols:
+		var next_token: TokenData = grid[tip_col + 1][row] as TokenData
+		if next_token != null and next_token.kind == TokenData.Kind.SPECIAL and next_token.special_type == TokenData.SpecialType.LIANE:
+			tip_col += 1
+		else:
+			break
+	if tip_col + 1 >= cols:
+		return 0
+	var new_col: int = tip_col + 1
+	if holes.has(Vector2i(new_col, row)):
+		return 0
+	var score: int = _eat_cell(grid, Vector2i(new_col, row))
+	grid[new_col][row] = TokenData.make_special(TokenData.SpecialType.LIANE)
+	return score
+
+
+## Fane et efface toute la vigne contigue (tete + segments) a partir de
+## (col, row), en scannant vers la droite jusqu'a une case qui n'est plus
+## un segment LIANE.
+static func wither_liane(grid: Array, col: int, row: int, cols: int) -> void:
+	var c: int = col
+	while c < cols:
+		var token: TokenData = grid[c][row] as TokenData
+		if token == null or token.kind != TokenData.Kind.SPECIAL or token.special_type != TokenData.SpecialType.LIANE:
+			break
+		grid[c][row] = null
+		c += 1
+
+
+## Crow : vole un jeton scorable au hasard sur sa ligne (hors sa propre
+## case) et le redepose — drop normal au sommet de sa colonne (column_height),
+## sans le scorer : Crow est un "demenageur", pas un "mangeur" (contrairement
+## a Cavalier/Frog/Liane, voir _eat_cell). Rien a voler sur la ligne : ne
+## fait rien. Le Crow lui-meme est efface par l'appelant juste apres, qu'il
+## y ait eu un vol ou non (voir GridManager.tick_mobile_specials).
+static func steal_row_token(grid: Array, crow_col: int, crow_row: int, cols: int, rows: int, holes: Dictionary = {}) -> void:
+	var candidates: Array[int] = []
+	for c in range(cols):
+		if c == crow_col:
+			continue
+		var token: TokenData = grid[c][crow_row] as TokenData
+		if token != null and token.is_scorable():
+			candidates.append(c)
+	if candidates.is_empty():
+		return
+	var source_col: int = candidates[randi() % candidates.size()]
+	var stolen: TokenData = grid[source_col][crow_row] as TokenData
+	grid[source_col][crow_row] = null
+	var landing_row: int = _column_height(grid, crow_col, rows, holes)
+	if landing_row < rows:
+		grid[crow_col][landing_row] = stolen
+	# Sinon (colonne du Crow deja pleine) : le jeton vole est perdu, cas
+	# limite non specifie — coherent avec "redepose" qui suppose une place.
+
+
+## Underground : creuse d'un cran vers le bas — echange sa position avec la
+## case UTILE juste en dessous (trous ignores, comme la gravite normale).
+## Une fois la case utile la plus basse de la colonne atteinte, il y reste
+## visible un tour (un vrai "atterrissage"), puis disparait au tick suivant
+## ("disparait apres avoir touche le bas") — gere sa propre suppression,
+## contrairement aux autres mobiles.
+static func dig_underground(grid: Array, col: int, row: int, rows: int, holes: Dictionary = {}) -> void:
+	var usable_rows: Array[int] = []
+	for r in range(rows):
+		if not holes.has(Vector2i(col, r)):
+			usable_rows.append(r)
+	var index: int = usable_rows.find(row)
+	if index <= 0:
+		# Deja au fond utile depuis le tick precedent (il y a "atterri" et y
+		# est reste visible un tour, voir doc plus haut) : disparait maintenant.
+		grid[col][row] = null
+		return
+
+	var below_row: int = usable_rows[index - 1]
+	var token: TokenData = grid[col][row] as TokenData
+	var below_token: TokenData = grid[col][below_row]
+	grid[col][below_row] = token
+	grid[col][row] = below_token
 
 
 ## Hauteur d'une colonne (nombre de jetons depuis le bas), en ignorant les

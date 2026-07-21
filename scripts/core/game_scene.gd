@@ -109,10 +109,13 @@ func _wire_signals() -> void:
 	turn_controller.last_breath_started.connect(_on_last_breath_started)
 	turn_controller.round_won.connect(_on_round_won)
 	turn_controller.round_lost.connect(_on_round_lost)
+	turn_controller.petard_scored.connect(_on_petard_scored)
+	turn_controller.mobile_specials_scored.connect(_on_mobile_specials_scored)
 	grid_manager.token_placed.connect(_on_token_placed)
 	grid_manager.special_landing.connect(_on_special_landing)
 	grid_manager.special_executed.connect(_on_special_executed)
 	grid_manager.residues_exploded.connect(_on_residues_exploded)
+	grid_manager.mobile_specials_ticked.connect(_on_mobile_specials_ticked)
 	grid_manager.holes_changed.connect(grid_visual.set_holes)
 	grid_manager.blocked_column_changed.connect(grid_visual.set_blocked_column)
 	RunService.run_manager.flies_changed.connect(_on_flies_changed)
@@ -210,7 +213,7 @@ func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
 	if entity_col >= 0:
 		var entity_token: TokenData = TokenData.make_entity()
 		if meche_courte_active:
-			entity_token.entity_countdown = GameRules.MECHE_COURTE_START_COUNTDOWN
+			entity_token.countdown = GameRules.MECHE_COURTE_START_COUNTDOWN
 		var entity_row: int = grid_manager.place_token_direct(entity_col, entity_token)
 		if entity_row >= 0:
 			await grid_visual.animate_drop(entity_col, entity_row, entity_token)
@@ -313,6 +316,38 @@ func _on_special_executed(special_type: TokenData.SpecialType, _col: int, _row: 
 	# Petite pause pour que le joueur voie le resultat de l'impact
 	await get_tree().create_timer(0.3).timeout
 	turn_controller.notify_special_effect_done()
+
+
+## Un special mobile (Cavalier, Frog, Liane, Crow, Underground) vient de
+## deplacer/reorganiser des jetons silencieusement (voir GridManager.
+## tick_mobile_specials) — rebuild complet necessaire, sync_sprites (cree/
+## detruit seulement) ne suffit pas a reconcilier une case dont le contenu a
+## change sans passer par la creation/suppression. Appele AVANT resolve()
+## (le signal est emis de facon synchrone depuis TurnController.
+## play_current_to), donc les sprites sont a jour avant que la cascade
+## normale ne commence a s'animer.
+func _on_mobile_specials_ticked() -> void:
+	grid_visual.rebuild_sprites()
+
+
+## Le Pétard à mèche detone en dehors de la banniere de resolution (voir
+## TurnController.tick_special_countdowns/petard_scored) — meme raison que
+## la Bombe (_on_special_executed ci-dessus) : reveler le score directement
+## ici, sinon le compteur affiche n'a jamais de raison de bouger.
+func _on_petard_scored(amount: int) -> void:
+	message_display.show_message("PÉTARD +" + str(amount) + " TICKETS", &"cascade")
+	_animate_score_to(_displayed_score + amount)
+
+
+## Cavalier/Frog/Liane (mangeurs/scoreurs, session 22) ont mange un jeton en
+## se deplacant/grandissant ce tour-ci — meme raison que le Pétard ci-dessus,
+## en dehors de la banniere de resolution normale (voir TurnController.
+## tick_mobile_specials/mobile_specials_scored). Un seul message meme si
+## plusieurs mobiles ont mange dans le meme tour (score deja cumule cote
+## logique) — evite le spam de popups.
+func _on_mobile_specials_scored(amount: int) -> void:
+	message_display.show_message("+" + str(amount) + " TICKETS", &"cascade")
+	_animate_score_to(_displayed_score + amount)
 
 
 func _animate_score_to(target: int) -> void:

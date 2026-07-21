@@ -15,6 +15,19 @@ const SPECIAL_SPRITES: Dictionary = {
 	TokenData.SpecialType.FANTOME: "res://assets/special-tokens/ghost.png",
 	TokenData.SpecialType.BOMBE: "res://assets/special-tokens/bomb.png",
 	TokenData.SpecialType.MAREE: "res://assets/special-tokens/tide.png",
+	TokenData.SpecialType.ENCLUME: "res://assets/special-tokens/enclume.png",
+	# Sprite neutre pour le stream/hold, avant qu'il soit pose (voir
+	# TokenVisual.get_texture, utilise par StreamUI). Une fois pose sur la
+	# grille, GridVisual._create_sprite bascule sur le sprite a countdown
+	# clignotant rouge/noir (_setup_countdown_sprite), meme traitement que
+	# l'entity-skull de MÈCHE COURTE.
+	TokenData.SpecialType.PETARD_A_MECHE: "res://assets/special-tokens/petard.png",
+	TokenData.SpecialType.CAVALIER: "res://assets/special-tokens/cavalier.png",
+	TokenData.SpecialType.FROG: "res://assets/special-tokens/frog.png",
+	TokenData.SpecialType.LIANE: "res://assets/special-tokens/liane.png",
+	TokenData.SpecialType.CROW: "res://assets/special-tokens/crow.png",
+	TokenData.SpecialType.UNDERGROUND: "res://assets/special-tokens/underground.png",
+	TokenData.SpecialType.HYPERCUBE: "res://assets/special-tokens/hypercube.png",
 }
 
 ## Cache de textures chargees

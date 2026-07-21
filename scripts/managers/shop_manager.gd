@@ -53,6 +53,14 @@ const SPECIAL_PATHS: Array[String] = [
 	"res://resources/specials/special_bombe.tres",
 	"res://resources/specials/special_fantome.tres",
 	"res://resources/specials/special_maree.tres",
+	"res://resources/specials/special_enclume.tres",
+	"res://resources/specials/special_petard_a_meche.tres",
+	"res://resources/specials/special_cavalier.tres",
+	"res://resources/specials/special_frog.tres",
+	"res://resources/specials/special_liane.tres",
+	"res://resources/specials/special_crow.tres",
+	"res://resources/specials/special_underground.tres",
+	"res://resources/specials/special_hypercube.tres",
 ]
 
 ## Badges achetables (BadgeData).
@@ -97,6 +105,18 @@ const BADGE_PATHS: Array[String] = [
 	"res://resources/badges/badge_amelioration_continue.tres",
 	"res://resources/badges/badge_gourmand.tres",
 	"res://resources/badges/badge_econome.tres",
+	"res://resources/badges/badge_couronne.tres",
+	"res://resources/badges/badge_diademe.tres",
+	"res://resources/badges/badge_regain.tres",
+	"res://resources/badges/badge_sang_froid.tres",
+	"res://resources/badges/badge_nouvelle_donne.tres",
+	"res://resources/badges/badge_brocante.tres",
+	"res://resources/badges/badge_adoubement.tres",
+	"res://resources/badges/badge_rescape.tres",
+	"res://resources/badges/badge_cairn.tres",
+	"res://resources/badges/badge_petit_point.tres",
+	"res://resources/badges/badge_refrain.tres",
+	"res://resources/badges/badge_artificier.tres",
 ]
 
 ## Outils de deck achetables (DeckToolData) — voir docs/brainstorms/brainstorm-outils-deck.md.
@@ -384,6 +404,17 @@ func get_pack_slots() -> Array[Dictionary]:
 
 func get_unitaire_slots() -> Array[Dictionary]:
 	return _unitaire_slots
+
+
+## Vrai si un slot "Des a coudre" est visible dans l'offre actuelle des
+## unitaires — utilise par ShopUI pour declencher le badge trigger
+## on_deck_tool_shown (ex: "Petit Point") une seule fois par visite, pas a
+## chaque reroll (voir ShopUI._ready).
+func has_deck_tool_offer() -> bool:
+	for slot in _unitaire_slots:
+		if (slot as Dictionary).get("format") == "des_a_coudre":
+			return true
+	return false
 
 
 ## Retourne le label d'un item (SheetData, SpecialItem, BadgeData ou TokenData).

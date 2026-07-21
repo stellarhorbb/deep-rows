@@ -11,11 +11,21 @@ signal turn_resolved(timeline: Array[Dictionary])
 signal last_breath_started()
 signal round_won(score: int, target: int)
 signal round_lost(score: int, target: int)
+## Emis quand un Pétard à mèche detone et rapporte des points, en dehors de
+## la banniere de resolution normale (voir tick_special_countdowns) — le
+## visuel doit reveler ce score explicitement, meme principe que la Bombe
+## (GameScene._on_special_executed), qui detone au drop plutot qu'au tick.
+signal petard_scored(amount: int)
+## Emis quand un special "mangeur/scoreur" (Cavalier, Frog, Liane) mange un
+## jeton en se deplacant/grandissant — meme raison que petard_scored, en
+## dehors de la banniere de resolution normale (voir tick_mobile_specials).
+signal mobile_specials_scored(amount: int)
 
 ## Hooks consommes par BadgeManager (dispatch vers les BadgeEffect equipes).
 signal round_started()
 signal token_dropped(token: TokenData, col: int, row: int)
 signal cascade_step_resolved(level: int, earned: int)
+signal shake_used()
 
 enum State { AWAITING_INPUT, DROPPING, RESOLVING, LAST_BREATH, ROUND_OVER }
 
@@ -118,6 +128,21 @@ func play_current_to(col: int, row: int) -> void:
 	if boss_malus_manager.active_malus == BossMalusManager.Type.MECHE_COURTE:
 		grid_manager.tick_entity_countdowns()
 
+	# Special "Pétard à mèche" : decompte/detone AVANT resolve(), meme raison
+	# que MÈCHE COURTE ci-dessus — inconditionnel, ce n'est pas un malus de
+	# boss mais un outil achete par le joueur.
+	var petard_score: int = grid_manager.tick_special_countdowns()
+	if petard_score > 0:
+		score_manager.add_score(petard_score)
+		petard_scored.emit(petard_score)
+
+	# Speciaux mobiles (Cavalier, Frog, Liane, Crow, Underground) : meme
+	# timing, AVANT resolve(), inconditionnel.
+	var mobile_score: int = grid_manager.tick_mobile_specials()
+	if mobile_score > 0:
+		score_manager.add_score(mobile_score)
+		mobile_specials_scored.emit(mobile_score)
+
 	# Resolution cascade
 	_state = State.RESOLVING
 	grid_manager.resolve()
@@ -169,6 +194,7 @@ func request_shake() -> void:
 		return
 	if run_manager.spend_shake_charge():
 		deck_manager.shake()
+		shake_used.emit()
 
 
 func get_state() -> State:
@@ -212,13 +238,16 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 				else:
 					run_manager.upgrade_matching_button(family, value)
 		elif event["type"] == CascadeResolver.EventType.TRANSFORM:
-			# Legendaire "Last Trick" : le tirage (chance + famille) a deja eu
-			# lieu dans CascadeResolver — ici on ajoute reellement le jeton au
-			# pool possede, definitivement (voir GameRules.LAST_TRICK_VALUE).
+			# Legendaire "Last Trick" OU special "Hypercube" : le tirage a deja
+			# eu lieu dans CascadeResolver — ici on ajoute reellement le jeton
+			# au pool possede, definitivement. Last Trick ne porte pas de cle
+			# "value" (toujours GameRules.LAST_TRICK_VALUE) ; Hypercube en
+			# porte une (family ET value varient, voir CascadeResolver.resolve).
 			for entry in (event["transforms"] as Array):
 				var data: Dictionary = entry as Dictionary
 				var family: TokenData.Family = data["family"] as TokenData.Family
-				run_manager.add_button(family, GameRules.LAST_TRICK_VALUE)
+				var value: int = data.get("value", GameRules.LAST_TRICK_VALUE) as int
+				run_manager.add_button(family, value)
 
 	turn_resolved.emit(timeline)
 
@@ -298,5 +327,13 @@ func _trigger_last_breath() -> void:
 	_state = State.LAST_BREATH
 	last_breath_started.emit()
 	grid_manager.explode_residues()
+	grid_manager.clear_remaining_mobile_specials()
+	# Les Pétards à mèche encore actifs explosent aussi (decision verrouillee :
+	# "les jetons speciaux poses explosent" au Dernier Souffle), meme s'ils
+	# n'ont pas fini leur countdown.
+	var petard_score: int = grid_manager.detonate_remaining_petards()
+	if petard_score > 0:
+		score_manager.add_score(petard_score)
+		petard_scored.emit(petard_score)
 	await last_breath_ready
 	grid_manager.resolve()

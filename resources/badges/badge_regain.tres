@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BadgeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/badge_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/badges/effect_regain.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"regain"
+label = "REGAIN"
+description = "Chaque level up de Partition accorde +1 charge de Shake"
+trigger = &"on_level_up"
+price = 4
+rarity = 1
+effect_script = ExtResource("2_effect")

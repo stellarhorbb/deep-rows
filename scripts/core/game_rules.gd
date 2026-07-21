@@ -29,6 +29,17 @@ const BOSS_MALUS_ROCK_COUNT: int = 4
 # qu'il explose (voir GridManager.tick_entity_countdowns).
 const MECHE_COURTE_START_COUNTDOWN: int = 5
 
+# Special "Pétard à mèche" — countdown de depart avant qu'il explose et score
+# ses 2 voisins directs (voir GridManager.tick_special_countdowns).
+const PETARD_A_MECHE_START_COUNTDOWN: int = 3
+
+# Speciaux mobiles (session 22) — nombre de deplacements/croissances avant
+# disparition (voir GridManager.tick_mobile_specials).
+const CAVALIER_MOVES: int = 3
+const FROG_MOVES: int = 5
+const LIANE_GROWTH_TICKS: int = 3
+const CROW_IDLE_TICKS: int = 1
+
 # "Grille cabossee" — trous generes au debut de chaque manche (jamais en row 0,
 # le sol reste toujours garanti). Un jeton qui tombe les traverse sans pouvoir
 # s'y arreter — different d'un Rock, qui bloque et sert d'appui.
@@ -129,7 +140,7 @@ const MODIFIER_DOUBLE_MULT: float = 2.0
 const MODIFIER_TRIPLE_MULT: float = 3.0
 
 # Entity
-const ENTITY_DROP_INTERVAL: int = 6  # Un drop tous les N poses joueur
+const ENTITY_DROP_INTERVAL: int = 5  # Un drop tous les N poses joueur
 
 # Valeurs des jetons de base
 const TOKEN_MIN_VALUE: int = 1
@@ -156,8 +167,12 @@ const MAXIMA_MIN_VALUE: int = 8
 ## (session 19) — meme mecanique que FIBONACCI_SEQUENCE (n'importe quelle
 ## fenetre valide de la suite matche), mais fenetre MINIMALE plutot que fixe :
 ## au moins PRIME_MIN_WINDOW consecutifs, jusqu'a la sequence entiere (2,3,5 /
-## 3,5,7 / 2,3,5,7).
-const PRIME_SEQUENCE: Array[int] = [2, 3, 5, 7]
+## 3,5,7 / 5,7,11 / 2,3,5,7,11...). 11 etendu en session 22 : un Valet (voir
+## GameRules.FACE_CARD_VALUES) est premier — fenetre haute optionnelle, ne
+## baisse pas le plancher de difficulte (2,3,5 seul declenche toujours),
+## meme principe que les fenetres hautes de Fibonacci (valeurs obtenues par
+## Fusion/promotion, rares).
+const PRIME_SEQUENCE: Array[int] = [2, 3, 5, 7, 11]
 const PRIME_MIN_WINDOW: int = 3
 
 ## Roll casino ajoute a la valeur du centre d'un Diamond Rock (session 15) —

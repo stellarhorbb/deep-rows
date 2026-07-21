@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BadgeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/badge_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/badges/effect_rescape.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"rescape"
+label = "RESCAPÉ"
+description = "Chaque manche boss survécue cumule +2.0 au multi global"
+trigger = &"on_round_end"
+price = 8
+rarity = 3
+effect_script = ExtResource("2_effect")

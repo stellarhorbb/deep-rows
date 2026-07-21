@@ -13,6 +13,8 @@ signal grid_modifiers_changed(modifiers: Dictionary)
 signal button_pool_changed()
 signal sheet_leveled_up(sheet_name: StringName, new_level: int)
 signal sheet_progress_changed(sheet_name: StringName)
+signal sheet_sold(sheet_name: StringName)
+signal figure_promoted(new_value: int)
 
 ## Chemins des packs de demarrage day-one (session 19) — toujours debloques,
 ## une save neuve propose donc un vrai choix des la premiere run. Les 6 packs
@@ -35,6 +37,14 @@ var _deck_composition: Dictionary = {
 	"bombe_count": 0,
 	"fantome_count": 0,
 	"maree_count": 0,
+	"enclume_count": 0,
+	"petard_a_meche_count": 0,
+	"cavalier_count": 0,
+	"frog_count": 0,
+	"liane_count": 0,
+	"crow_count": 0,
+	"underground_count": 0,
+	"hypercube_count": 0,
 }
 var _grid_modifiers: Dictionary = {}    # Vector2i -> Array[StringName]
 
@@ -80,6 +90,11 @@ var _score_capped_sheet_name: StringName = &""
 var _scaling_mult_bonuses: Dictionary = {}  # StringName -> float
 var _flat_score_bonuses: Dictionary = {}  # StringName -> int
 var _token_upgrade_chances: Dictionary = {}  # StringName -> float
+
+## Meme duree de vie que _scaling_mult_bonuses (jamais remis a zero a chaque
+## manche, seul unequip_badge nettoie), mais garde EN PLUS par Partition
+## ciblee (ex: "Refrain") — voir add_sheet_multiplier_bonus.
+var _sheet_multiplier_bonus_contributions: Dictionary = {}  # sheet_name -> {badge_id -> float}
 
 ## Etat persistant par badge, JAMAIS remis a zero en cours de run (contrairement
 ## a _badge_state, reset chaque manche) — sert aux badges "scaling permanent"
@@ -141,10 +156,19 @@ func init_run() -> void:
 		"bombe_count": 0,
 		"fantome_count": 0,
 		"maree_count": 0,
+		"enclume_count": 0,
+		"petard_a_meche_count": 0,
+		"cavalier_count": 0,
+		"frog_count": 0,
+		"liane_count": 0,
+		"crow_count": 0,
+		"underground_count": 0,
+		"hypercube_count": 0,
 	}
 	_scaling_mult_bonuses.clear()
 	_flat_score_bonuses.clear()
 	_token_upgrade_chances.clear()
+	_sheet_multiplier_bonus_contributions.clear()
 	_run_badge_state.clear()
 	_apply_debug_specials_to_deck()
 
@@ -232,6 +256,7 @@ func build_context() -> RunContext:
 	ctx.flat_score_bonus = int(_sum_dict_values(_flat_score_bonuses))
 	ctx.flat_score_bonuses = _flat_score_bonuses.duplicate()
 	ctx.token_upgrade_chance = _sum_dict_values(_token_upgrade_chances)
+	ctx.sheet_multiplier_bonus_contributions = _sheet_multiplier_bonus_contributions.duplicate(true)
 	ctx.hold_slot_bonus = int(_sum_dict_values(_hold_slot_bonuses))
 	ctx.preview_size_bonus = int(_sum_dict_values(_preview_size_bonuses))
 	ctx.rock_count_bonus = int(_sum_dict_values(_rock_count_bonuses))
@@ -499,6 +524,20 @@ func set_token_upgrade_chance(source: StringName, chance: float) -> void:
 		_active_context.token_upgrade_chance = _sum_dict_values(_token_upgrade_chances)
 
 
+## Pose la contribution actuelle d'un badge au bonus de multiplicateur d'une
+## Partition PRECISE (ex: "Refrain", cumule +0.1 par score sur CETTE
+## Partition). Meme principe que set_scaling_mult_bonus (le badge recalcule
+## et ecrase sa propre entree a chaque appel, pas d'addition en double) mais
+## garde EN PLUS par sheet_name : deux Partitions differentes accumulent
+## chacune leur propre compteur, independamment.
+func add_sheet_multiplier_bonus(sheet_name: StringName, amount: float, source: StringName = &"") -> void:
+	var contributions: Dictionary = (_sheet_multiplier_bonus_contributions.get(sheet_name, {}) as Dictionary).duplicate()
+	contributions[source] = amount
+	_sheet_multiplier_bonus_contributions[sheet_name] = contributions
+	if _active_context != null:
+		_active_context.sheet_multiplier_bonus_contributions = _sheet_multiplier_bonus_contributions.duplicate(true)
+
+
 ## Cherche dans le pool un bouton de base du meme family/valeur et l'upgrade
 ## de +1 (meme effet que l'action "Augmenter" des Des a coudre). Essaie tous
 ## les candidats trouves avant d'abandonner : le premier match peut deja etre
@@ -531,6 +570,7 @@ func promote_matching_button(family: TokenData.Family, value: int) -> bool:
 		if candidate.kind == TokenData.Kind.BASE and candidate.family == family and candidate.value == value and not candidate.locked:
 			_button_pool[i] = TokenData.make_base(family, next_value)
 			button_pool_changed.emit()
+			figure_promoted.emit(next_value)
 			return true
 	return false
 
@@ -629,6 +669,15 @@ func spend_shake_charge() -> bool:
 	return true
 
 
+## Ajoute des charges de Shake (ex: "Regain", +1 par level up de Partition).
+## Symetrique de spend_shake_charge, pas de plafond.
+func add_shake_charges(n: int) -> void:
+	if n <= 0:
+		return
+	_shake_charges += n
+	shake_charges_changed.emit(_shake_charges)
+
+
 # --- Sheets ---
 
 func get_equipped_sheets() -> Array[SheetData]:
@@ -663,6 +712,7 @@ func sell_sheet(sheet: SheetData) -> bool:
 	if not unequip_sheet(sheet):
 		return false
 	add_flies(int(sheet.price * GameRules.SELL_REFUND_RATIO))
+	sheet_sold.emit(sheet.sheet_name)
 	return true
 
 
@@ -706,12 +756,17 @@ func unequip_badge(badge: BadgeData) -> bool:
 	_scaling_mult_bonuses.erase(badge.id)
 	_flat_score_bonuses.erase(badge.id)
 	_token_upgrade_chances.erase(badge.id)
+	for sheet_name in _sheet_multiplier_bonus_contributions.keys():
+		var contributions: Dictionary = (_sheet_multiplier_bonus_contributions[sheet_name] as Dictionary).duplicate()
+		contributions.erase(badge.id)
+		_sheet_multiplier_bonus_contributions[sheet_name] = contributions
 	if _active_context != null:
 		_active_context.scaling_mult_bonus = _sum_dict_values(_scaling_mult_bonuses)
 		_active_context.scaling_mult_bonuses = _scaling_mult_bonuses.duplicate()
 		_active_context.flat_score_bonus = int(_sum_dict_values(_flat_score_bonuses))
 		_active_context.flat_score_bonuses = _flat_score_bonuses.duplicate()
 		_active_context.token_upgrade_chance = _sum_dict_values(_token_upgrade_chances)
+		_active_context.sheet_multiplier_bonus_contributions = _sheet_multiplier_bonus_contributions.duplicate(true)
 	badges_changed.emit(_equipped_badges)
 	return true
 
@@ -907,6 +962,22 @@ func _increment_special_count(type: TokenData.SpecialType) -> void:
 			_deck_composition["fantome_count"] += 1
 		TokenData.SpecialType.MAREE:
 			_deck_composition["maree_count"] += 1
+		TokenData.SpecialType.ENCLUME:
+			_deck_composition["enclume_count"] += 1
+		TokenData.SpecialType.PETARD_A_MECHE:
+			_deck_composition["petard_a_meche_count"] += 1
+		TokenData.SpecialType.CAVALIER:
+			_deck_composition["cavalier_count"] += 1
+		TokenData.SpecialType.FROG:
+			_deck_composition["frog_count"] += 1
+		TokenData.SpecialType.LIANE:
+			_deck_composition["liane_count"] += 1
+		TokenData.SpecialType.CROW:
+			_deck_composition["crow_count"] += 1
+		TokenData.SpecialType.UNDERGROUND:
+			_deck_composition["underground_count"] += 1
+		TokenData.SpecialType.HYPERCUBE:
+			_deck_composition["hypercube_count"] += 1
 
 
 func _decrement_special_count(type: TokenData.SpecialType) -> void:
@@ -918,5 +989,21 @@ func _decrement_special_count(type: TokenData.SpecialType) -> void:
 			key = "fantome_count"
 		TokenData.SpecialType.MAREE:
 			key = "maree_count"
+		TokenData.SpecialType.ENCLUME:
+			key = "enclume_count"
+		TokenData.SpecialType.PETARD_A_MECHE:
+			key = "petard_a_meche_count"
+		TokenData.SpecialType.CAVALIER:
+			key = "cavalier_count"
+		TokenData.SpecialType.FROG:
+			key = "frog_count"
+		TokenData.SpecialType.LIANE:
+			key = "liane_count"
+		TokenData.SpecialType.CROW:
+			key = "crow_count"
+		TokenData.SpecialType.UNDERGROUND:
+			key = "underground_count"
+		TokenData.SpecialType.HYPERCUBE:
+			key = "hypercube_count"
 	if key != "":
 		_deck_composition[key] = maxi(0, (_deck_composition[key] as int) - 1)

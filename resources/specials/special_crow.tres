@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SpecialItem" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_item.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+label = "CROW"
+description = "Ne fait rien le premier tour, puis vole un jeton de sa ligne et le redépose dans sa colonne avant de disparaître."
+price = 3
+special_type = 9

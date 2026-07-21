@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SpecialItem" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_item.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+label = "ENCLUME"
+description = "Pousse le premier jeton sur lequel elle tombe tout au fond de la grille."
+price = 2
+special_type = 4

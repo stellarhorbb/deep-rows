@@ -52,6 +52,14 @@ extends Resource
 # scorable de cette valeur ajoute la somme des contributions au multi.
 @export var value_bonus_multiplier_contributions: Dictionary = {} # value -> {badge_id -> float}
 
+# Bonus additif au multiplicateur d'une Partition PRECISE, par sheet_name
+# (ex: "Refrain", +0.1 cumule a chaque fois que CETTE Partition score,
+# independant des autres Partitions equipees), keyed. Combine par SOMME,
+# comme value_bonus_multiplier_contributions. Contrairement a
+# scaling_mult_bonus (global, toutes Partitions confondues), ne s'applique
+# qu'a la Partition dont le sheet_name correspond a la cle.
+@export var sheet_multiplier_bonus_contributions: Dictionary = {} # sheet_name -> {badge_id -> float}
+
 # Valeurs de jeton qui recomptent leur propre valeur une deuxieme fois dans le
 # value_sum du groupe qui score ("retrigger"), keyed. Existence pure (pas de
 # magnitude a combiner) — deux badges sur la meme valeur ne la font pas
@@ -139,6 +147,10 @@ func get_global_multiplier() -> float:
 
 func get_value_bonus_multiplier_sum(value: int) -> float:
 	return _sum(value_bonus_multiplier_contributions.get(value, {}) as Dictionary)
+
+
+func get_sheet_multiplier_bonus_sum(sheet_name: StringName) -> float:
+	return _sum(sheet_multiplier_bonus_contributions.get(sheet_name, {}) as Dictionary)
 
 
 func is_retrigger_value(value: int) -> bool:

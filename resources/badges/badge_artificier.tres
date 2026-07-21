@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BadgeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/badge_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/badges/effect_artificier.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"artificier"
+label = "ARTIFICIER"
+description = "1 chance sur 4 de créer un Pétard à mèche dès qu'un 5 score"
+trigger = &"on_turn_resolved"
+price = 6
+rarity = 2
+effect_script = ExtResource("2_effect")

@@ -190,6 +190,40 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 				if arm_token != null:
 					last_trick_transforms.append({"cell": center, "family": arm_token.family})
 
+		# Special "Hypercube" (session 22) : si une Partition score en touchant
+		# au moins une des 8 cases autour d'un Hypercube pose sur la grille,
+		# duplique un jeton scoré au hasard de cette Partition — meme
+		# mecanisme que Last Trick (EventType.TRANSFORM, applique plus bas),
+		# sauf que family ET value varient ici (voir TurnController._on_
+		# resolution_complete, qui lit "value" avec fallback LAST_TRICK_VALUE
+		# pour rester compatible avec Last Trick). Un Hypercube donne ne peut
+		# declencher qu'une fois (retire du jeu au premier proc, voir
+		# triggered_hypercubes).
+		var hypercube_transforms: Array[Dictionary] = []  # {"cell", "family", "value"}
+		var triggered_hypercubes: Dictionary = {}  # Vector2i -> true
+		for group in groups:
+			var scored_tokens: Array = group.get("scored_tokens", [])
+			if scored_tokens.is_empty():
+				continue
+			var group_cells: Array = (group["cells"] as Array).duplicate()
+			if group.has("center"):
+				group_cells.append(group["center"])
+			for cell in group_cells:
+				var gc: Vector2i = cell as Vector2i
+				for dc in range(-1, 2):
+					for dr in range(-1, 2):
+						var hc: Vector2i = Vector2i(gc.x + dc, gc.y + dr)
+						if hc.x < 0 or hc.x >= cols or hc.y < 0 or hc.y >= rows:
+							continue
+						if triggered_hypercubes.has(hc):
+							continue
+						var maybe_hypercube: TokenData = grid[hc.x][hc.y] as TokenData
+						if maybe_hypercube == null or maybe_hypercube.kind != TokenData.Kind.SPECIAL or maybe_hypercube.special_type != TokenData.SpecialType.HYPERCUBE:
+							continue
+						var picked: Dictionary = scored_tokens[randi() % scored_tokens.size()] as Dictionary
+						hypercube_transforms.append({"cell": hc, "family": picked["family"], "value": picked["value"]})
+						triggered_hypercubes[hc] = true
+
 		# Evenement match
 		timeline.append({
 			"type": EventType.MATCH,
@@ -243,6 +277,17 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 				"transforms": last_trick_transforms,
 			})
 
+		if hypercube_transforms.size() > 0:
+			for entry in hypercube_transforms:
+				var cell: Vector2i = entry["cell"] as Vector2i
+				var family: TokenData.Family = entry["family"] as TokenData.Family
+				var value: int = entry["value"] as int
+				grid[cell.x][cell.y] = TokenData.make_base(family, value)
+			timeline.append({
+				"type": EventType.TRANSFORM,
+				"transforms": hypercube_transforms,
+			})
+
 		total_score += earned
 
 		# Gravite post-removal
@@ -276,6 +321,12 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	var sheet_name: StringName = group.get("sheet_name", &"") as StringName
 	var level_mult: float = sheet_level_multipliers.get(sheet_name, 1.0) as float
 	var global_mult: float = context.get_global_multiplier()
+	# Bonus de multiplicateur specifique a CETTE Partition (ex: "Refrain",
+	# voir RunContext.get_sheet_multiplier_bonus_sum) — un badge, pas une
+	# stat propre au sheet, donc jamais neutralise par PARTITION TERNIE
+	# (contrairement a shape_mult/level_mult ci-dessous), meme logique que
+	# rule_mult/global_mult/scaling_mult qui restent normaux face a ce malus.
+	var sheet_bonus_mult: float = 1.0 + context.get_sheet_multiplier_bonus_sum(sheet_name)
 
 	# Malus de boss PARTITION TERNIE (voir BossMalusManager) : en miroir de
 	# FAMILLE TERNIE (qui plafonne chaque JETON a 1, voir _effective_token_value),
@@ -327,7 +378,7 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		var base_value: int = raw_value + (diamond_sum_bonus["amount"] as int)
 		group["upgrade_candidates"] = _roll_upgrades(scored_cells, grid, context) + _roll_face_promotions(scored_cells, grid, context)
 		group["scored_tokens"] = _snapshot_scored_tokens(scored_cells, grid)
-		var diamond_mult_contribs: Dictionary = _mult_contributions(scored_cells, grid, context, rule)
+		var diamond_mult_contribs: Dictionary = _mult_contributions(scored_cells, grid, context, rule, sheet_name)
 		# cascade_mult exclu du breakdown affiche : la banniere de resolution
 		# lui dedie sa propre annonce (voir GridVisual._animate_match), pas
 		# noye dans le MULTI generique. Le score reel l'inclut toujours.
@@ -337,7 +388,7 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 			(group["score_breakdown"] as Dictionary)["roll"] = rock_roll
 			(group["score_breakdown"] as Dictionary)["roll_min"] = GameRules.DIAMOND_ROCK_ROLL_MIN
 			(group["score_breakdown"] as Dictionary)["roll_max"] = GameRules.DIAMOND_ROCK_ROLL_MAX
-		return int(base_value * sheet_mult * cascade_mult * diamond_grid_mult * rule_mult * level_mult * global_mult * diamond_value_bonus_mult * scaling_mult)
+		return int(base_value * sheet_mult * cascade_mult * diamond_grid_mult * rule_mult * level_mult * global_mult * diamond_value_bonus_mult * scaling_mult * sheet_bonus_mult)
 
 	var raw_value: int = 0
 	for cell in group["cells"]:
@@ -369,7 +420,7 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 
 	var grid_mult: float = _grid_modifier_multiplier(group["cells"], grid_modifiers)
 	var value_bonus_mult: float = _value_bonus_multiplier(group["cells"], grid, context)
-	var mult_contribs: Dictionary = _mult_contributions(group["cells"], grid, context, rule)
+	var mult_contribs: Dictionary = _mult_contributions(group["cells"], grid, context, rule, sheet_name)
 	# cascade_mult exclu du breakdown affiche, meme raison que la branche diamond.
 	var base_mult: float = shape_mult * grid_mult * level_mult
 	_attach_breakdown(group, context, raw_value, value_sum, base_mult, sum_bonus["contributions"] as Dictionary, mult_contribs)
@@ -377,7 +428,7 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		(group["score_breakdown"] as Dictionary)["roll"] = legendary_roll
 		(group["score_breakdown"] as Dictionary)["roll_min"] = GameRules.ROYAL_SQUARE_ROLL_MIN
 		(group["score_breakdown"] as Dictionary)["roll_max"] = GameRules.ROYAL_SQUARE_ROLL_MAX
-	return int(value_sum * shape_mult * cascade_mult * grid_mult * rule_mult * level_mult * global_mult * value_bonus_mult * scaling_mult)
+	return int(value_sum * shape_mult * cascade_mult * grid_mult * rule_mult * level_mult * global_mult * value_bonus_mult * scaling_mult * sheet_bonus_mult)
 
 
 ## Somme des valeurs des jetons scorables (kind BASE) sur la ligne du bas
@@ -602,14 +653,15 @@ func _top_row_occupied(grid: Array) -> bool:
 ## pour que la banniere de resolution puisse faire resoudre les Badges un par
 ## un, de gauche a droite (retour de playtest session 17 : impossible de voir
 ## qui a declenche quoi quand plusieurs Badges contribuent a la meme resolution).
-## Couvre les 3 canaux multiplicatifs actionnables par Badge : rule_multipliers,
+## Couvre les 4 canaux multiplicatifs actionnables par Badge : rule_multipliers,
 ## global_multiplier, value_bonus_multipliers (par valeur de jeton, peut avoir
-## des sources differentes selon la valeur presente dans CE groupe) et
-## scaling_mult_bonuses (session 17). Les modifiers de cellule (Cellule Triple,
+## des sources differentes selon la valeur presente dans CE groupe),
+## scaling_mult_bonuses (session 17) et sheet_multiplier_bonus_contributions
+## (par Partition, ex: "Refrain"). Les modifiers de cellule (Cellule Triple,
 ## Tranchee...) restent hors de cette attribution — ils vivent sur la grille,
 ## pas sur une resolution, et ont deja leur propre feedback visuel (bordures
 ## colorees), pas dans la banniere.
-func _mult_contributions(cells: Array, grid: Array, context: RunContext, rule: StringName) -> Dictionary:
+func _mult_contributions(cells: Array, grid: Array, context: RunContext, rule: StringName, sheet_name: StringName) -> Dictionary:
 	var contributions: Dictionary = {}  # StringName source -> float (facteur du badge)
 
 	# Chaque canal "keyed"/"flat" est deja garde par badge_id sur le RunContext
@@ -648,6 +700,14 @@ func _mult_contributions(cells: Array, grid: Array, context: RunContext, rule: S
 		var b: float = context.scaling_mult_bonuses[source] as float
 		if b > 0.0:
 			contributions[source] = 1.0 + b
+
+	var sheet_bonus_sources: Dictionary = context.sheet_multiplier_bonus_contributions.get(sheet_name, {}) as Dictionary
+	for source in sheet_bonus_sources:
+		if (source as StringName) == &"":
+			continue
+		var sb: float = sheet_bonus_sources[source] as float
+		if sb > 0.0:
+			contributions[source] = 1.0 + sb
 
 	return contributions
 
