@@ -1,10 +1,11 @@
-[gd_resource type="Resource" script_class="SpecialItem" format=3]
+[gd_resource type="Resource" script_class="SpecialItem" format=3 uid="uid://dndp7sc7a4d5a"]
 
-[ext_resource type="Script" path="res://scripts/data/special_item.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cnotxoaeku51" path="res://scripts/data/special_item.gd" id="1_script"]
 
 [resource]
 script = ExtResource("1_script")
 label = "FROG"
 description = "Saute 5 fois en diagonale haut-gauche ou haut-droite, mangeant et scorant tout jeton sur lequel il atterrit, avant de disparaître."
 price = 3
+rarity = 2
 special_type = 7

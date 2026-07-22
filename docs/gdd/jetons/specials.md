@@ -44,6 +44,17 @@ Catalogue complet (statut + idées + prix) dans le [Google Sheet](https://docs.g
 
 Vendus par les [grenouilles orchestre](../univers/personnages/grenouilles-orchestre.md), dans le [contenant générique](../shop/packs.md) commun à toutes les catégories — à l'unité ou en pack (3 choix, tu en gardes 1). Très accessibles parce que jetables.
 
+**Rareté (session 23)** — jusque-là tirés uniformément, les Spéciaux gagnent le même système de rareté pondérée que les Badges/Dés à coudre (`GameRules.RARITY_WEIGHTS`), pour que le prix reflète l'accessibilité plutôt que la seule puissance :
+
+| Rareté | Poids | Prix | Spéciaux |
+|---|---|---|---|
+| Common | 10 | 2 | Bombe, Enclume, Fantôme, Marée |
+| Uncommon | 5 | 2 | Underground, Pétard à mèche, Crow, Liane |
+| Rare | 2 | 3 | Cavalier, Frog |
+| Epic | 1 | 4 | Hypercube |
+
+Hypercube (le plus lourd des spéciaux, seul à interagir en direct avec le scoring) descend de 5 à 4 mouches — sa rareté porte maintenant l'essentiel de son coût, pas son prix d'achat.
+
 ## Liens
 
 - [Boutons](boutons.md)

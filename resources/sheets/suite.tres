@@ -8,6 +8,6 @@ sheet_name = &"suite"
 shape = &"line"
 rule = &"suite"
 min_size = 4
-score_multiplier = 2.5
+score_multiplier = 2.0
 label = "SUITE"
 price = 14
