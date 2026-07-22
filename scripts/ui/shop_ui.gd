@@ -12,6 +12,7 @@ extends Control
 @onready var packs_container: HBoxContainer = $Panel/VBox/PacksContainer
 @onready var unitaires_container: HBoxContainer = $Panel/VBox/UnitairesContainer
 @onready var flies_label: Label = $FliesLabel
+@onready var zone_label: Label = $ZoneLabel
 @onready var continue_button: Button = $Panel/VBox/ContinueButton
 @onready var reroll_button: Button = $RerollButton
 
@@ -78,6 +79,7 @@ func _ready() -> void:
 	if _shop_manager.has_deck_tool_offer():
 		RunService.badge_manager.dispatch_deck_tool_shown()
 	_refresh_flies()
+	_refresh_zone_label()
 	_rebuild_packs()
 	_rebuild_unitaires()
 	_refresh_reroll_button()
@@ -177,6 +179,19 @@ func _on_unitaire_pressed(entry: Dictionary) -> void:
 
 func _refresh_flies() -> void:
 	flies_label.text = "MOUCHES : %d" % _run_manager.get_flies()
+
+
+## Meme biome/manche que la derniere manche jouee (RunService.current_round
+## n'avance qu'a "CONTINUER", voir _on_continue_pressed) — affiche en continu
+## avec le game scene plutot que de disparaitre au shop. Meme formule que
+## GameScene._update_zone_display, sans la ligne de malus de boss (deja
+## resolue, pas pertinente une fois dans le shop).
+func _refresh_zone_label() -> void:
+	@warning_ignore("integer_division")
+	var zone: int = (RunService.current_round - 1) / GameRules.ROUNDS_PER_ZONE + 1
+	var round_in_zone: int = (RunService.current_round - 1) % GameRules.ROUNDS_PER_ZONE + 1
+	var biome_index: int = clampi(zone - 1, 0, GameRules.BIOME_NAMES.size() - 1)
+	zone_label.text = GameRules.BIOME_NAMES[biome_index] + "\nMANCHE " + str(round_in_zone) + "/" + str(GameRules.ROUNDS_PER_ZONE)
 
 
 ## Reevalue l'affordabilite de chaque slot NON consomme (les slots consommes

@@ -16,6 +16,15 @@ offset_right = 1920.0
 offset_bottom = 1080.0
 color = Color(0.722, 0.8, 0.847, 1)
 
+[node name="ZoneLabel" type="Label" parent="." unique_id=1000000040]
+layout_mode = 0
+offset_left = 30.0
+offset_top = 20.0
+offset_right = 250.0
+offset_bottom = 80.0
+text = "THE SURFACE
+0.1"
+
 [node name="Title" type="Label" parent="." unique_id=94664642]
 layout_mode = 0
 offset_left = 660.0
