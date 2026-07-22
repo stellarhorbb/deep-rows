@@ -8,6 +8,7 @@
 [ext_resource type="FontFile" uid="uid://dryqbsw3ute3w" path="res://assets/fonts/LondrinaSolid-Black.ttf" id="6_font_black"]
 [ext_resource type="Script" uid="uid://1w2ub5mjkgkt" path="res://scripts/ui/resolution_banner.gd" id="10_resolution_banner"]
 [ext_resource type="Script" uid="uid://dot2uvawoneoi" path="res://scripts/ui/you_win_ui.gd" id="11_you_win_ui"]
+[ext_resource type="Script" path="res://scripts/ui/grid_hover.gd" id="12_grid_hover"]
 
 [node name="Game" type="Node2D" unique_id=1117591923]
 script = ExtResource("1_game")
@@ -73,14 +74,22 @@ horizontal_alignment = 2
 position = Vector2(600, 130)
 script = ExtResource("2_grid")
 
+[node name="GridHover" type="Control" parent="GridVisual" unique_id=2000000001]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 672.0
+offset_bottom = 672.0
+mouse_filter = 1
+script = ExtResource("12_grid_hover")
+
 [node name="StreamUI" type="Control" parent="." unique_id=1024901384]
 layout_mode = 3
 anchors_preset = 0
 offset_left = 1320.0
 offset_top = 160.0
-offset_right = 1420.0
+offset_right = 1720.0
 offset_bottom = 760.0
-mouse_filter = 2
+mouse_filter = 1
 script = ExtResource("3_stream")
 
 [node name="ShakeButton" type="Button" parent="." unique_id=1000000400]
