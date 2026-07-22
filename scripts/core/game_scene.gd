@@ -7,6 +7,7 @@ extends Node2D
 
 # --- UI locale a cette scene (places dans la scene, references par @onready) ---
 @onready var grid_visual: GridVisual = $GridVisual
+@onready var grid_hover: GridHoverUI = $GridVisual/GridHover
 @onready var stream_ui: StreamUI = $StreamUI
 @onready var message_display: MessageDisplay = $MessageDisplay
 @onready var input_handler: InputHandler = $InputHandler
@@ -89,6 +90,7 @@ func _wire_references() -> void:
 	grid_visual.badges_ui = badges_ui
 	grid_visual.resolution_banner = resolution_banner
 	grid_visual.setup()
+	grid_hover.grid_manager = grid_manager
 	stream_ui.deck_manager = deck_manager
 	stream_ui.setup()
 	# sheets_ui / badges_ui sont cables au run_manager (global) une seule fois
@@ -107,6 +109,7 @@ func _wire_signals() -> void:
 	grid_visual.group_score_revealed.connect(_on_group_score_revealed)
 	turn_controller.turn_resolved.connect(_on_turn_resolved)
 	turn_controller.last_breath_started.connect(_on_last_breath_started)
+	turn_controller.second_wave_started.connect(_on_second_wave_started)
 	turn_controller.round_won.connect(_on_round_won)
 	turn_controller.round_lost.connect(_on_round_lost)
 	turn_controller.petard_scored.connect(_on_petard_scored)
@@ -115,7 +118,9 @@ func _wire_signals() -> void:
 	grid_manager.special_landing.connect(_on_special_landing)
 	grid_manager.special_executed.connect(_on_special_executed)
 	grid_manager.residues_exploded.connect(_on_residues_exploded)
+	grid_manager.entity_skulls_cleared.connect(_on_entity_skulls_cleared)
 	grid_manager.mobile_specials_ticked.connect(_on_mobile_specials_ticked)
+	grid_manager.petard_detonated.connect(_on_petard_detonated)
 	grid_manager.holes_changed.connect(grid_visual.set_holes)
 	grid_manager.blocked_column_changed.connect(grid_visual.set_blocked_column)
 	RunService.run_manager.flies_changed.connect(_on_flies_changed)
@@ -269,8 +274,25 @@ func _on_last_breath_started() -> void:
 	message_display.show_message("DERNIER SOUFFLE...", &"cascade")
 
 
+## Legendaire "Souffle Obscur" : deuxieme vague, voir TurnController.
+## _trigger_second_wave.
+func _on_second_wave_started() -> void:
+	message_display.show_message("SOUFFLE OBSCUR...", &"cascade")
+
+
 func _on_residues_exploded(positions: Array[Vector2i]) -> void:
 	# Ceder une frame pour laisser le controller armer son await avant notify
+	await get_tree().process_frame
+	if positions.size() > 0:
+		grid_visual.rebuild_sprites()
+		await get_tree().create_timer(0.4).timeout
+	turn_controller.notify_last_breath_ready()
+
+
+## Meme raison que _on_residues_exploded — GridManager.clear_entity_skulls
+## vide directement les cases dans _grid, le visuel doit rebuild avant que
+## TurnController ne relance la resolution de la deuxieme vague.
+func _on_entity_skulls_cleared(positions: Array[Vector2i]) -> void:
 	await get_tree().process_frame
 	if positions.size() > 0:
 		grid_visual.rebuild_sprites()
@@ -327,6 +349,14 @@ func _on_special_executed(special_type: TokenData.SpecialType, _col: int, _row: 
 ## play_current_to), donc les sprites sont a jour avant que la cascade
 ## normale ne commence a s'animer.
 func _on_mobile_specials_ticked() -> void:
+	grid_visual.rebuild_sprites()
+
+
+## Le Pétard à mèche vide sa case (et celles de ses voisins) directement dans
+## _grid sans passer par un event de cascade (voir GridManager._detonate_
+## petard) — meme besoin de rebuild complet que _on_mobile_specials_ticked,
+## sinon le sprite reste affiche alors qu'il n'existe plus cote logique.
+func _on_petard_detonated() -> void:
 	grid_visual.rebuild_sprites()
 
 

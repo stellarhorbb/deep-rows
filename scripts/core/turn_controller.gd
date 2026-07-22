@@ -7,8 +7,18 @@ signal drop_animated()
 signal special_effect_done()
 signal last_breath_ready()
 signal timeline_done_ack()
+## Emis a la fin d'une passe de resolution "intermediaire" (voir _pre_pass) —
+## uniquement pour reveiller l'await dans play_current_to, jamais consomme
+## ailleurs (contrairement a turn_resolved, qui ne sort qu'une fois par tour
+## reel, apres la 2e passe).
+signal resolution_pass_done()
 signal turn_resolved(timeline: Array[Dictionary])
 signal last_breath_started()
+## Legendaire "Souffle Obscur" (session 23) : emis quand la deuxieme vague du
+## Dernier Souffle demarre (les entity-skulls disparaissent) — voir
+## _trigger_second_wave. Meme role que last_breath_started, pour sa propre
+## banniere/message dedie.
+signal second_wave_started()
 signal round_won(score: int, target: int)
 signal round_lost(score: int, target: int)
 ## Emis quand un Pétard à mèche detone et rapporte des points, en dehors de
@@ -30,6 +40,21 @@ signal shake_used()
 enum State { AWAITING_INPUT, DROPPING, RESOLVING, LAST_BREATH, ROUND_OVER }
 
 var _state: State = State.AWAITING_INPUT
+
+## Legendaire "Souffle Obscur" : vrai des que la deuxieme vague a ete tentee
+## pour la manche en cours, pour ne jamais la redeclencher (voir _on_
+## resolution_complete). Remis a faux a chaque nouveau Dernier Souffle.
+var _second_wave_triggered: bool = false
+
+## Vrai pendant la 1ere des deux passes de resolution d'un tour normal (voir
+## play_current_to) — resout un pattern deja complet AVANT que les mobiles/
+## petards ne puissent le perturber (retour de playtest session 23 : Underground
+## qui bouge juste avant qu'un pattern ne soit vu = perte silencieuse). Fait
+## sauter la fin de tour habituelle dans _on_resolution_complete (avance du
+## stream, verif defaite...), qui n'a lieu qu'a la 2e passe — sinon ces effets
+## se declencheraient deux fois par tour reel.
+var _pre_pass: bool = false
+var _pre_pass_timeline: Array[Dictionary] = []
 
 @export var grid_manager: GridManager
 @export var deck_manager: DeckManager
@@ -121,6 +146,16 @@ func play_current_to(col: int, row: int) -> void:
 			deck_manager.consume_current()
 			await _drop_token(bonus_token, col)
 
+	# 1ere passe de resolution (session 23) : score un pattern deja complet
+	# suite au drop AVANT que MÈCHE COURTE/petards/mobiles n'aient la moindre
+	# chance de le perturber. Voir _pre_pass.
+	_state = State.RESOLVING
+	_pre_pass = true
+	grid_manager.resolve()
+	await resolution_pass_done
+	_pre_pass = false
+	_state = State.DROPPING
+
 	# Malus de boss MÈCHE COURTE (voir BossMalusManager) : decompte/detone les
 	# entity-skulls AVANT resolve(), pour que la gravite et les matchs eventuels
 	# de la chute soient pris en compte dans le meme cycle de resolution — pas
@@ -183,7 +218,7 @@ func request_hold(slot_index: int = -1) -> void:
 
 
 ## Bouton d'urgence "Shake" (voir GameRules.SHAKE_CHARGES_DEFAULT) : remelange
-## current + hold + pioche (voir DeckManager.shake). Ne fait rien si aucune
+## current + pioche, le Hold reste intact (voir DeckManager.shake). Ne fait rien si aucune
 ## charge restante -- l'UI se base sur run_manager.shake_charges_changed pour
 ## se desactiver, mais on regarde quand meme la charge reelle ici, seule
 ## source de verite.
@@ -249,7 +284,24 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 				var value: int = data.get("value", GameRules.LAST_TRICK_VALUE) as int
 				run_manager.add_button(family, value)
 
-	turn_resolved.emit(timeline)
+	# turn_resolved ne sort qu'une fois par tour REEL, jamais a la 1ere passe
+	# seule (voir _pre_pass) — sinon les badges on_turn_resolved (Refrain,
+	# Vertige, Artificier...) et le compteur de drop d'entity-skull (GameScene.
+	# _on_turn_resolved) se declencheraient deux fois pour un seul tour joue.
+	# Exception : si la 1ere passe suffit deja a gagner la manche, on emet
+	# quand meme tout de suite — sinon le tour gagnant ne dispatcherait jamais
+	# ses badges on_turn_resolved (la 2e passe n'a alors jamais lieu). Les
+	# deux timelines sont fusionnees pour que rien de la 1ere passe ne soit
+	# perdu pour ces consommateurs.
+	var full_timeline: Array[Dictionary] = timeline
+	if _pre_pass:
+		_pre_pass_timeline = timeline
+	else:
+		full_timeline = _pre_pass_timeline + timeline
+		_pre_pass_timeline = []
+
+	if not _pre_pass or score_manager.is_target_reached():
+		turn_resolved.emit(full_timeline)
 
 	if score_manager.is_target_reached():
 		# Attend toujours la fin de l'animation (banniere de resolution comprise)
@@ -260,7 +312,24 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 		round_won.emit(score_manager.get_score(), score_manager.get_target())
 		return
 
+	if _pre_pass:
+		# Deferre (voir _finish_pre_pass) : resolve() est 100% synchrone quand
+		# rien ne se passe (cas courant), donc ce point du code s'execute AVANT
+		# que play_current_to() n'ait pu atteindre son "await resolution_pass_
+		# done" — emettre ici, sans deferrer, ferait partir le signal dans le
+		# vide (personne n'ecoute encore) et bloquerait le tour pour toujours
+		# (bug trouve en session 23 : plus rien ne se passait apres le 1er drop).
+		call_deferred(&"_finish_pre_pass")
+		return
+
 	if _state == State.LAST_BREATH:
+		# Legendaire "Souffle Obscur" : une deuxieme vague avant de declarer
+		# la defaite, une seule fois par manche (voir _second_wave_triggered).
+		if run_manager.has_badge(&"souffle_obscur") and not _second_wave_triggered:
+			_second_wave_triggered = true
+			await timeline_done_ack
+			_trigger_second_wave()
+			return
 		await timeline_done_ack
 		_state = State.ROUND_OVER
 		round_lost.emit(score_manager.get_score(), score_manager.get_target())
@@ -315,6 +384,13 @@ func _has_legal_move() -> bool:
 	return false
 
 
+## Voir l'appel differe dans _on_resolution_complete — separe pour que
+## call_deferred() ait un vrai nom de methode a cibler (emit() seul n'est pas
+## directement differable de façon fiable).
+func _finish_pre_pass() -> void:
+	resolution_pass_done.emit()
+
+
 func notify_last_breath_ready() -> void:
 	last_breath_ready.emit()
 
@@ -325,6 +401,7 @@ func notify_timeline_done() -> void:
 
 func _trigger_last_breath() -> void:
 	_state = State.LAST_BREATH
+	_second_wave_triggered = false
 	last_breath_started.emit()
 	grid_manager.explode_residues()
 	grid_manager.clear_remaining_mobile_specials()
@@ -335,5 +412,19 @@ func _trigger_last_breath() -> void:
 	if petard_score > 0:
 		score_manager.add_score(petard_score)
 		petard_scored.emit(petard_score)
+	await last_breath_ready
+	grid_manager.resolve()
+
+
+## Legendaire "Souffle Obscur" : deuxieme vague apres un Dernier Souffle normal
+## qui n'a pas suffi — les entity-skulls (seul obstacle normalement permanent
+## du jeu, voir GridManager.clear_entity_skulls) disparaissent a leur tour,
+## ouvrant potentiellement une nouvelle gravite/cascade. _state reste
+## LAST_BREATH : si cette deuxieme resolution ne suffit toujours pas, _on_
+## resolution_complete tombera sur la defaite normale (_second_wave_triggered
+## est deja vrai, pas de 3e tentative).
+func _trigger_second_wave() -> void:
+	second_wave_started.emit()
+	grid_manager.clear_entity_skulls()
 	await last_breath_ready
 	grid_manager.resolve()

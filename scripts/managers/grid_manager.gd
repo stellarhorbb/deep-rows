@@ -17,6 +17,18 @@ signal blocked_column_changed(col: int)
 ## seulement) ne suffit pas a reconcilier "cette case a maintenant un autre
 ## contenu" — voir GameScene._on_mobile_specials_ticked.
 signal mobile_specials_ticked()
+## Emis quand un Petard a meche detone (voir tick_special_countdowns /
+## detonate_remaining_petards) — meme raison que mobile_specials_ticked :
+## _detonate_petard vide directement la case dans _grid, sans passer par un
+## event de CascadeResolver, donc rien ne previent le visuel qu'il doit
+## retirer le sprite. Voir GameScene._on_petard_detonated.
+signal petard_detonated()
+## Legendaire "Souffle Obscur" (session 23) : emis quand la deuxieme vague du
+## Dernier Souffle vide les entity-skulls (voir clear_entity_skulls) — meme
+## pattern que residues_exploded, pour que le visuel sache reconstruire les
+## sprites avant de relancer la resolution. Voir GameScene._on_entity_skulls_
+## cleared / TurnController._trigger_second_wave.
+signal entity_skulls_cleared(positions: Array[Vector2i])
 
 var _grid: Array = []
 var _cols: int = GameRules.COLS
@@ -226,6 +238,8 @@ func tick_special_countdowns() -> int:
 	var total_score: int = 0
 	for cell in to_detonate:
 		total_score += _detonate_petard(cell)
+	if to_detonate.size() > 0:
+		petard_detonated.emit()
 	return total_score
 
 
@@ -257,30 +271,39 @@ func tick_mobile_specials() -> int:
 			token.just_placed = false
 			continue  # pose ce tour-ci : n'agit qu'a partir du prochain jeton joue
 
+		# Legendaire "Dresseur Fou" (session 23) : Cavalier/Frog/Liane/Underground
+		# ne disparaissent plus jamais — countdown gele plutot qu'infini pour ne
+		# pas toucher SpecialEffects (Crow exclu, voir badge_dresseur_fou.tres :
+		# il s'autodetruit apres une action unique, pas de countdown a geler).
+		var never_expire: bool = _run_context != null and _run_context.mobiles_never_expire
+
 		match token.special_type:
 			TokenData.SpecialType.CAVALIER:
 				var result: Dictionary = SpecialEffects.move_cavalier(_grid, cell.x, cell.y, _cols, _rows, _holes)
 				var dest: Vector2i = result["dest"] as Vector2i
 				if dest != cell:
 					total_score += result["score"] as int
-					token.countdown -= 1
-					if token.countdown <= 0:
-						_grid[dest.x][dest.y] = null
+					if not never_expire:
+						token.countdown -= 1
+						if token.countdown <= 0:
+							_grid[dest.x][dest.y] = null
 			TokenData.SpecialType.FROG:
 				var result: Dictionary = SpecialEffects.move_frog(_grid, cell.x, cell.y, _cols, _rows, _holes)
 				var dest: Vector2i = result["dest"] as Vector2i
 				if dest != cell:
 					total_score += result["score"] as int
-					token.countdown -= 1
-					if token.countdown <= 0:
-						_grid[dest.x][dest.y] = null
+					if not never_expire:
+						token.countdown -= 1
+						if token.countdown <= 0:
+							_grid[dest.x][dest.y] = null
 			TokenData.SpecialType.LIANE:
 				if token.countdown < 0:
 					continue  # segment de corps, pas la tete : rien a piloter ici
 				total_score += SpecialEffects.grow_liane(_grid, cell.x, cell.y, _cols, _rows, _holes)
-				token.countdown -= 1
-				if token.countdown <= 0:
-					SpecialEffects.wither_liane(_grid, cell.x, cell.y, _cols)
+				if not never_expire:
+					token.countdown -= 1
+					if token.countdown <= 0:
+						SpecialEffects.wither_liane(_grid, cell.x, cell.y, _cols)
 			TokenData.SpecialType.CROW:
 				if token.countdown > 0:
 					token.countdown -= 1
@@ -288,7 +311,7 @@ func tick_mobile_specials() -> int:
 					SpecialEffects.steal_row_token(_grid, cell.x, cell.y, _cols, _rows, _holes)
 					_grid[cell.x][cell.y] = null
 			TokenData.SpecialType.UNDERGROUND:
-				SpecialEffects.dig_underground(_grid, cell.x, cell.y, _rows, _holes)
+				SpecialEffects.dig_underground(_grid, cell.x, cell.y, _rows, _holes, never_expire)
 
 	if cells.size() > 0:
 		mobile_specials_ticked.emit()
@@ -309,6 +332,8 @@ func detonate_remaining_petards() -> int:
 	var total_score: int = 0
 	for cell in to_detonate:
 		total_score += _detonate_petard(cell)
+	if to_detonate.size() > 0:
+		petard_detonated.emit()
 	return total_score
 
 
@@ -375,6 +400,23 @@ func explode_residues() -> void:
 				positions.append(Vector2i(c, r))
 				_grid[c][r] = null
 	residues_exploded.emit(positions)
+
+
+## Legendaire "Souffle Obscur" : deuxieme vague du Dernier Souffle (voir
+## TurnController._trigger_second_wave) — les entity-skulls, seul obstacle
+## normalement permanent du jeu (ils survivent a explode_residues ci-dessus),
+## disparaissent a leur tour. Meme structure que explode_residues.
+func clear_entity_skulls() -> Array[Vector2i]:
+	var positions: Array[Vector2i] = []
+	for c in range(_cols):
+		for r in range(_rows):
+			if _grid[c][r] == null:
+				continue
+			if (_grid[c][r] as TokenData).kind == TokenData.Kind.ENTITY:
+				positions.append(Vector2i(c, r))
+				_grid[c][r] = null
+	entity_skulls_cleared.emit(positions)
+	return positions
 
 
 func get_grid() -> Array:

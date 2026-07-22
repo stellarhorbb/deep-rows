@@ -118,6 +118,13 @@ extends Resource
 @export var hold_locked: bool = false
 @export var figure_promotion_locked: bool = false
 
+# Legendaire "Dresseur Fou" (session 23) : vrai si equipe — les speciaux
+# mobiles (Cavalier/Frog/Liane/Underground) ne disparaissent plus jamais.
+# Simple flag reflete depuis RunManager.has_badge, pas un canal par source
+# (un seul badge peut porter cet effet). Lu par GridManager.tick_mobile_
+# specials, pas par le pipeline de scoring (CascadeResolver).
+@export var mobiles_never_expire: bool = false
+
 # Malus de boss FAMILLE TERNIE / PARTITION TERNIE (voir BossMalusManager),
 # deux axes symetriques de la meme formule value_sum * multi :
 # - score_capped_family (TokenData.Family, -1 = aucune) : chaque jeton de

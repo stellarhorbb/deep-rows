@@ -265,6 +265,7 @@ func build_context() -> RunContext:
 	ctx.figure_promotion_locked = _figure_promotion_locked
 	ctx.score_capped_family = _score_capped_family
 	ctx.score_capped_sheet_name = _score_capped_sheet_name
+	ctx.mobiles_never_expire = has_badge(&"dresseur_fou")
 	_active_context = ctx
 	return ctx
 
@@ -317,6 +318,25 @@ func get_sheet_level(sheet_name: StringName) -> int:
 	if not _sheet_progress.has(sheet_name):
 		return 1
 	return (_sheet_progress[sheet_name] as Dictionary)["level"] as int
+
+
+## Legendaire "Virtuose" : pousse le cumul d'une Partition directement au
+## dernier seuil de GameRules.SHEET_LEVEL_THRESHOLDS (Maestro). Passe par le
+## CUMUL plutot que par le niveau directement — add_sheet_score recalcule
+## toujours le niveau depuis le cumul a chaque vrai score gagne, donc forcer
+## le niveau seul se ferait ecraser au prochain point marque. En poussant le
+## cumul au seuil max, le niveau recalcule reste naturellement au max pour
+## toujours (le cumul ne redescend jamais). No-op si deja au niveau max.
+func force_sheet_max_level(sheet_name: StringName) -> void:
+	var threshold: int = GameRules.SHEET_LEVEL_THRESHOLDS[GameRules.SHEET_LEVEL_THRESHOLDS.size() - 1]
+	var current_cumulative: int = get_sheet_cumulative_score(sheet_name)
+	if current_cumulative >= threshold:
+		return
+	var progress: Dictionary = (_sheet_progress.get(sheet_name, {"cumulative": 0, "level": 1}) as Dictionary).duplicate()
+	progress["cumulative"] = threshold
+	progress["level"] = GameRules.compute_sheet_level(threshold)
+	_sheet_progress[sheet_name] = progress
+	sheet_progress_changed.emit(sheet_name)
 
 
 func _is_legendary_sheet(sheet_name: StringName) -> bool:

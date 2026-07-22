@@ -296,7 +296,12 @@ static func steal_row_token(grid: Array, crow_col: int, crow_row: int, cols: int
 ## visible un tour (un vrai "atterrissage"), puis disparait au tick suivant
 ## ("disparait apres avoir touche le bas") — gere sa propre suppression,
 ## contrairement aux autres mobiles.
-static func dig_underground(grid: Array, col: int, row: int, rows: int, holes: Dictionary = {}) -> void:
+## `never_expire` (Legendaire "Dresseur Fou", session 23) : au fond, reste en
+## place indefiniment au lieu de disparaitre — devient un obstacle inerte
+## permanent plutot qu'un vrai mobile eternel (Underground n'a pas de
+## countdown a geler comme les autres, sa fin est positionnelle, pas un
+## compteur — voir GridManager.tick_mobile_specials).
+static func dig_underground(grid: Array, col: int, row: int, rows: int, holes: Dictionary = {}, never_expire: bool = false) -> void:
 	var usable_rows: Array[int] = []
 	for r in range(rows):
 		if not holes.has(Vector2i(col, r)):
@@ -305,7 +310,8 @@ static func dig_underground(grid: Array, col: int, row: int, rows: int, holes: D
 	if index <= 0:
 		# Deja au fond utile depuis le tick precedent (il y a "atterri" et y
 		# est reste visible un tour, voir doc plus haut) : disparait maintenant.
-		grid[col][row] = null
+		if not never_expire:
+			grid[col][row] = null
 		return
 
 	var below_row: int = usable_rows[index - 1]
