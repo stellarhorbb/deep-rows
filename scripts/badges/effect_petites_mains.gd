@@ -5,7 +5,7 @@
 extends BadgeEffect
 
 const BONUS_VALUE: int = 1
-const BONUS_PER_TOKEN: float = 0.25
+const BONUS_PER_TOKEN: float = 0.1
 
 
 func apply(_event: Dictionary, run_manager: RunManager) -> void:

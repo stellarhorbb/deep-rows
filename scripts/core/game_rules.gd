@@ -221,15 +221,30 @@ const ROYAL_SQUARE_ROLL_MAX: int = 12
 const LAST_TRICK_VALUE: int = 9
 const LAST_TRICK_TRIGGER_CHANCE: float = 0.25
 
-## Poids de tirage par rarete au shop (unitaires + packs, Badges et Des a
-## coudre uniquement — Speciaux, Boutons et Partitions n'ont pas de champ
-## rarity, tires uniformement). Index = valeur de l'enum Rarity. BadgeData.
-## Rarity ajoute LEGENDARY (4, session 17) pour une poignee de Badges tres
-## puissants debloques au Shore. Partitions retirees du systeme en session 19
-## (voir Decisions tranchees) : gater par rarete la mecanique de resolution
-## elle-meme allait a l'encontre du principe "pas de RNG punitif", contrairement
-## aux Badges qui restent un bonus optionnel. Voir ShopManager._weighted_pick.
+## Poids de tirage par rarete au shop (unitaires + packs), par item — plus il
+## y a d'items dans un palier, plus ce palier occupe de place au total. Utilise
+## par DeckToolData et SpecialItem (rarete ajoutee en session 23) via
+## ShopManager._weighted_pick. Les Badges n'utilisent PLUS ce systeme depuis la
+## session 23 (voir BADGE_RARITY_RATES ci-dessous) — Boutons et Partitions
+## n'ont toujours pas de champ rarity, tires uniformement (Partitions retirees
+## du systeme en session 19, voir Decisions tranchees : gater par rarete la
+## mecanique de resolution elle-meme allait a l'encontre du principe "pas de
+## RNG punitif", contrairement aux Badges/Speciaux/Des a coudre qui restent un
+## bonus optionnel).
 const RARITY_WEIGHTS: Array[float] = [10.0, 5.0, 2.0, 1.0, 0.1]
+
+## Taux de tirage FIXE par palier pour les Badges (session 23, inspire de
+## Balatro) — contrairement a RARITY_WEIGHTS ci-dessus, ce n'est PAS un poids
+## par item : chaque palier a une probabilite constante, peu importe combien
+## de Badges y vivent. Ajouter un Badge Epic ne rend donc pas le palier Epic
+## plus frequent, juste chaque Epic individuel un peu plus rare a l'interieur
+## d'un palier dont la frequence globale ne bouge pas. Somme = 1.0. Si un
+## palier n'a aucun Badge disponible (tous equipes, ou vide), il est retire du
+## tirage et les autres se renormalisent automatiquement (voir ShopManager.
+## _draw_badge_queued) — meme principe que le "resample" de Balatro.
+## Legendary a 1% assume un seul Badge dedans pour l'instant (Poker Face) —
+## a se sentir plus "chasse variee" une fois d'autres Badges Legendary ajoutes.
+const BADGE_RARITY_RATES: Array[float] = [0.50, 0.30, 0.13, 0.06, 0.01]
 
 ## Couleurs et noms par rarete, pour le badge colore affiche dans les tooltips
 ## (voir RarityTooltip). Meme indexation que RARITY_WEIGHTS.
@@ -356,7 +371,13 @@ const REROLL_INCREMENT: int = 1
 
 # Level up des Partitions — regles generiques, identiques pour toutes.
 # Seuils de score cumule pour passer au niveau suivant (1->2, 2->3, 3->4, 4->5).
-const SHEET_LEVEL_THRESHOLDS: Array[int] = [150, 500, 1100, 2200]
+## Retunes session 23 (etaient [150, 500, 1100, 2200], session 15) : calibres
+## sur la somme cumulee de ROUND_TARGETS aux 4 manches boss (5/10/15/20), pour
+## que Maestro tombe naturellement au dernier boss plutot qu'a mi-run (donnee
+## de playtest session 22/23 : Maestro atteint des la manche 11-13/20 avec
+## l'ancien seuil, meme sans spam extreme). Arrondis a des valeurs faciles a
+## memoriser plutot que les sommes exactes (435/1585/4825/14825).
+const SHEET_LEVEL_THRESHOLDS: Array[int] = [400, 1500, 4000, 12000]
 # Multiplicateur applique au score selon le niveau (index 0 = niveau 1).
 const SHEET_LEVEL_MULTIPLIERS: Array[float] = [1.0, 1.25, 1.5, 1.75, 2.0]
 const SHEET_LEVEL_NAMES: Array[String] = ["Pianissimo", "Piano", "Forte", "Fortissimo", "Maestro"]

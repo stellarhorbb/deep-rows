@@ -1,9 +1,10 @@
-## Badge "Escalade musicale" : chaque level up de Partition cumule +0.1 au
+## Badge "Escalade musicale" : chaque level up de Partition cumule +0.25 au
 ## facteur de scaling permanent (jamais remis à zéro, actif sur toute la run).
+## Retravaillé de +0.5 à +0.25 en session 23 après playtest (jugé trop fort).
 ## Trigger : on_level_up
 extends BadgeEffect
 
-const BONUS_PER_LEVEL_UP: float = 0.5
+const BONUS_PER_LEVEL_UP: float = 0.25
 const STATE_KEY: StringName = &"escalade_musicale_level_ups"
 
 

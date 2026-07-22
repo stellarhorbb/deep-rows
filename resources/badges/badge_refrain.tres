@@ -1,14 +1,14 @@
-[gd_resource type="Resource" script_class="BadgeData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BadgeData" format=3 uid="uid://cwarkcsw1epfl"]
 
-[ext_resource type="Script" path="res://scripts/data/badge_data.gd" id="1_data"]
-[ext_resource type="Script" path="res://scripts/badges/effect_refrain.gd" id="2_effect"]
+[ext_resource type="Script" uid="uid://ct80ym651ovo7" path="res://scripts/data/badge_data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://ci6rrpam4aw2b" path="res://scripts/badges/effect_refrain.gd" id="2_effect"]
 
 [resource]
 script = ExtResource("1_data")
 id = &"refrain"
 label = "REFRAIN"
-description = "Chaque fois qu'une Partition score, cumule +0.1 à son propre multi"
-trigger = &"on_turn_resolved"
+description = "Chaque fois qu'une Partition score, cumule +1 point (compté par Sheet)"
 price = 6
 rarity = 2
+trigger = &"on_turn_resolved"
 effect_script = ExtResource("2_effect")

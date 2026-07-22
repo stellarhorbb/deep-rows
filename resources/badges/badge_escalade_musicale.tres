@@ -7,7 +7,7 @@
 script = ExtResource("1_data")
 id = &"escalade_musicale"
 label = "ESCALADE MUSICALE"
-description = "Chaque level up de Partition cumule +0.5 au multi, cumulé sur toute la run"
+description = "Chaque level up de Partition cumule +0.25 au multi, cumulé sur toute la run"
 price = 8
 rarity = 3
 trigger = &"on_level_up"

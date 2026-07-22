@@ -1,10 +1,11 @@
 ## Badge "Gourmand" : chaque jeton ajouté au deck (achat au shop ou scission)
-## cumule +5 points, appliqués à toutes les résolutions suivantes (scaling
-## permanent, jamais remis à zéro sur la run).
+## cumule +2 points, appliqués à toutes les résolutions suivantes (scaling
+## permanent, jamais remis à zéro sur la run). Retravaillé de +5 à +2 en
+## session 23 après playtest (jugé trop fort).
 ## Trigger : on_deck_grown
 extends BadgeEffect
 
-const BONUS_PER_TOKEN: int = 5
+const BONUS_PER_TOKEN: int = 2
 const STATE_KEY: StringName = &"gourmand_tokens_added"
 
 
