@@ -1,4 +1,4 @@
-# Session 23 — File d'apparition du shop, taux Legendary fixe + 4 nouveaux Badges, recalibrage Maestro, hover sur les jetons
+# Session 23 — File d'apparition du shop, taux Legendary fixe + 4 nouveaux Badges, recalibrage Maestro, hover sur les jetons, réflexion Shore/fin de jeu
 
 **Date** : 2026-07-22
 **Thème** : Session longue en plusieurs vagues, partie balance (nettoyage post-session 22, Maestro recalibré) puis gros chantier shop (file d'apparition façon Balatro, taux Legendary fixe, 4 nouveaux Badges Legendary co-brainstormés) puis une fonctionnalité UI (hover sur les jetons) qui a exposé trois bugs distincts en cascade, dont un vrai blocage de tour.
@@ -64,6 +64,14 @@ Fonctionnalité demandée après la découverte que les valeurs des jetons ne s'
 ## Note process
 
 Session à très gros volume, avec un vrai fil rouge économie/rareté (Balatro comme référence structurante plutôt que juste esthétique) puis une fonctionnalité UI qui a demandé un vrai travail de diagnostic en aller-retour avec le user (trois bugs indépendants découverts un par un, dont un blocage de tour qui aurait pu passer inaperçu longtemps sans le hover pour le révéler). Bon exemple où une fonctionnalité "cosmétique" en apparence a servi de test d'intégration involontaire pour un changement plus profond (la résolution en deux temps).
+
+## Discussion Shore / fin de jeu (courte session Q/A, même jour)
+
+Pas de code touché — pure réflexion de design en réponse à la question ouverte du 22/07 sur la forme du Shore.
+
+- **Forme du Shore tranchée** : trois modèles comparés (Balatro/achievements, Sol Cresta/hub-économie avec banking actif des mouches, Hades/narratif). Sol Cresta écarté — coût jugé trop lourd en dev solo (UI de banking, balance numérique à persister, catalogue de prix à équilibrer en plus du shop in-run) — et repositionné comme piste **post-launch/DLC** si le jeu a de la traction, pas abandonné sur le fond. Retenu : unlocks conditionnels (flags + conditions, starters/Partitions/Badges/Spéciaux), confirme la direction déjà posée le 19/07.
+- **Condition de "fin du jeu" discutée** : constat que finir la descente (manche 20) prend 1-2h, normal pour le genre mais insuffisant en soi pour donner du poids à "avoir fini le jeu". Un vrai true ending façon Hades (paliers narratifs, plusieurs états de fin) écarté — contredit le scope "quelques flags" déjà posé dans `boucle-narrative.md` et le pilier **Ambivalence** (`univers/pitch.md`, pas de résolution complète). Retenu à la place : le *genre* de mécanique façon Cult of the Lamb — accumuler des conditions remplies à travers plusieurs runs pour débloquer une scène finale courte et ambiguë. La condition précise reste ouverte ("gagner avec chaque pack de démarrage" n'était qu'un exemple illustratif, pas la mécanique figée).
+- **Rien écrit dans le GDD pour l'instant** — discussion restée à l'oral, `questions-ouvertes.md` pas encore mis à jour ; à faire dans une prochaine session si le sujet redevient prioritaire.
 
 ## Liens
 
