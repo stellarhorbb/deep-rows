@@ -27,6 +27,7 @@ Le moment de vérité. Se déclenche **toujours** quand le [deck](deck.md) est v
 - Placement des rocks devient stratégique — bien placés, leur explosion libère des cascades
 - Les cascades surprises créent des moments mémorables
 - **Coup de pouce**, pas une stratégie principale — tu peux le provoquer mais tu ne le contrôles pas
+- **Double Partition sans chevauchement (session 23)** — l'explosion touche plusieurs colonnes à la fois (contrairement à un coup normal, limité à une seule), donc c'est le seul moment du jeu où deux figures totalement séparées peuvent scorer dans la même passe de résolution. Comptent comme [Double Partition](../partitions/catalogue-implemente.md#chevauchement-de-figures--double-partition-session-13-révisé-session-15) au même titre qu'un chevauchement délibéré — aucune règle spéciale ajoutée, conséquence mécanique de la règle générale
 
 ## Badges liés
 

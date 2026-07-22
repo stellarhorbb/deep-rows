@@ -28,6 +28,16 @@ static func find_lines(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
 					if token == null or not token.is_scorable():
 						continue
 
+					# Le jeton de depart doit lui-meme qualifier pour minima/maxima —
+					# sinon la marche en avant (ci-dessous) ne verifie le seuil que sur
+					# les jetons ajoutes APRES lui (nxt), jamais sur le premier. Bug
+					# corrige en session 23 : un 3 en tete de sequence, suivi de vrais
+					# jetons <= MINIMA_MAX_VALUE, se faisait inclure dans le match.
+					if rule == &"minima" and token.value > GameRules.MINIMA_MAX_VALUE:
+						continue
+					if rule == &"maxima" and token.value < GameRules.MAXIMA_MIN_VALUE:
+						continue
+
 					# Dedup : sauter si le predecesseur sur le meme axe prolonge deja
 					# cette sequence (la ligne sera trouvee depuis son vrai debut).
 					# Exclu pour "suite" (session 18, fix bug) : une suite peut changer

@@ -403,10 +403,12 @@ func _animate_match(event: Dictionary) -> void:
 			await resolution_banner.play_breakdown(breakdown, group_score, badges_ui)
 			group_score_revealed.emit(group_score)
 
-		# "Double Partition" : deux figures distinctes ont matche sur le meme
-		# placement sans que l'une contienne l'autre (voir CascadeResolver).
-		# Revele apres le detail des groupes, comme un bonus qui recompense le
-		# coup delibere plutot que noye dans les MULTI individuels.
+		# "Double Partition" : deux figures distinctes ont matche dans la meme
+		# passe de resolution sans que l'une contienne l'autre (voir
+		# CascadeResolver) — que ce soit un chevauchement delibere (coup
+		# normal) ou deux figures separees revelees par l'explosion du
+		# Dernier Souffle (session 23). Revele apres le detail des groupes,
+		# comme un bonus plutot que noye dans les MULTI individuels.
 		var combo_bonus: int = event.get("combo_bonus", 0) as int
 		if combo_bonus > 0:
 			await resolution_banner.play_combo_announcement(GameRules.PATTERN_COMBO_MULTIPLIER)

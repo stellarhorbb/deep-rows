@@ -41,16 +41,27 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 						group["family"] = first_token.family
 			group["score"] = _score_group(group, grid, cascade_level, context)
 
-		# Deux formes differentes peuvent matcher un cluster qui se chevauche.
-		# On trie par score decroissant, puis pour chaque candidat on compare
-		# son ensemble de cellules a celui de chaque groupe deja retenu :
+		# Deux formes differentes peuvent matcher dans la meme passe de
+		# resolution. On trie par score decroissant, puis pour chaque candidat
+		# on compare son ensemble de cellules a celui de chaque groupe deja
+		# retenu :
 		# - inclusion totale dans un sens ou l'autre (ex: T contenu dans Plus,
 		#   memes jetons) -> simple doublon, on ne garde que le mieux paye
 		#   (deja garanti par le tri decroissant) ;
-		# - chevauchement partiel (au moins 1 cellule commune, aucune inclusion
-		#   totale, ex: Square Rainbow + Brelan qui convergent sur le jeton
-		#   qu'on vient de poser) -> "Double Partition" delibere, les deux
-		#   scorent et leur total combine est multiplie par PATTERN_COMBO_MULTIPLIER.
+		# - sinon (chevauchement partiel, ex: Square Rainbow + Brelan qui
+		#   convergent sur le jeton qu'on vient de poser — OU zero chevauchement
+		#   du tout, deux figures separees qui scorent dans la meme passe) ->
+		#   "Double Partition", les deux scorent et leur total combine est
+		#   multiplie par PATTERN_COMBO_MULTIPLIER. Le cas "zero chevauchement"
+		#   ne peut arriver que pendant le Dernier Souffle (session 23) : un
+		#   coup normal ne modifie qu'une seule colonne, impossible de completer
+		#   deux figures non-adjacentes a la fois — l'explosion multi-colonnes
+		#   du Dernier Souffle est la seule a pouvoir reveler ce cas, sans
+		#   qu'aucun code specifique au Dernier Souffle soit necessaire ici.
+		#   Le bonus scale naturellement avec le nombre de figures simultanees :
+		#   chaque nouveau groupe accepte combo avec TOUS les groupes deja
+		#   retenus (pas seulement ceux qu'il chevauche), donc N figures dans
+		#   la meme passe paient N x la somme de leurs scores individuels.
 		candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 			return (a["score"] as int) > (b["score"] as int)
 		)
@@ -76,8 +87,6 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 				for cell in cell_set:
 					if other_set.has(cell):
 						overlap += 1
-				if overlap == 0:
-					continue
 				if overlap == cell_set.size() or overlap == other_set.size():
 					contained = true
 					break
