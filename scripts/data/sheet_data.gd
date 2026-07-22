@@ -22,8 +22,9 @@ extends Resource
 ## Pas de champ rarity (session 19) : contrairement aux Badges (bonus optionnel,
 ## rarete = puissance), les Partitions sont la mecanique de resolution elle-meme
 ## — les gater par rarete privait le joueur d'une partie du jeu plutot que d'un
-## bonus, a l'encontre du principe "pas de RNG punitif". Tirees uniformement,
-## voir ShopManager._draw_unitaire/open_pack.
+## bonus, a l'encontre du principe "pas de RNG punitif". Tirees via une file
+## d'apparition uniforme (sans ponderation, contrairement aux Badges) depuis la
+## session 23 — voir ShopManager._draw_sheet_candidate/_next_sheet_in_queue.
 @export var label: String = ""
 @export var price: int = 0
 

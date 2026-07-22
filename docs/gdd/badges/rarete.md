@@ -2,15 +2,17 @@
 
 Échelle qui dicte la fréquence d'apparition au shop et la puissance relative.
 
-| Rareté | Fréquence au shop | Puissance |
+| Rareté | Taux fixe au shop (session 23) | Puissance |
 |---|---|---|
-| Common | Fréquent | Boost simple, un seul axe |
-| Uncommon | Régulier | Boost significatif ou multi-axe |
-| Rare | Peu fréquent | Changement de règle ou synergie forte |
-| Epic | Très rare | Build-defining, transforme la stratégie |
-| Legendary (session 17) | Quasi jamais au tirage naturel | Extrêmement puissant, débloqué via le Shore + tirage shop infime |
+| Common | 50% | Boost simple, un seul axe |
+| Uncommon | 30% | Boost significatif ou multi-axe |
+| Rare | 13% | Changement de règle ou synergie forte |
+| Epic | 6% | Build-defining, transforme la stratégie |
+| Legendary (session 17) | 1% | Extrêmement puissant, débloqué via le Shore + tirage shop rare |
 
 Portée par le champ `rarity: Rarity` dans `BadgeData`.
+
+**Taux fixe par palier, pas par item (session 23)** — `GameRules.BADGE_RARITY_RATES` remplace l'ancien système par poids (`RARITY_WEIGHTS`, toujours utilisé par Spéciaux/Dés à coudre). La différence : avant, ajouter des Badges à un palier rendait ce palier plus fréquent (poids = taux unitaire × nombre de Badges dedans) ; maintenant chaque palier a une probabilité constante peu importe combien de Badges y vivent — ajouter un Epic ne change pas la fréquence du palier Epic, juste la variété dedans (inspiré de Balatro, voir [Génération de l'offre](../shop/generation-offre.md)). Les tirages passent aussi par une [file d'apparition](../shop/generation-offre.md) : un Badge vu-et-refusé ne repasse pas avant d'avoir fait le tour du même palier.
 
 ## Design intent
 
@@ -18,11 +20,11 @@ Portée par le champ `rarity: Rarity` dans `BadgeData`.
 - **Uncommon** — le gros du pool, Badges qui valent l'achat.
 - **Rare** — le moment "ah celui-là il est cool, je le prends direct". Change comment tu joues.
 - **Epic** — build-defining. Tu redessines ton build autour.
-- **Legendary** — 5 à 10 Badges au catalogue complet (pas encore tous écrits), volontairement démesurés. Débloqués principalement via des conditions spéciales au [Shore](../shore/unlocks.md), avec une chance de tirage naturel au shop quasi nulle (`GameRules.RARITY_WEIGHTS`, 0.1 contre 10 pour Common). Premier exemple : Poker Face.
+- **Legendary** — 5 à 10 Badges au catalogue complet visé, volontairement démesurés. Débloqués principalement via des conditions spéciales au [Shore](../shore/unlocks.md), avec 1% de chance de tirage naturel au shop (`GameRules.BADGE_RARITY_RATES`). **5 écrits en session 23** : Poker Face (10% de chance qu'un jeton qui score gagne +1 de valeur), Sacre (+1.0 multi par figure dans un groupe qui score), Virtuose (les Partitions équipées démarrent au niveau Maestro), Dresseur Fou (les spéciaux mobiles ne disparaissent plus jamais) et Souffle Obscur (deuxième vague au Dernier Souffle, les entity-skulls disparaissent aussi) — chacun capstone d'un pilier du jeu déjà entamé par des Badges de rareté inférieure (figures : Couronne/Diadème ; boss : Rescapé, écarté ; obstacles permanents : unique en son genre), plutôt qu'un système inédit. Tous à 8 mouches, aligné sur les Epic — la rareté du tirage (1%) fait déjà le travail de rendre ça spécial, pas besoin d'un prix gonflé en plus.
 
 ## Pool et génération
 
-Le [shop](../shop/offre-mixte.md) pondère la génération par rareté. Les Badges Epic sont principalement débloqués au [Shore](../shore/unlocks.md). Legendary encore plus rare, voir ci-dessus.
+Le [shop](../shop/offre-mixte.md) tire les Badges par rareté à taux fixe, via une file d'apparition (voir ci-dessus et [Génération de l'offre](../shop/generation-offre.md)). Les Badges Epic sont aussi principalement débloqués au [Shore](../shore/unlocks.md).
 
 ## Liens
 

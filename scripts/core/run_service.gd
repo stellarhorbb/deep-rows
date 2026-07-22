@@ -48,6 +48,7 @@ func ensure_run_started() -> void:
 func start_new_run() -> void:
 	run_manager.init_run()
 	boss_malus_manager.reset_run()
+	shop_manager.reset_run()
 	current_round = 1
 	game_flow = GameFlow.PLAYING
 	_run_initialized = true

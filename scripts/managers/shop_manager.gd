@@ -15,7 +15,6 @@ signal button_purchased(token: TokenData)
 ## square_number.tres reste hors catalogue : l'axe chiffre (session 14) est
 ## volontairement confine a la Ligne, jamais au Carre (voir axes-de-regles.md).
 const SHEET_PATHS: Array[String] = [
-	"res://resources/sheets/line_family_3.tres",
 	"res://resources/sheets/square_family.tres",
 	# "res://resources/sheets/square_number.tres",
 	"res://resources/sheets/diamond_rock.tres",
@@ -117,6 +116,10 @@ const BADGE_PATHS: Array[String] = [
 	"res://resources/badges/badge_petit_point.tres",
 	"res://resources/badges/badge_refrain.tres",
 	"res://resources/badges/badge_artificier.tres",
+	"res://resources/badges/badge_sacre.tres",
+	"res://resources/badges/badge_virtuose.tres",
+	"res://resources/badges/badge_dresseur_fou.tres",
+	"res://resources/badges/badge_souffle_obscur.tres",
 ]
 
 ## Outils de deck achetables (DeckToolData) — voir docs/brainstorms/brainstorm-outils-deck.md.
@@ -151,6 +154,26 @@ var _all_specials: Array[SpecialItem] = []
 var _all_badges: Array[BadgeData] = []
 var _all_deck_tools: Array[DeckToolData] = []
 
+## File d'apparition des Badges, une par palier de rarete (session 23,
+## inspire de Balatro — voir docs/gdd/badges/badges-implementes.md). Contrairement
+## a un tirage independant avec remise, un Badge vu-et-refuse ne peut pas
+## repasser avant d'avoir fait le tour complet des autres du meme palier.
+## int (BadgeData.Rarity) -> Array[BadgeData], melangee ; le pointeur associe
+## avance a chaque tirage et ne revient jamais en arriere (sauf remelange une
+## fois la file epuisee). Reconstruite a chaque nouvelle run (voir reset_run,
+## appele par RunService.start_new_run) — jamais entre deux visites du shop.
+var _badge_queues: Dictionary = {}
+var _badge_queue_pos: Dictionary = {}
+
+## Meme principe pour les Partitions (session 23) — sans palier de rarete
+## (les Partitions n'en ont pas, decision session 19), donc une seule cle
+## &"generic" pour le pool normal, une autre &"legendary" pour le petit pool
+## a part (voir LEGENDARY_SHEET_PATHS/_draw_sheet_candidate). Les Partitions
+## verrouillees n'entrent jamais dans la file consommee (voir _available_
+## sheets) — filtrees a chaque tirage exactement comme les equipees.
+var _sheet_queues: Dictionary = {}
+var _sheet_queue_pos: Dictionary = {}
+
 ## Deux rangees separees. Formats possibles pour un slot (Dictionary) :
 ##   {"format": "unitaire", "category": String, "item": Resource|TokenData}
 ##   {"format": "pack", "category": String, "size": int, "price": int}
@@ -161,6 +184,17 @@ var _unitaire_slots: Array[Dictionary] = []
 
 func _ready() -> void:
 	_load_pools()
+
+
+## A appeler par RunService.start_new_run() : repart sur des files de Badges
+## fraiches (melangees, pointeur a 0) pour la nouvelle run. Sans ca, l'ordre
+## de la run precedente continuerait a avancer d'une run a l'autre (le meme
+## ShopManager persiste pour toute la session de jeu, voir RunService).
+func reset_run() -> void:
+	_badge_queues.clear()
+	_badge_queue_pos.clear()
+	_sheet_queues.clear()
+	_sheet_queue_pos.clear()
 
 
 func _load_pools() -> void:
@@ -260,19 +294,22 @@ func _draw_unitaire(category: String, run_manager: RunManager) -> Variant:
 		"sheet":
 			return _draw_sheet_candidate(run_manager)
 		"badge":
-			var pool: Array[BadgeData] = _available_badges(run_manager)
-			return _weighted_pick(pool)
+			return _draw_badge_queued(run_manager)
 		"special":
-			return _all_specials[randi() % _all_specials.size()] if not _all_specials.is_empty() else null
+			return _weighted_pick(_all_specials)
 		"button":
 			return _random_button()
 	return null
 
 
-## Tirage pondere par rarete (GameRules.RARITY_WEIGHTS). Marche sur n'importe
-## quel pool de Resource exposant un champ "rarity" (BadgeData, DeckToolData) —
-## Speciaux, Boutons et Partitions n'en ont pas, ils restent tires uniformement
-## ailleurs (session 19 pour les Partitions, voir SheetData).
+## Tirage independant pondere par rarete (GameRules.RARITY_WEIGHTS), avec
+## remise — un item vu-et-refuse peut ressortir au tirage suivant. Utilise
+## pour DeckToolData et SpecialItem, choix delibere (session 23) : on aime
+## parfois retomber sur le meme Special/Dé à coudre selon le besoin du moment,
+## contrairement aux Badges qui ont une vraie file d'apparition (voir
+## _draw_badge_queued). Boutons et Partitions n'ont pas de rarete du tout, ils
+## restent tires uniformement ailleurs (session 19 pour les Partitions, voir
+## SheetData).
 static func _weighted_pick(pool: Array) -> Variant:
 	if pool.is_empty():
 		return null
@@ -353,22 +390,131 @@ func _available_legendary_sheets(run_manager: RunManager) -> Array[SheetData]:
 ## Un slot "sheet" (unitaire ou candidat de pack) a une petite chance
 ## independante de piocher dans le pool legendaire plutot que le pool normal
 ## uniforme — voir GameRules.LEGENDARY_SHEET_CHANCE et SheetData.is_legendary.
+## Chaque cote (generic/legendary) tire via sa propre file (session 23, voir
+## _sheet_queues) plutot qu'un tirage independant.
 func _draw_sheet_candidate(run_manager: RunManager) -> SheetData:
 	if randf() < GameRules.LEGENDARY_SHEET_CHANCE:
 		var legendary_pool: Array[SheetData] = _available_legendary_sheets(run_manager)
 		if not legendary_pool.is_empty():
-			return legendary_pool[randi() % legendary_pool.size()]
+			return _next_sheet_in_queue(&"legendary", _all_legendary_sheets, legendary_pool)
 	var pool: Array[SheetData] = _available_sheets(run_manager)
-	return pool[randi() % pool.size()] if not pool.is_empty() else null
+	return _next_sheet_in_queue(&"generic", _all_sheets, pool)
 
 
-func _available_badges(run_manager: RunManager) -> Array[BadgeData]:
+## Meme principe que _next_badge_in_queue, generalise a une cle StringName
+## (&"generic"/&"legendary") plutot qu'un palier de rarete — les Partitions
+## n'ont qu'un seul pool chacune, pas de ponderation a faire en amont.
+func _next_sheet_in_queue(key: StringName, full_pool: Array[SheetData], available: Array[SheetData]) -> SheetData:
+	if available.is_empty():
+		return null
+	if not _sheet_queues.has(key) or (_sheet_queues[key] as Array).is_empty():
+		_reshuffle_sheet_queue(key, full_pool)
+
+	var queue: Array = _sheet_queues[key] as Array
+	var pos: int = _sheet_queue_pos.get(key, 0) as int
+	var scanned: int = 0
+	while scanned < queue.size() * 2:  # x2 : au pire un remelange en cours de route
+		if pos >= queue.size():
+			_reshuffle_sheet_queue(key, full_pool)
+			queue = _sheet_queues[key] as Array
+			pos = 0
+		var candidate: SheetData = queue[pos] as SheetData
+		pos += 1
+		scanned += 1
+		if available.has(candidate):
+			_sheet_queue_pos[key] = pos
+			return candidate
+
+	return available[0]
+
+
+func _reshuffle_sheet_queue(key: StringName, full_pool: Array[SheetData]) -> void:
+	var pool: Array[SheetData] = full_pool.duplicate()
+	pool.shuffle()
+	_sheet_queues[key] = pool
+	_sheet_queue_pos[key] = 0
+
+
+## Tirage par file d'apparition (session 23, voir _badge_queues) : choisit
+## d'abord un palier de rarete a TAUX FIXE (GameRules.BADGE_RARITY_RATES,
+## independant du nombre de Badges dans le palier — contrairement a
+## _weighted_pick/RARITY_WEIGHTS utilise par Speciaux/Des a coudre), puis
+## prend le prochain Badge de la file de ce palier plutot qu'un tirage
+## independant. Un palier sans aucun Badge disponible (tous equipes/exclus)
+## est absent de `tier_weights` et donc jamais tire — les autres se
+## renormalisent automatiquement via `total` (meme principe que le "resample"
+## de Balatro, sans code dedie). `exclude` sert au tirage multiple d'un pack
+## (voir open_pack) pour ne jamais montrer deux fois le meme Badge dans les
+## candidats d'un seul pack.
+func _draw_badge_queued(run_manager: RunManager, exclude: Array[BadgeData] = []) -> BadgeData:
+	var available_by_rarity: Dictionary = {}  # int -> Array[BadgeData]
 	var equipped: Array[BadgeData] = run_manager.get_equipped_badges()
+	for badge in _all_badges:
+		if equipped.has(badge) or exclude.has(badge):
+			continue
+		var r: int = int(badge.rarity)
+		if not available_by_rarity.has(r):
+			available_by_rarity[r] = [] as Array[BadgeData]
+		(available_by_rarity[r] as Array[BadgeData]).append(badge)
+
+	var tier_weights: Dictionary = {}  # int -> float
+	var total: float = 0.0
+	for r in available_by_rarity:
+		var w: float = GameRules.BADGE_RARITY_RATES[r]
+		tier_weights[r] = w
+		total += w
+	if total <= 0.0:
+		return null
+
+	var roll: float = randf() * total
+	var cumulative: float = 0.0
+	var chosen_rarity: int = -1
+	for r in tier_weights:
+		cumulative += tier_weights[r] as float
+		if roll < cumulative:
+			chosen_rarity = r
+			break
+	if chosen_rarity == -1:
+		chosen_rarity = (tier_weights.keys() as Array)[tier_weights.size() - 1]
+
+	return _next_badge_in_queue(chosen_rarity, available_by_rarity[chosen_rarity] as Array[BadgeData])
+
+
+## Avance dans la file du palier `rarity`, en sautant les Badges absents de
+## `available` (deja equipes ou deja pioches plus tot dans le meme pack) —
+## remelange la file quand elle est epuisee. `available` garantit toujours
+## au moins un candidat valide (le palier n'est choisi que s'il en a un, voir
+## _draw_badge_queued), donc la boucle finit toujours par en trouver un.
+func _next_badge_in_queue(rarity: int, available: Array[BadgeData]) -> BadgeData:
+	if not _badge_queues.has(rarity) or (_badge_queues[rarity] as Array).is_empty():
+		_reshuffle_badge_queue(rarity)
+
+	var queue: Array = _badge_queues[rarity] as Array
+	var pos: int = _badge_queue_pos.get(rarity, 0) as int
+	var scanned: int = 0
+	while scanned < queue.size() * 2:  # x2 : au pire un remelange en cours de route
+		if pos >= queue.size():
+			_reshuffle_badge_queue(rarity)
+			queue = _badge_queues[rarity] as Array
+			pos = 0
+		var candidate: BadgeData = queue[pos] as BadgeData
+		pos += 1
+		scanned += 1
+		if available.has(candidate):
+			_badge_queue_pos[rarity] = pos
+			return candidate
+
+	return available[0] if not available.is_empty() else null
+
+
+func _reshuffle_badge_queue(rarity: int) -> void:
 	var pool: Array[BadgeData] = []
 	for badge in _all_badges:
-		if not equipped.has(badge):
+		if int(badge.rarity) == rarity:
 			pool.append(badge)
-	return pool
+	pool.shuffle()
+	_badge_queues[rarity] = pool
+	_badge_queue_pos[rarity] = 0
 
 
 func _random_button() -> TokenData:
@@ -396,6 +542,16 @@ static func _weighted_button_value() -> int:
 		if roll < cumulative:
 			return GameRules.TOKEN_MIN_VALUE + i
 	return GameRules.TOKEN_MAX_VALUE
+
+
+## Retrouve la definition complete (label + description) d'un Special par son
+## type — utilise par le hover des jetons (StreamUI) pour reprendre le meme
+## texte que le shop plutot que de le dupliquer.
+func get_special_item(special_type: TokenData.SpecialType) -> SpecialItem:
+	for item in _all_specials:
+		if item.special_type == special_type:
+			return item
+	return null
 
 
 func get_pack_slots() -> Array[Dictionary]:
@@ -446,17 +602,20 @@ static func get_description(item: Variant) -> String:
 	return ""
 
 
-## Retourne la rarete d'un item, -1 si le type n'en a pas (Special, Bouton) —
+## Retourne la rarete d'un item, -1 si le type n'en a pas (Bouton) —
 ## RarityButton retombe alors sur le tooltip texte simple. Les Partitions
 ## normales restent aussi a -1 (tirage uniforme, session 19 : pas de gating
 ## par rarete) — seules les legendaires (SheetData.is_legendary) remontent en
 ## LEGENDARY, pour le badge colore/dopamine a la reveal (pack et shop),
 ## sans toucher au tirage lui-meme (LEGENDARY_SHEET_CHANCE inchange).
+## Speciaux : rarete reelle depuis la session 23 (SpecialItem.rarity).
 static func get_rarity(item: Variant) -> int:
 	if item is BadgeData:
 		return (item as BadgeData).rarity
 	if item is DeckToolData:
 		return (item as DeckToolData).rarity
+	if item is SpecialItem:
+		return (item as SpecialItem).rarity
 	if item is SheetData and (item as SheetData).is_legendary:
 		return BadgeData.Rarity.LEGENDARY
 	return -1
@@ -567,12 +726,16 @@ func open_pack(slot: Dictionary, run_manager: RunManager) -> Array:
 				candidates.append(candidate)
 			return candidates
 		"badge":
-			var pool: Array[BadgeData] = _available_badges(run_manager)
-			return _weighted_sample(pool, size)
+			var picked: Array[BadgeData] = []
+			for i in range(size):
+				var badge: BadgeData = _draw_badge_queued(run_manager, picked)
+				if badge == null:
+					break
+				picked.append(badge)
+			return picked
 		"special":
 			var pool: Array[SpecialItem] = _all_specials.duplicate()
-			pool.shuffle()
-			return pool.slice(0, min(size, pool.size()))
+			return _weighted_sample(pool, size)
 		"button":
 			var pool: Array[TokenData] = []
 			for i in range(size):
