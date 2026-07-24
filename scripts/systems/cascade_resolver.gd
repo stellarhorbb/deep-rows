@@ -25,6 +25,10 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 	var cascade_level: int = 0
 
 	while true:
+		if cascade_level >= GameRules.MAX_CASCADE_PASSES:
+			push_error("CascadeResolver: MAX_CASCADE_PASSES atteint, resolution interrompue (bug de boucle infinie ?)")
+			break
+
 		var candidates: Array[Dictionary] = SheetMatcher.find_all(grid, cols, rows, context)
 		if candidates.size() == 0:
 			break
@@ -362,7 +366,7 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		var sheet_mult: float = group.get("score_multiplier", 4.0) as float
 		if partition_targeted:
 			sheet_mult = 1.0
-		var raw_value: int = 0
+		var diamond_raw_value: int = 0
 		var scored_cells: Array = []
 
 		var rock_roll: int = -1
@@ -372,27 +376,27 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 			if center_token == null or not center_token.is_scorable():
 				return 0
 			rock_roll = randi_range(GameRules.DIAMOND_ROCK_ROLL_MIN, GameRules.DIAMOND_ROCK_ROLL_MAX)
-			raw_value = _effective_token_value(center_token, context) + rock_roll
+			diamond_raw_value = _effective_token_value(center_token, context) + rock_roll
 			scored_cells = [center]
 		else:
 			for cell in group["cells"]:
 				var token: TokenData = grid[cell.x][cell.y] as TokenData
 				if token != null and token.is_scorable():
-					raw_value += _effective_token_value(token, context)
+					diamond_raw_value += _effective_token_value(token, context)
 			scored_cells = group["cells"]
 
 		var diamond_grid_mult: float = _grid_modifier_multiplier(scored_cells, grid_modifiers)
 		var diamond_value_bonus_mult: float = _value_bonus_multiplier(scored_cells, grid, context)
 		var diamond_sum_bonus: Dictionary = _value_sum_bonus(group, scored_cells, grid, context)
-		var base_value: int = raw_value + (diamond_sum_bonus["amount"] as int)
+		var base_value: int = diamond_raw_value + (diamond_sum_bonus["amount"] as int)
 		group["upgrade_candidates"] = _roll_upgrades(scored_cells, grid, context) + _roll_face_promotions(scored_cells, grid, context)
 		group["scored_tokens"] = _snapshot_scored_tokens(scored_cells, grid)
 		var diamond_mult_contribs: Dictionary = _mult_contributions(scored_cells, grid, context, rule, sheet_name)
 		# cascade_mult exclu du breakdown affiche : la banniere de resolution
 		# lui dedie sa propre annonce (voir GridVisual._animate_match), pas
 		# noye dans le MULTI generique. Le score reel l'inclut toujours.
-		var diamond_base_mult: float = sheet_mult * diamond_grid_mult * level_mult
-		_attach_breakdown(group, context, raw_value, base_value, diamond_base_mult, diamond_sum_bonus["contributions"] as Dictionary, diamond_mult_contribs)
+		var diamond_base_mult: float = sheet_mult * level_mult
+		_attach_breakdown(group, context, diamond_raw_value, base_value, diamond_base_mult, diamond_grid_mult, diamond_sum_bonus["contributions"] as Dictionary, diamond_mult_contribs)
 		if rock_roll >= 0:
 			(group["score_breakdown"] as Dictionary)["roll"] = rock_roll
 			(group["score_breakdown"] as Dictionary)["roll_min"] = GameRules.DIAMOND_ROCK_ROLL_MIN
@@ -431,8 +435,8 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	var value_bonus_mult: float = _value_bonus_multiplier(group["cells"], grid, context)
 	var mult_contribs: Dictionary = _mult_contributions(group["cells"], grid, context, rule, sheet_name)
 	# cascade_mult exclu du breakdown affiche, meme raison que la branche diamond.
-	var base_mult: float = shape_mult * grid_mult * level_mult
-	_attach_breakdown(group, context, raw_value, value_sum, base_mult, sum_bonus["contributions"] as Dictionary, mult_contribs)
+	var base_mult: float = shape_mult * level_mult
+	_attach_breakdown(group, context, raw_value, value_sum, base_mult, grid_mult, sum_bonus["contributions"] as Dictionary, mult_contribs)
 	if legendary_roll >= 0:
 		(group["score_breakdown"] as Dictionary)["roll"] = legendary_roll
 		(group["score_breakdown"] as Dictionary)["roll_min"] = GameRules.ROYAL_SQUARE_ROLL_MIN
@@ -509,7 +513,7 @@ func _value_bonus_multiplier(cells: Array, grid: Array, context: RunContext) -> 
 ## - bonus rangee du haut : au moins une cellule de la derniere rangee de la
 ##   grille entiere (pas seulement le groupe) est occupee au moment du score
 ##   (ex: "Sommet").
-func _value_sum_bonus(group: Dictionary, cells: Array, grid: Array, context: RunContext) -> Dictionary:
+func _value_sum_bonus(_group: Dictionary, cells: Array, grid: Array, context: RunContext) -> Dictionary:
 	var amount: int = 0
 	var contributions: Dictionary = {}  # StringName source -> int (montant individuel du badge)
 
@@ -730,7 +734,7 @@ func _mult_contributions(cells: Array, grid: Array, context: RunContext, rule: S
 ## contributions par ordre d'equipement (context.equipped_badges) plutot que
 ## de les fondre — chaque entree {label, kind: "flat"|"mult", amount} est
 ## jouee individuellement par la banniere, dans l'ordre des slots.
-func _attach_breakdown(group: Dictionary, context: RunContext, raw_value: int, base_value: int, base_mult: float, flat_contributions: Dictionary, mult_contributions: Dictionary) -> void:
+func _attach_breakdown(group: Dictionary, context: RunContext, raw_value: int, base_value: int, base_mult: float, cell_mult: float, flat_contributions: Dictionary, mult_contributions: Dictionary) -> void:
 	var badge_steps: Array = []
 	for badge in context.equipped_badges:
 		var id: StringName = badge.id
@@ -744,6 +748,7 @@ func _attach_breakdown(group: Dictionary, context: RunContext, raw_value: int, b
 		"raw_value": raw_value,
 		"base_value": base_value,
 		"base_mult": base_mult,
+		"cell_mult": cell_mult,
 		"badge_steps": badge_steps,
 	}
 

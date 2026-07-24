@@ -82,11 +82,11 @@ static func family_label(f: Family) -> String:
 
 ## Affiche le nom de la figure (Valet/Chevalier/Reine/Roi) au lieu du chiffre
 ## brut pour les valeurs >= MAX_BUTTON_VALUE + 1, sinon le chiffre tel quel.
-static func value_label(value: int) -> String:
-	var idx: int = GameRules.FACE_CARD_VALUES.find(value)
+static func value_label(token_value: int) -> String:
+	var idx: int = GameRules.FACE_CARD_VALUES.find(token_value)
 	if idx >= 0:
 		return GameRules.FACE_CARD_LABELS[idx]
-	return str(value)
+	return str(token_value)
 
 
 static func special_type_label(t: SpecialType) -> String:

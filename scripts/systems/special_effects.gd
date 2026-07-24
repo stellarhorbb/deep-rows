@@ -233,7 +233,7 @@ static func move_frog(grid: Array, col: int, row: int, cols: int, rows: int, hol
 ## bloquee par le bord de la grille ou une case trouee — le minuteur continue
 ## quand meme de descendre cote appelant, voir GridManager.
 ## tick_mobile_specials).
-static func grow_liane(grid: Array, col: int, row: int, cols: int, rows: int, holes: Dictionary = {}) -> int:
+static func grow_liane(grid: Array, col: int, row: int, cols: int, _rows: int, holes: Dictionary = {}) -> int:
 	var tip_col: int = col
 	while tip_col + 1 < cols:
 		var next_token: TokenData = grid[tip_col + 1][row] as TokenData

@@ -8,7 +8,7 @@
 [ext_resource type="FontFile" uid="uid://dryqbsw3ute3w" path="res://assets/fonts/LondrinaSolid-Black.ttf" id="6_font_black"]
 [ext_resource type="Script" uid="uid://1w2ub5mjkgkt" path="res://scripts/ui/resolution_banner.gd" id="10_resolution_banner"]
 [ext_resource type="Script" uid="uid://dot2uvawoneoi" path="res://scripts/ui/you_win_ui.gd" id="11_you_win_ui"]
-[ext_resource type="Script" path="res://scripts/ui/grid_hover.gd" id="12_grid_hover"]
+[ext_resource type="Script" uid="uid://rp8q7g6v6nyh" path="res://scripts/ui/grid_hover.gd" id="12_grid_hover"]
 
 [node name="Game" type="Node2D" unique_id=1117591923]
 script = ExtResource("1_game")
@@ -93,14 +93,20 @@ mouse_filter = 1
 script = ExtResource("3_stream")
 
 [node name="ShakeButton" type="Button" parent="." unique_id=1000000400]
-layout_mode = 3
-anchors_preset = 0
 offset_left = 1320.0
 offset_top = 780.0
 offset_right = 1420.0
 offset_bottom = 830.0
 focus_mode = 0
 text = "SHAKE"
+
+[node name="DebugWinButton" type="Button" parent="." unique_id=1000000410]
+offset_left = 1320.0
+offset_top = 840.0
+offset_right = 1470.0
+offset_bottom = 880.0
+focus_mode = 0
+text = "DEBUG: +CIBLE"
 
 [node name="MessageDisplay" type="Label" parent="." unique_id=753821877]
 visible = false
@@ -117,9 +123,9 @@ script = ExtResource("4_message")
 [node name="ResolutionBanner" type="Label" parent="." unique_id=1000000200]
 visible = false
 offset_left = 600.0
-offset_top = 430.0
+offset_top = 380.0
 offset_right = 1266.0
-offset_bottom = 490.0
+offset_bottom = 680.0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_fonts/font = ExtResource("6_font_black")
 theme_override_font_sizes/font_size = 32
@@ -136,7 +142,7 @@ mouse_filter = 2
 color = Color(0.08, 0.08, 0.12, 0.85)
 
 [node name="Subtitle" type="Label" parent="ResolutionBanner" unique_id=1000000450]
-offset_left = 0.0
+layout_mode = 0
 offset_top = 60.0
 offset_right = 666.0
 offset_bottom = 96.0
@@ -145,6 +151,87 @@ theme_override_fonts/font = ExtResource("6_font_black")
 theme_override_font_sizes/font_size = 16
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="TitleLabel" type="Label" parent="ResolutionBanner" unique_id=1000000460]
+layout_mode = 0
+offset_top = 20.0
+offset_right = 666.0
+offset_bottom = 70.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TicketsCaption" type="Label" parent="ResolutionBanner" unique_id=1000000461]
+layout_mode = 0
+offset_left = 60.0
+offset_top = 110.0
+offset_right = 280.0
+offset_bottom = 140.0
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 18
+text = "TICKETS"
+horizontal_alignment = 1
+
+[node name="TicketsValue" type="Label" parent="ResolutionBanner" unique_id=1000000462]
+layout_mode = 0
+offset_left = 60.0
+offset_top = 138.0
+offset_right = 280.0
+offset_bottom = 210.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 48
+text = "0"
+horizontal_alignment = 1
+
+[node name="XLabel" type="Label" parent="ResolutionBanner" unique_id=1000000463]
+layout_mode = 0
+offset_left = 290.0
+offset_top = 150.0
+offset_right = 376.0
+offset_bottom = 210.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 36
+text = "X"
+horizontal_alignment = 1
+
+[node name="MultiCaption" type="Label" parent="ResolutionBanner" unique_id=1000000464]
+layout_mode = 0
+offset_left = 386.0
+offset_top = 110.0
+offset_right = 606.0
+offset_bottom = 140.0
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 18
+text = "MULTI"
+horizontal_alignment = 1
+
+[node name="MultiValue" type="Label" parent="ResolutionBanner" unique_id=1000000465]
+layout_mode = 0
+offset_left = 386.0
+offset_top = 138.0
+offset_right = 606.0
+offset_bottom = 210.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 48
+text = "1"
+horizontal_alignment = 1
+
+[node name="ResultValue" type="Label" parent="ResolutionBanner" unique_id=1000000466]
+layout_mode = 0
+offset_top = 120.0
+offset_right = 666.0
+offset_bottom = 210.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 64
+horizontal_alignment = 1
 
 [node name="YouWinUI" type="Control" parent="." unique_id=1000000300]
 visible = false

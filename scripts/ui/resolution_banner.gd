@@ -10,8 +10,8 @@
 class_name ResolutionBanner
 extends Label
 
-@export var step_duration: float = 0.45
-@export var result_pause_duration: float = 0.6
+@export var step_duration: float = 1.0
+@export var result_pause_duration: float = 1.0
 @export var result_font_size_boost: int = 20
 @export var value_color: Color = Color("e2b714")
 @export var mult_color: Color = Color("4ecdc4")
@@ -39,86 +39,120 @@ extends Label
 
 var _base_font_size: int = 0
 
+## Valeurs actuellement affichees dans le duo (avant l'etape en cours),
+## point de depart de chaque compte-a-rebours anime — voir _animate_tickets_to/
+## _animate_multi_to.
+var _tickets_shown: int = 0
+var _multi_shown: float = 1.0
+var _tickets_tween: Tween = null
+var _multi_tween: Tween = null
+
 ## Sous-titre en petit sous le texte principal — pour l'instant uniquement
 ## utilise par play_mystery_announcement (descriptif de l'effet). Cache par
 ## defaut, jamais touche par les autres annonces (cascade/combo/roll/
 ## breakdown) qui n'en ont pas besoin.
 @onready var subtitle: Label = $Subtitle
 
+## Duo Tickets/Multi (session 25) utilise uniquement par play_breakdown — les
+## autres annonces (cascade/combo/roll/mystere) restent sur le texte unique
+## de `self` (Label racine) via _show_step, inchange.
+@onready var title_label: Label = $TitleLabel
+@onready var tickets_caption: Label = $TicketsCaption
+@onready var tickets_value: Label = $TicketsValue
+@onready var x_label: Label = $XLabel
+@onready var multi_caption: Label = $MultiCaption
+@onready var multi_value: Label = $MultiValue
+@onready var result_value: Label = $ResultValue
+
 
 func _ready() -> void:
 	visible = false
 	subtitle.visible = false
+	_hide_breakdown_children()
 	_base_font_size = get_theme_font_size("font_size")
 	pivot_offset = size * 0.5
 
 
-## Joue la sequence pour un groupe resolu. badges_ui peut etre null (pas de
-## tilt dans ce cas). Rien ne bloque le score reel, deja calcule en amont —
-## cette fonction ne fait qu'afficher sa decomposition.
+## Joue la sequence pour un groupe resolu sur le duo Tickets/Multi, dans
+## l'ordre du calcul reel (session 25) : jetons + multi intrinseque de la
+## Partition affiches ensemble des le depart (forme x level up deja fondus,
+## pas de ligne "level up" separee) -> Badges un par un dans l'ordre des slots
+## (chacun modifie soit les tickets soit le multi, tilte le Badge concerne) ->
+## bascule sur un chiffre unique (deja le resultat final si rien ne suit) ->
+## multiplicateur externe (cellules de grille), qui devient le dernier temps
+## fort si present. badges_ui peut etre null (pas de tilt dans ce cas). Rien
+## ne bloque le score reel, deja calcule en amont — cette fonction ne fait
+## qu'afficher sa decomposition. Le multi de cascade reste hors de ce calcul,
+## affiche a part par play_cascade_announcement (voir GridVisual).
 func play_breakdown(breakdown: Dictionary, final_score: int, badges_ui: BadgesUI) -> void:
 	var label: String = breakdown.get("label", "") as String
 	var raw_value: int = breakdown.get("raw_value", 0) as int
 	var base_mult: float = breakdown.get("base_mult", 1.0) as float
+	var cell_mult: float = breakdown.get("cell_mult", 1.0) as float
 	var badge_steps: Array = breakdown.get("badge_steps", []) as Array
 
 	visible = true
+	text = ""
 	remove_theme_font_size_override("font_size")
+	_show_pair()
+	_tickets_shown = 0
+	_multi_shown = 1.0
+	tickets_value.text = "0"
+	multi_value.text = "1"
 
-	if label != "":
-		_show_step(label, result_color)
-		await get_tree().create_timer(step_duration).timeout
+	var tickets: int = raw_value
+	var multi: float = maxf(base_mult, 1.0)
+	_set_title(label if label != "" else "PARTITION", result_color)
 
-	# 1. Jetons bruts de la Partition — aucun Badge implique ici.
-	_show_step("%d TICKETS" % raw_value, value_color)
+	# 1a. Jetons bruts de la Partition — compte jusqu'a la valeur, pas un saut.
+	_animate_tickets_to(tickets)
 	await get_tree().create_timer(step_duration).timeout
 
-	# 2. Badges "points" (flat), dans l'ordre des slots — juste apres les
-	# jetons bruts, avant tout multi (retour de playtest : ils doivent
-	# apparaitre comme faisant partie de la meme "somme" que les jetons,
-	# pas melanges avec les multis qui suivent).
+	# 1b. Multi intrinseque (forme x level up, deja fondus — pas de ligne
+	# "level up" separee).
+	_animate_multi_to(multi)
+	await get_tree().create_timer(step_duration).timeout
+
+	# 2. Badges, un par un, dans l'ordre des slots — chacun modifie soit les
+	# tickets soit le multi, en tiltant le Badge concerne au meme moment.
 	for step in badge_steps:
 		var data: Dictionary = step as Dictionary
-		if (data.get("kind", "flat") as String) != "flat":
-			continue
-		_play_badge_step(data, badges_ui)
+		var source: StringName = data.get("source", &"") as StringName
+		if badges_ui != null and source != &"":
+			badges_ui.tilt_badge(source)
+		var step_label: String = data.get("label", "") as String
+		if (data.get("kind", "flat") as String) == "mult":
+			multi *= data.get("amount", 1.0) as float
+			_animate_multi_to(multi)
+		else:
+			tickets += data.get("amount", 0) as int
+			_animate_tickets_to(tickets)
+		_set_title("+ %s" % step_label, badge_color)
 		await get_tree().create_timer(step_duration).timeout
 
-	# 3. Multi intrinseque a la Partition (forme + level up), toujours seul.
-	if base_mult > 1.0:
-		_show_step("x%s MULTI" % _format_mult(base_mult), mult_color)
-		await get_tree().create_timer(step_duration).timeout
+	# 3. Total intermediaire : bascule du duo vers un chiffre unique. Sans
+	# multiplicateur externe derriere, ce chiffre EST deja le resultat final —
+	# on affiche alors final_score (source de verite) plutot qu'un calcul
+	# local qui pourrait diverger d'un arrondi.
+	_show_single()
+	var is_last_step: bool = cell_mult <= 1.0
+	if is_last_step:
+		add_theme_font_size_override("font_size", _base_font_size + result_font_size_boost)
+	_set_title("TOTAL", value_color)
+	result_value.text = str(final_score if is_last_step else int(tickets * multi))
+	await get_tree().create_timer(result_pause_duration if is_last_step else step_duration).timeout
 
-	# 4. Badges "multi", dans l'ordre des slots — chacun tilte et affiche sa
-	# propre contribution plutot qu'un seul "BADGE xN" fondu (retour de
-	# playtest : illisible des que 2+ Badges contribuent a la meme resolution,
-	# voir CascadeResolver._attach_breakdown).
-	for step in badge_steps:
-		var data: Dictionary = step as Dictionary
-		if (data.get("kind", "flat") as String) != "mult":
-			continue
-		_play_badge_step(data, badges_ui)
-		await get_tree().create_timer(step_duration).timeout
-
-	add_theme_font_size_override("font_size", _base_font_size + result_font_size_boost)
-	_show_step("%d TICKETS" % final_score, result_color)
-	await get_tree().create_timer(result_pause_duration).timeout
+	# 4. Multiplicateur externe (cellules de grille, ex: Cellule Triple,
+	# Mystere MULTI) — dernier facteur avant le resultat, hors Badges/jetons.
+	# Devient le dernier temps fort de la sequence quand il est present.
+	if cell_mult > 1.0:
+		add_theme_font_size_override("font_size", _base_font_size + result_font_size_boost)
+		_set_title("CELLULE x%s" % _format_mult(cell_mult), mult_color)
+		result_value.text = str(final_score)
+		await get_tree().create_timer(result_pause_duration).timeout
 
 	visible = false
-
-
-## Tilte le Badge concerne et affiche sa contribution (flat "+N" ou multi
-## "xN") — factorise entre les deux passes de play_breakdown (flat d'abord,
-## multi ensuite, voir ci-dessus).
-func _play_badge_step(data: Dictionary, badges_ui: BadgesUI) -> void:
-	var source: StringName = data.get("source", &"") as StringName
-	if badges_ui != null and source != &"":
-		badges_ui.tilt_badge(source)
-	var step_label: String = data.get("label", "") as String
-	if (data.get("kind", "flat") as String) == "mult":
-		_show_step("%s x%s" % [step_label, _format_mult(data.get("amount", 1.0) as float)], badge_color)
-	else:
-		_show_step("%s +%d" % [step_label, data.get("amount", 0) as int], badge_color)
+	_hide_breakdown_children()
 
 
 ## Annonce dediee a une cascade (2+ resolutions chainees dans le meme tour,
@@ -128,6 +162,7 @@ func _play_badge_step(data: Dictionary, badges_ui: BadgesUI) -> void:
 ## propre temps fort ici, plus spectaculaire.
 func play_cascade_announcement(mult: float) -> void:
 	visible = true
+	_hide_breakdown_children()
 	remove_theme_font_size_override("font_size")
 	add_theme_font_size_override("font_size", _base_font_size + cascade_font_size_boost)
 	_show_step("CASCADE x%s !" % _format_mult(mult), cascade_color)
@@ -150,6 +185,7 @@ func play_cascade_announcement(mult: float) -> void:
 ## que noye dans un MULTI generique.
 func play_combo_announcement(mult: float) -> void:
 	visible = true
+	_hide_breakdown_children()
 	remove_theme_font_size_override("font_size")
 	add_theme_font_size_override("font_size", _base_font_size + combo_font_size_boost)
 	_show_step("DOUBLE PARTITION x%s !" % _format_mult(mult), combo_color)
@@ -171,6 +207,7 @@ func play_combo_announcement(mult: float) -> void:
 ## reveal, le score est fige en amont.
 func play_roll_announcement(result: int, min_value: int, max_value: int) -> void:
 	visible = true
+	_hide_breakdown_children()
 	remove_theme_font_size_override("font_size")
 	add_theme_font_size_override("font_size", _base_font_size + roll_font_size_boost)
 
@@ -198,6 +235,7 @@ func play_roll_announcement(result: int, min_value: int, max_value: int) -> void
 ## message_display discret ne suffisait pas, passait inapercu).
 func play_mystery_announcement(label: String, description: String = "") -> void:
 	visible = true
+	_hide_breakdown_children()
 	remove_theme_font_size_override("font_size")
 	add_theme_font_size_override("font_size", _base_font_size + mystery_font_size_boost)
 	_show_step(label, mystery_color)
@@ -216,9 +254,81 @@ func play_mystery_announcement(label: String, description: String = "") -> void:
 	subtitle.visible = false
 
 
+## Anime tickets_value en comptant de sa valeur actuelle jusqu'a target, au
+## lieu d'un saut instantane — voir _tickets_shown.
+func _animate_tickets_to(target: int) -> void:
+	if _tickets_tween != null and _tickets_tween.is_valid():
+		_tickets_tween.kill()
+	var from: int = _tickets_shown
+	_tickets_shown = target
+	_tickets_tween = create_tween()
+	_tickets_tween.tween_method(func(val: float) -> void:
+		# Garde-fou : la scene peut se faire liberer avant ce step (meme
+		# raison que GameScene._animate_score_to).
+		if is_instance_valid(tickets_value):
+			tickets_value.text = str(int(round(val)))
+	, float(from), float(target), step_duration * 0.7).set_ease(Tween.EASE_OUT)
+
+
+## Anime multi_value en comptant de sa valeur actuelle jusqu'a target — meme
+## principe que _animate_tickets_to.
+func _animate_multi_to(target: float) -> void:
+	if _multi_tween != null and _multi_tween.is_valid():
+		_multi_tween.kill()
+	var from: float = _multi_shown
+	_multi_shown = target
+	_multi_tween = create_tween()
+	_multi_tween.tween_method(func(val: float) -> void:
+		if is_instance_valid(multi_value):
+			multi_value.text = _format_mult(val)
+	, from, target, step_duration * 0.7).set_ease(Tween.EASE_OUT)
+
+
 func _show_step(msg: String, color: Color) -> void:
 	text = msg
 	add_theme_color_override("font_color", color)
+
+
+## Affiche le duo Tickets/Multi, cache le chiffre unique (etape 1-2 de
+## play_breakdown).
+func _show_pair() -> void:
+	title_label.visible = true
+	tickets_caption.visible = true
+	tickets_value.visible = true
+	x_label.visible = true
+	multi_caption.visible = true
+	multi_value.visible = true
+	result_value.visible = false
+
+
+## Affiche le chiffre unique, cache le duo Tickets/Multi (etape 3-4 de
+## play_breakdown).
+func _show_single() -> void:
+	title_label.visible = true
+	tickets_caption.visible = false
+	tickets_value.visible = false
+	x_label.visible = false
+	multi_caption.visible = false
+	multi_value.visible = false
+	result_value.visible = true
+
+
+## Masque tout le duo/chiffre unique — appele au repos et au debut des autres
+## annonces (cascade/combo/roll/mystere) pour ne pas laisser de texte perime
+## derriere leur propre message sur `self`.
+func _hide_breakdown_children() -> void:
+	title_label.visible = false
+	tickets_caption.visible = false
+	tickets_value.visible = false
+	x_label.visible = false
+	multi_caption.visible = false
+	multi_value.visible = false
+	result_value.visible = false
+
+
+func _set_title(text_value: String, color: Color) -> void:
+	title_label.text = text_value
+	title_label.add_theme_color_override("font_color", color)
 
 
 func _format_mult(mult: float) -> String:

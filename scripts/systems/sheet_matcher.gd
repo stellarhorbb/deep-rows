@@ -390,7 +390,7 @@ static func find_diamonds(grid: Array, cols: int, rows: int) -> Array[Dictionary
 ## pas de la difficulte de la figure.
 ## Retourne : [{ "cells": Array[Vector2i] (2), "match_rule": &"family",
 ##               "shape": &"corners", "direction": &"any" }]
-static func find_bottom_corners(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+static func find_bottom_corners(grid: Array, cols: int, _rows: int) -> Array[Dictionary]:
 	var bottom_row: int = 0
 	var left: TokenData = grid[0][bottom_row] as TokenData
 	var right: TokenData = grid[cols - 1][bottom_row] as TokenData

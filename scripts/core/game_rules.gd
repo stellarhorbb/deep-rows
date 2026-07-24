@@ -7,6 +7,14 @@ const ROWS: int = 7
 # Patterns — taille minimum
 const MIN_MATCH_SIZE: int = 3
 
+# Garde-fou de securite (pas une valeur de balancing) : nombre max de passes
+# de cascade dans une seule resolution (CascadeResolver.resolve). Chaque passe
+# retire normalement au moins une cellule, donc COLS*ROWS suffirait en theorie —
+# largement au-dessus pour ne jamais gener un cas legitime, coupe seulement un
+# vrai bug de boucle infinie (freeze total signale en session 25) au lieu de
+# geler le jeu.
+const MAX_CASCADE_PASSES: int = 200
+
 # Chevauchement de figures dans un meme tour (CascadeResolver.resolve) : deux
 # groupes qui partagent au moins une cellule sans que l'un soit entierement
 # inclus dans l'autre sont un "Double Partition" delibere — les deux scorent

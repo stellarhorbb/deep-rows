@@ -19,6 +19,7 @@ extends Node2D
 @onready var background: ColorRect = $Background
 @onready var flies_label: Label = $SaltLabel
 @onready var shake_button: Button = $ShakeButton
+@onready var debug_win_button: Button = $DebugWinButton
 
 # --- UI persistante, portee par le Shell (voir scripts/core/shell.gd) ---
 var sheets_ui: SheetsUI
@@ -129,6 +130,7 @@ func _wire_signals() -> void:
 	RunService.run_manager.grid_modifiers_changed.connect(grid_visual.set_grid_modifiers)
 	RunService.run_manager.shake_charges_changed.connect(_on_shake_charges_changed)
 	shake_button.pressed.connect(_on_shake_pressed)
+	debug_win_button.pressed.connect(_on_debug_win_pressed)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -150,6 +152,7 @@ func _start_round() -> void:
 	# pour la manche (voir BossMalusManager, entity_manager vit ici et pas
 	# dans TurnController).
 	if RunService.boss_malus_manager.active_malus == BossMalusManager.Type.GRANDE_FAIM:
+		@warning_ignore("integer_division")
 		entity_manager.drop_interval_override = maxi(1, GameRules.ENTITY_DROP_INTERVAL / 2)
 
 	_update_score_display()
@@ -199,6 +202,21 @@ func _on_shake_pressed() -> void:
 	turn_controller.request_shake()
 
 
+## DEBUG : complete le score jusqu'a la cible de la manche courante, sans
+## passer par une resolution de cascade. Ne declare pas la victoire tout de
+## suite (ScoreManager.target_reached n'est ecoute nulle part, voir
+## TurnController._on_resolution_complete qui poll is_target_reached() apres
+## coup) — il suffit de rejouer un coup normal pour voir l'ecran de victoire,
+## comme dans une vraie manche. Pour tester le ressenti de fin de run/biome
+## sans avoir a scorer "pour de vrai".
+func _on_debug_win_pressed() -> void:
+	var missing: int = score_manager.get_target() - score_manager.get_score()
+	if missing <= 0:
+		return
+	score_manager.add_score(missing)
+	_animate_score_to(_displayed_score + missing)
+
+
 ## La reveal visuelle du score suit la banniere de resolution, pas l'ajout
 ## logique au ScoreManager (qui arrive plus tot, avant meme l'animation du
 ## match). Chaque groupe qui termine sa sequence sur la banniere ajoute son
@@ -243,6 +261,7 @@ func _on_round_won(final_score: int, target: int) -> void:
 		RunService.game_flow = RunService.GameFlow.RUN_WON
 		RunService.last_score = final_score
 		RunService.last_target = target
+		RunService.run_manager.record_starter_win()
 		await get_tree().create_timer(GameRules.ROUND_END_DELAY).timeout
 		SceneRouter.go_to_end_screen()
 		return
@@ -410,7 +429,12 @@ func _animate_score_to(target: int) -> void:
 
 	_score_tween = create_tween()
 	_score_tween.tween_method(func(val: float) -> void:
-		score_label.text = _format_tickets_label(int(val))
+		# Garde-fou (session 25) : la scene peut se faire liberer (changement
+		# d'ecran) avant que ce step de tween ne soit joue, notamment en
+		# enchainant les manches vite via DEBUG: +CIBLE — sans ce check,
+		# score_label deja libere declenche "Lambda capture was freed".
+		if is_instance_valid(score_label):
+			score_label.text = _format_tickets_label(int(val))
 	, float(from), float(target), 0.4).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 
 	# Scale bump
