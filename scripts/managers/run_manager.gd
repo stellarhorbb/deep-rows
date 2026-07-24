@@ -396,6 +396,14 @@ func add_grid_modifier(cell: Vector2i, type: StringName) -> void:
 	var types: Array = (_grid_modifiers.get(cell, []) as Array).duplicate()
 	types.append(type)
 	_grid_modifiers[cell] = types
+	# Cases mystere (session 24) : peuvent ajouter un modifier EN COURS de
+	# manche, contrairement aux Badges (toujours on_round_start, donc avant le
+	# snapshot de build_context). _active_context.grid_modifiers est sinon une
+	# copie figee (voir RunContext, "Lu, jamais mute" — sauf les quelques
+	# champs deja mutables en cours de manche comme _scaling_mult_bonuses),
+	# et CascadeResolver ne verrait jamais ce nouveau modifier sans ce refresh.
+	if _active_context != null:
+		_active_context.grid_modifiers = _grid_modifiers.duplicate()
 
 
 ## Emis une fois tous les modifiers de manche peuples (base + badges).

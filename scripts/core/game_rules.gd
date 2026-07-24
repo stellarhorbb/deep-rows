@@ -139,6 +139,33 @@ const MODIFIER_BOOST_MULT: float = 1.5
 const MODIFIER_DOUBLE_MULT: float = 2.0
 const MODIFIER_TRIPLE_MULT: float = 3.0
 
+# Modifiers exclusifs aux cases mystere (effet MULTI, voir MysteryCellEffects) —
+# jamais poses par un Badge, paliers au-dessus de MODIFIER_TRIPLE pour garder
+# un vrai "wow" propre a la surprise.
+const MODIFIER_MYSTERY_X2: StringName = &"mystery_x2"
+const MODIFIER_MYSTERY_X5: StringName = &"mystery_x5"
+const MODIFIER_MYSTERY_X10: StringName = &"mystery_x10"
+const MODIFIER_MYSTERY_X2_MULT: float = 2.0
+const MODIFIER_MYSTERY_X5_MULT: float = 5.0
+const MODIFIER_MYSTERY_X10_MULT: float = 10.0
+
+# Cases mystere (session 24, axe casino) — quelques cases par manche, visibles
+# mais au contenu inconnu jusqu'a ce qu'un jeton/rock/special y atterrisse
+# (voir GridManager.generate_random_mystery_cells, MysteryCellEffects).
+const ROUND_START_MYSTERY_MIN: int = 2
+const ROUND_START_MYSTERY_MAX: int = 4
+
+## Taux fixe par palier (Commun/Rare/Jackpot), meme principe que
+## BADGE_RARITY_RATES : le taux se fixe par palier, pas par item — avoir plus
+## d'items en Rare rend juste ce palier plus varie, pas plus frequent.
+const MYSTERY_RARITY_RATES: Array[float] = [0.55, 0.40, 0.05]
+
+# Effets "score actuel" (multiplicatif) et mouches, voir MysteryCellEffects.
+const MYSTERY_SCORE_PERCENT: float = 0.10
+const MYSTERY_FLIES_SMALL: int = 1
+const MYSTERY_FLIES_BIG: int = 5
+const MYSTERY_JACKPOT_FLIES: int = 20
+
 # Entity
 const ENTITY_DROP_INTERVAL: int = 5  # Un drop tous les N poses joueur
 
@@ -422,4 +449,7 @@ static func get_modifier_multiplier(type: StringName) -> float:
 		MODIFIER_BOOST:  return MODIFIER_BOOST_MULT
 		MODIFIER_DOUBLE: return MODIFIER_DOUBLE_MULT
 		MODIFIER_TRIPLE: return MODIFIER_TRIPLE_MULT
+		MODIFIER_MYSTERY_X2:  return MODIFIER_MYSTERY_X2_MULT
+		MODIFIER_MYSTERY_X5:  return MODIFIER_MYSTERY_X5_MULT
+		MODIFIER_MYSTERY_X10: return MODIFIER_MYSTERY_X10_MULT
 		_:               return 1.0

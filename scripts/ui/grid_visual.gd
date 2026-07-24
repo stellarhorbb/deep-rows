@@ -10,6 +10,7 @@ signal group_score_revealed(amount: int)
 @export var cell_gap: float = 6.0
 @export var empty_cell_color: Color = Color("e8e8e8")
 @export var hole_color: Color = Color("2a2a38")
+@export var mystery_color: Color = Color("4a3f6b")  # violet fonce, placeholder
 @export var blocked_column_color: Color = Color(0.15, 0.15, 0.15, 0.5)
 @export var entity_blink_interval: float = 0.3  # jetons a countdown (MÈCHE COURTE, PETARD_A_MECHE), voir _setup_countdown_sprite
 @export var residue_color: Color = Color("b8b3d6")
@@ -40,6 +41,7 @@ signal group_score_revealed(amount: int)
 var _token_sprites: Dictionary = {}  # Vector2i -> Sprite2D
 var _grid_modifiers: Dictionary = {}  # Vector2i -> Array[StringName]
 var _holes: Dictionary = {}  # Vector2i -> true
+var _mystery_cells: Array[Vector2i] = []  # cases encore cachees, voir GridManager
 var _blocked_column: int = -1  # COLONNE MAUDITE, voir GridManager
 var _is_animating: bool = false
 var _popup_font: Font = null
@@ -68,6 +70,15 @@ func _draw() -> void:
 			draw_circle(center, cell_size / 2.0, hole_color if is_hole else empty_cell_color)
 			if c == _blocked_column:
 				draw_circle(center, cell_size / 2.0, blocked_column_color)
+			# Case mystere : visible-mais-inconnue, simple marqueur "?" en
+			# attendant la DA (voir GridManager.mystery_cells_changed).
+			if _mystery_cells.has(Vector2i(c, r)):
+				draw_circle(center, cell_size / 2.0, mystery_color)
+				var glyph: String = "?"
+				var font_size: int = int(cell_size * 0.5)
+				var font: Font = _popup_font if _popup_font != null else ThemeDB.fallback_font
+				var text_size: Vector2 = font.get_string_size(glyph, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
+				draw_string(font, center - text_size / 2.0 + Vector2(0, text_size.y * 0.8), glyph, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, empty_cell_color)
 
 	# Contour des cellules modifiees (par dessus le fond, sous les sprites).
 	# Plusieurs modifiers empiles sur une meme case = plusieurs anneaux
@@ -102,6 +113,12 @@ func set_grid_modifiers(modifiers: Dictionary) -> void:
 ## Appele par game_scene quand GridManager emet holes_changed.
 func set_holes(holes: Dictionary) -> void:
 	_holes = holes
+	queue_redraw()
+
+
+## Appele par game_scene quand GridManager emet mystery_cells_changed.
+func set_mystery_cells(cells: Array[Vector2i]) -> void:
+	_mystery_cells = cells
 	queue_redraw()
 
 
@@ -181,6 +198,14 @@ func remove_sprite_at(cell: Vector2i) -> void:
 	if _token_sprites.has(cell):
 		(_token_sprites[cell] as Sprite2D).queue_free()
 		_token_sprites.erase(cell)
+
+
+## Case mystere revelee (voir GameScene._on_mystery_cell_resolved) — passe
+## par resolution_banner plutot que message_display, trop discret pour ce
+## genre de moment (retour de playtest). Pas d'await cote appelant : fire-
+## and-forget, ne bloque pas le tour, comme petard_scored/mobile_specials_scored.
+func play_mystery_announcement(label: String, description: String = "") -> void:
+	resolution_banner.play_mystery_announcement(label, description)
 
 
 ## Joue la timeline de resolution complete avec animations.

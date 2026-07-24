@@ -9,6 +9,17 @@ signal grid_reset()
 signal residues_exploded(positions: Array[Vector2i])
 signal holes_changed(holes: Dictionary)
 signal blocked_column_changed(col: int)
+## Cases mystere (session 24) : visibles-mais-inconnues (voir _mystery_cells)
+## jusqu'a declenchement. Emis avec les positions ENCORE CACHEES uniquement
+## (juste les cles, jamais l'effet lui-meme) — le visuel dessine un marqueur
+## "?" dessus, rien de plus. Une case qui se declenche disparait de ce dict.
+signal mystery_cells_changed(pending_cells: Array[Vector2i])
+## Emis quand un jeton/rock/special atterrit sur une case mystere non encore
+## revelee — TurnController applique l'effet reel (score/mouches/trou/
+## famille/teleport/multi), voir _on_mystery_cell_triggered. `token` est le
+## jeton qui vient de declencher, pour les effets qui le concernent
+## directement (FAMILY_SHUFFLE, TELEPORT).
+signal mystery_cell_triggered(col: int, row: int, effect: MysteryCellEffects.Type, token: TokenData)
 ## Emis quand un special mobile a deplace/reorganise silencieusement des
 ## jetons sur la grille (voir tick_mobile_specials) — contrairement a
 ## Fantome/Enclume/Maree (execute_special -> special_executed), ce
@@ -36,6 +47,11 @@ var _rows: int = GameRules.ROWS
 var _run_context: RunContext = null
 var _holes: Dictionary = {}  # Vector2i -> true
 
+## Cases mystere : contenu cache jusqu'a declenchement (Vector2i -> Type),
+## jamais expose tel quel a l'UI — voir mystery_cells_changed, qui n'envoie
+## que les positions encore cachees.
+var _mystery_cells: Dictionary = {}
+
 ## Malus de boss COLONNE MAUDITE (voir BossMalusManager) : colonne injouable
 ## jusqu'au prochain drop, -1 si aucune. Re-tiree par TurnController.
 var _blocked_column: int = -1
@@ -50,6 +66,7 @@ func init_grid() -> void:
 			column[r] = null
 		_grid.append(column)
 	_holes.clear()
+	_mystery_cells.clear()
 	set_blocked_column(-1)
 	grid_reset.emit()
 
@@ -94,6 +111,7 @@ func place_token(token: TokenData, col: int, _row: int) -> void:
 			return
 		_grid[col][landing_row] = token
 		token_placed.emit(col, landing_row, token)
+		_check_mystery_trigger(col, landing_row, token)
 
 	elif token.kind == TokenData.Kind.SPECIAL:
 		# Calculer la landing row pour l'animation de chute
@@ -146,6 +164,7 @@ func _place_persistent_special(token: TokenData, col: int, initial_countdown: in
 	token.countdown = initial_countdown
 	token.just_placed = true
 	_grid[col][landing_row] = token
+	_check_mystery_trigger(col, landing_row, token)
 
 
 ## Place un jeton directement dans la grille, sans pipeline de resolution ni
@@ -157,6 +176,7 @@ func place_token_direct(col: int, token: TokenData) -> int:
 	if row >= _rows:
 		return -1
 	_grid[col][row] = token
+	_check_mystery_trigger(col, row, token)
 	return row
 
 
@@ -185,6 +205,123 @@ func add_holes(cells: Array[Vector2i]) -> void:
 	for cell in cells:
 		_holes[cell] = true
 	holes_changed.emit(_holes.duplicate())
+
+
+## Cases mystere (session 24) : genere `count` cases a des positions
+## aleatoires, jamais sur un trou (jamais atterrissable de toute facon).
+## Appele au debut de chaque manche, sur une grille encore vide — meme
+## timing que generate_random_holes. Le contenu (MysteryCellEffects.Type)
+## est tire tout de suite mais reste cache jusqu'a declenchement, voir
+## _check_mystery_trigger.
+func generate_random_mystery_cells(count: int) -> void:
+	_mystery_cells.clear()
+	var attempts: int = 0
+	while _mystery_cells.size() < count and attempts < count * 20:
+		attempts += 1
+		var cell: Vector2i = Vector2i(randi() % _cols, randi() % _rows)
+		if _holes.has(cell) or _mystery_cells.has(cell):
+			continue
+		_mystery_cells[cell] = MysteryCellEffects.pick_random()
+	_notify_mystery_cells_changed()
+
+
+func get_pending_mystery_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for cell in _mystery_cells:
+		cells.append(cell as Vector2i)
+	return cells
+
+
+func _notify_mystery_cells_changed() -> void:
+	mystery_cells_changed.emit(get_pending_mystery_cells())
+
+
+## Revele et declenche l'effet d'une case mystere si `cell` en porte une,
+## appele juste apres qu'un jeton/rock/special y ait atterri (voir
+## place_token/_place_persistent_special). Ne fait rien si la case n'a pas
+## de mystere ou a deja ete revelee.
+func _check_mystery_trigger(col: int, row: int, token: TokenData) -> void:
+	var cell: Vector2i = Vector2i(col, row)
+	if not _mystery_cells.has(cell):
+		return
+	var effect: MysteryCellEffects.Type = _mystery_cells[cell] as MysteryCellEffects.Type
+	_mystery_cells.erase(cell)
+	_notify_mystery_cells_changed()
+	mystery_cell_triggered.emit(col, row, effect, token)
+
+
+## Effet HOLE_ADD (voir MysteryCellEffects) : ajoute un trou sur une case
+## actuellement vide, ni trou ni mystere. Ne fait rien si aucune case libre
+## (grille pleine) — pas de fallback force.
+func add_random_hole() -> void:
+	var candidates: Array[Vector2i] = []
+	for c in range(_cols):
+		for r in range(_rows):
+			var cell: Vector2i = Vector2i(c, r)
+			if _holes.has(cell) or _mystery_cells.has(cell) or _grid[c][r] != null:
+				continue
+			candidates.append(cell)
+	if candidates.is_empty():
+		return
+	add_holes([candidates.pick_random()])
+
+
+## Effet HOLE_REMOVE (voir MysteryCellEffects) : comble un trou existant
+## choisi au hasard. Ne fait rien si aucun trou sur la grille.
+func remove_random_hole() -> void:
+	if _holes.is_empty():
+		return
+	var cell: Vector2i = (_holes.keys() as Array).pick_random() as Vector2i
+	_holes.erase(cell)
+	holes_changed.emit(_holes.duplicate())
+
+
+## Effet FAMILY_SHUFFLE (voir MysteryCellEffects) : mute la famille du jeton
+## qui a declenche la case, uniquement s'il est scorable (BASE) — un Rock ou
+## un Special n'a pas de famille pertinente, l'effet est alors simplement
+## perdu plutot que de forcer un resultat sans le jeton d'origine.
+func randomize_token_family(col: int, row: int) -> void:
+	var token: TokenData = get_cell(col, row)
+	if token == null or token.kind != TokenData.Kind.BASE:
+		return
+	var choices: Array[TokenData.Family] = []
+	for f in TokenData.Family.values():
+		if f != token.family:
+			choices.append(f as TokenData.Family)
+	token.family = choices.pick_random()
+
+
+## Effet TELEPORT (voir MysteryCellEffects) : deplace le jeton qui a
+## declenche la case vers une colonne aleatoire, retasse la colonne
+## d'origine (GravitySystem) pour combler le vide laisse. Scope a BASE/ROCK
+## (voir randomize_token_family pour le meme raisonnement) — un Special
+## mobile/pose garde une logique de position trop specifique pour etre
+## deplace sans risque ici. Retourne la colonne de destination, -1 si aucune
+## colonne n'avait de place libre (jeton laisse sur place).
+func move_token_to_random_column(from_col: int, from_row: int) -> int:
+	var token: TokenData = get_cell(from_col, from_row)
+	if token == null or (token.kind != TokenData.Kind.BASE and token.kind != TokenData.Kind.ROCK):
+		return -1
+
+	# Verifie qu'une colonne de destination a de la place AVANT de toucher a
+	# quoi que ce soit — sinon le retrait + la compaction de la colonne
+	# d'origine (juste apres) rendrait tout rollback ambigu (une case peut
+	# avoir ete comblee entre-temps par un jeton tombe d'au-dessus).
+	var order: Array = range(_cols)
+	order.shuffle()
+	var dest_col: int = -1
+	for c in order:
+		if column_height(c) < _rows:
+			dest_col = c
+			break
+	if dest_col == -1:
+		return -1
+
+	_grid[from_col][from_row] = null
+	GravitySystem.apply(_grid, _cols, _rows, _holes)
+	var landing_row: int = column_height(dest_col)
+	_grid[dest_col][landing_row] = token
+	return dest_col
 
 
 ## Malus de boss MÈCHE COURTE (voir BossMalusManager) : decompte le countdown

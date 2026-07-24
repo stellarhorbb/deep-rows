@@ -123,6 +123,8 @@ func _wire_signals() -> void:
 	grid_manager.petard_detonated.connect(_on_petard_detonated)
 	grid_manager.holes_changed.connect(grid_visual.set_holes)
 	grid_manager.blocked_column_changed.connect(grid_visual.set_blocked_column)
+	grid_manager.mystery_cells_changed.connect(grid_visual.set_mystery_cells)
+	turn_controller.mystery_cell_resolved.connect(_on_mystery_cell_resolved)
 	RunService.run_manager.flies_changed.connect(_on_flies_changed)
 	RunService.run_manager.grid_modifiers_changed.connect(grid_visual.set_grid_modifiers)
 	RunService.run_manager.shake_charges_changed.connect(_on_shake_charges_changed)
@@ -378,6 +380,25 @@ func _on_petard_scored(amount: int) -> void:
 func _on_mobile_specials_scored(amount: int) -> void:
 	message_display.show_message("+" + str(amount) + " TICKETS", &"cascade")
 	_animate_score_to(_displayed_score + amount)
+
+
+## Case mystere revelee (voir TurnController.mystery_cell_resolved) : message
+## + animation du compteur si score_delta != 0 (meme raison que petard_scored/
+## mobile_specials_scored ci-dessus). FAMILY_SHUFFLE/TELEPORT ont en plus
+## besoin d'un refresh visuel — le jeton a mute ou change de case sans passer
+## par un event de CascadeResolver, rien d'autre ne previent le sprite.
+func _on_mystery_cell_resolved(col: int, row: int, effect: MysteryCellEffects.Type, score_delta: int) -> void:
+	grid_visual.play_mystery_announcement(MysteryCellEffects.LABELS[effect] as String, MysteryCellEffects.DESCRIPTIONS[effect] as String)
+	if score_delta != 0:
+		_animate_score_to(_displayed_score + score_delta)
+
+	match effect:
+		MysteryCellEffects.Type.FAMILY_SHUFFLE:
+			var token: TokenData = grid_manager.get_cell(col, row)
+			if token != null:
+				grid_visual.replace_sprite(Vector2i(col, row), token)
+		MysteryCellEffects.Type.TELEPORT:
+			grid_visual.rebuild_sprites()
 
 
 func _animate_score_to(target: int) -> void:

@@ -30,6 +30,11 @@ signal petard_scored(amount: int)
 ## jeton en se deplacant/grandissant — meme raison que petard_scored, en
 ## dehors de la banniere de resolution normale (voir tick_mobile_specials).
 signal mobile_specials_scored(amount: int)
+## Case mystere revelee et resolue (voir GridManager.mystery_cell_triggered /
+## _on_mystery_cell_triggered) — le visuel affiche un message et, si
+## score_delta != 0, anime le compteur (meme raison que petard_scored/
+## mobile_specials_scored : en dehors de la banniere de resolution normale).
+signal mystery_cell_resolved(col: int, row: int, effect: MysteryCellEffects.Type, score_delta: int)
 
 ## Hooks consommes par BadgeManager (dispatch vers les BadgeEffect equipes).
 signal round_started()
@@ -67,6 +72,7 @@ var _pre_pass_timeline: Array[Dictionary] = []
 func _ready() -> void:
 	grid_manager.special_executed.connect(_on_special_executed)
 	grid_manager.resolution_complete.connect(_on_resolution_complete)
+	grid_manager.mystery_cell_triggered.connect(_on_mystery_cell_triggered)
 
 
 func start_round(round_number: int) -> void:
@@ -77,6 +83,11 @@ func start_round(round_number: int) -> void:
 	# differents a chaque manche.
 	var hole_count: int = randi_range(GameRules.ROUND_START_HOLES_MIN, GameRules.ROUND_START_HOLES_MAX)
 	grid_manager.generate_random_holes(hole_count)
+
+	# 0b. Cases mystere (session 24) : meme timing que les trous, grille encore
+	# vide. Contenu tire tout de suite mais cache jusqu'a declenchement.
+	var mystery_count: int = randi_range(GameRules.ROUND_START_MYSTERY_MIN, GameRules.ROUND_START_MYSTERY_MAX)
+	grid_manager.generate_random_mystery_cells(mystery_count)
 
 	# 1. Reset de la couche modifiers de manche.
 	run_manager.reset_round_modifiers()
@@ -241,6 +252,50 @@ func _on_special_executed(special_type: TokenData.SpecialType, _col: int, _row: 
 		var bombe_score: int = result.get("score", 0) as int
 		if bombe_score > 0:
 			score_manager.add_score(bombe_score)
+
+
+## Applique l'effet reel d'une case mystere revelee (voir GridManager.
+## mystery_cell_triggered/MysteryCellEffects) — score/mouches/trous/famille/
+## teleport/multi. Rejoue le meme calcul "% du score actuel" que decrit au
+## user (ex: 100/250 -> 110/250), voir GameRules.MYSTERY_SCORE_PERCENT.
+func _on_mystery_cell_triggered(col: int, row: int, effect: MysteryCellEffects.Type, _token: TokenData) -> void:
+	var score_delta: int = 0
+	match effect:
+		MysteryCellEffects.Type.SCORE_UP:
+			score_delta = int(round(score_manager.get_score() * GameRules.MYSTERY_SCORE_PERCENT))
+			score_manager.add_score(score_delta)
+		MysteryCellEffects.Type.SCORE_DOWN:
+			score_delta = int(round(score_manager.get_score() * GameRules.MYSTERY_SCORE_PERCENT))
+			score_manager.subtract_score(score_delta)
+			score_delta = -score_delta
+		MysteryCellEffects.Type.FLIES_UP_SMALL:
+			run_manager.add_flies(GameRules.MYSTERY_FLIES_SMALL)
+		MysteryCellEffects.Type.FLIES_UP_BIG:
+			run_manager.add_flies(GameRules.MYSTERY_FLIES_BIG)
+		MysteryCellEffects.Type.FLIES_DOWN_SMALL:
+			run_manager.spend_flies(mini(GameRules.MYSTERY_FLIES_SMALL, run_manager.get_flies()))
+		MysteryCellEffects.Type.FLIES_DOWN_BIG:
+			run_manager.spend_flies(mini(GameRules.MYSTERY_FLIES_BIG, run_manager.get_flies()))
+		MysteryCellEffects.Type.HOLE_ADD:
+			grid_manager.add_random_hole()
+		MysteryCellEffects.Type.HOLE_REMOVE:
+			grid_manager.remove_random_hole()
+		MysteryCellEffects.Type.FAMILY_SHUFFLE:
+			grid_manager.randomize_token_family(col, row)
+		MysteryCellEffects.Type.TELEPORT:
+			grid_manager.move_token_to_random_column(col, row)
+		MysteryCellEffects.Type.MULTI_X2:
+			run_manager.add_grid_modifier(Vector2i(col, row), GameRules.MODIFIER_MYSTERY_X2)
+			run_manager.notify_grid_modifiers_ready()
+		MysteryCellEffects.Type.MULTI_X5:
+			run_manager.add_grid_modifier(Vector2i(col, row), GameRules.MODIFIER_MYSTERY_X5)
+			run_manager.notify_grid_modifiers_ready()
+		MysteryCellEffects.Type.JACKPOT_FLIES:
+			run_manager.add_flies(GameRules.MYSTERY_JACKPOT_FLIES)
+		MysteryCellEffects.Type.JACKPOT_MULTI_X10:
+			run_manager.add_grid_modifier(Vector2i(col, row), GameRules.MODIFIER_MYSTERY_X10)
+			run_manager.notify_grid_modifiers_ready()
+	mystery_cell_resolved.emit(col, row, effect, score_delta)
 
 
 func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> void:

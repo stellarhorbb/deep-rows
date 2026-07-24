@@ -26,6 +26,10 @@ extends Label
 @export var combo_font_size_boost: int = 28
 @export var combo_duration: float = 0.6
 
+@export var mystery_color: Color = Color("b968f0")
+@export var mystery_font_size_boost: int = 24
+@export var mystery_duration: float = 0.9
+
 @export var roll_color: Color = Color("2ecc71")
 @export var roll_font_size_boost: int = 24
 @export var roll_spin_count: int = 10
@@ -35,9 +39,16 @@ extends Label
 
 var _base_font_size: int = 0
 
+## Sous-titre en petit sous le texte principal — pour l'instant uniquement
+## utilise par play_mystery_announcement (descriptif de l'effet). Cache par
+## defaut, jamais touche par les autres annonces (cascade/combo/roll/
+## breakdown) qui n'en ont pas besoin.
+@onready var subtitle: Label = $Subtitle
+
 
 func _ready() -> void:
 	visible = false
+	subtitle.visible = false
 	_base_font_size = get_theme_font_size("font_size")
 	pivot_offset = size * 0.5
 
@@ -179,6 +190,30 @@ func play_roll_announcement(result: int, min_value: int, max_value: int) -> void
 
 	await get_tree().create_timer(roll_result_duration).timeout
 	visible = false
+
+
+## Case mystere revelee (session 24, voir TurnController.mystery_cell_resolved) —
+## meme temps fort que play_cascade_announcement/play_combo_announcement,
+## en dehors de toute resolution de Partition (retour de playtest : le
+## message_display discret ne suffisait pas, passait inapercu).
+func play_mystery_announcement(label: String, description: String = "") -> void:
+	visible = true
+	remove_theme_font_size_override("font_size")
+	add_theme_font_size_override("font_size", _base_font_size + mystery_font_size_boost)
+	_show_step(label, mystery_color)
+
+	subtitle.text = description
+	subtitle.visible = description != ""
+
+	scale = Vector2(0.7, 0.7)
+	var tween: Tween = create_tween()
+	tween.tween_property(self, "scale", Vector2(1.15, 1.15), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(self, "scale", Vector2.ONE, 0.15).set_ease(Tween.EASE_IN_OUT)
+	await tween.finished
+
+	await get_tree().create_timer(mystery_duration).timeout
+	visible = false
+	subtitle.visible = false
 
 
 func _show_step(msg: String, color: Color) -> void:

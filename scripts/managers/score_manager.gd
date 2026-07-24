@@ -26,6 +26,17 @@ func add_score(amount: int) -> void:
 		target_reached.emit(_score, _target)
 
 
+## Case mystere SCORE_DOWN (voir MysteryCellEffects) : seul malus capable de
+## retirer du score actuel de la manche. Plafonne a 0 plutot que de basculer
+## en negatif — aucun autre systeme du jeu ne s'attend a un score negatif.
+func subtract_score(amount: int) -> void:
+	if amount <= 0:
+		return
+	var clamped: int = mini(amount, _score)
+	_score -= clamped
+	score_changed.emit(_score, -clamped)
+
+
 func get_score() -> int:
 	return _score
 
