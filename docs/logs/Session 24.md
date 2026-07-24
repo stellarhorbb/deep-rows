@@ -1,7 +1,7 @@
-# Session 24 — Cases mystère sur la grille, réflexion sur le geste de placement, épiphanie narrative
+# Session 24 — Cases mystère sur la grille, réflexion sur le geste de placement, épiphanie narrative, chantier Shore/persistance, refonte scoring
 
 **Date** : 2026-07-24
-**Thème** : Session de playtest suivie d'un chantier de fond né en cours de route — le geste de placement ressenti comme plat après plusieurs runs consécutives, comparé à Sol Cesto, qui a débouché sur un nouveau système (cases mystère "?") conçu, implémenté et validé fun dans la même session. Plus tard le même jour, une session courte de game design/narration pure (pas de code) où le user a partagé une épiphanie eue en faisant du vélo : le sens caché de toute l'histoire du jeu, qui a été noté dans le GDD.
+**Thème** : Session de playtest suivie d'un chantier de fond né en cours de route — le geste de placement ressenti comme plat après plusieurs runs consécutives, comparé à Sol Cesto, qui a débouché sur un nouveau système (cases mystère "?") conçu, implémenté et validé fun dans la même session. Plus tard le même jour, une session courte de game design/narration pure (pas de code) où le user a partagé une épiphanie eue en faisant du vélo : le sens caché de toute l'histoire du jeu, qui a été noté dans le GDD. Une troisième partie de la journée (nouvelle conversation, même date) a enchaîné sur la première vraie brique de persistance du Shore (unlocks de packs de démarrage en chaîne), un bug de freeze corrigé, et une refonte de la bannière de résolution du score.
 
 ---
 
@@ -62,14 +62,60 @@ Trois pièces qui s'emboîtent, chacune répondant à une question ouverte sépa
 
 **GDD mis à jour** (voir Liens ci-dessous) : nouvelle section dans `pitch.md` ("Le sens caché"), lecture profonde ajoutée à `entity.md`, nouvelle section "Fin de run — le starter final" dans `structure-run.md`, deux nouvelles lignes dans `decisions-tranchees.md` (le sens caché du monde ; le genre + la condition de fin de jeu), `questions-ouvertes.md` mis à jour (Entity et habillage narratif des packs partiellement résolus, nouvelle question sur les détails précis du trigger de fin de jeu — gagner ou juste finir chaque starter, ordre, seuil).
 
+---
+
+## Chantier persistance / Shore — première brique
+
+Nouvelle conversation, même journée. Point de départ : le user voulait un moyen de tester la meta-progression (simuler un jeu qui se débloque progressivement, et un mode "tout débloqué" pour ne pas devoir cocher chaque `.tres` à la main). Décision de lancer directement le chantier de fond identifié en session 24 (aucune sauvegarde inter-runs n'existait encore), en parallèle du playtest continu du user.
+
+- **`MetaProgression`** (nouvel autoload, `scripts/core/meta_progression.gd`) — sauvegarde disque (`user://meta_save.tres`, `MetaSaveData` resource) d'une liste plate d'IDs débloqués. Un seul point de vérité, pas de flag `locked` coché à la main par ressource. API : `is_unlocked(id)`/`unlock(id)`, `debug_force_unlock_all` (bypass total pour tester), `reset_save_debug()` (repart d'une save vierge).
+- **`unlock_id`** — champ ajouté à `SheetData` et `StarterPackData` : ID technique stable, préfixé par catégorie (`sheet:`, `pack:`), séparé du label affiché qui peut être renommé sans casser une save (déjà arrivé en session 18 pour les Partitions). Rempli en placeholder sur les 23 Partitions et 4 packs existants (= nom du fichier `.tres`). **À répliquer pour Badges/Spéciaux/Grilles quand leur tour viendra de se faire gater.**
+- **Roster des packs day-one révisé (décision session 25, inverse la session 19)** — seul Le Simplet reste day-one ; Le Généreux se débloque en gagnant une run avec Le Simplet, Le Prévoyant en gagnant avec Le Généreux, Le Collectionneur en gagnant avec Le Prévoyant (`StarterPackData.unlock_requires_win_of`, `RunManager.record_starter_win`/`has_won_with_pack`, accroché dans `GameScene._on_round_won` au moment exact où la manche 20 est gagnée). Raison du renversement : la première run sert de tutoriel, le déblocage progressif donne un objectif concret et une vraie fonction au Shore dès le day-one plutôt que d'attendre les 6 packs restants.
+- **Packs verrouillés visibles** — `RunManager.get_all_starter_packs()`/`is_pack_locked()` remplacent l'ancien filtrage qui les masquait entièrement. L'écran de sélection (`StarterPackSelectUI`) affiche tous les packs dans le carrousel ; un pack verrouillé montre "VERROUILLÉ" à la place de "COMMENCER" (bouton désactivé) et sa condition de déblocage en clair à la place de la description, plutôt que d'être caché.
+- **Badge "COMPLETED"** — affiché sur un pack si le joueur a déjà gagné une run avec (`has_won_with_pack`).
+- **Outils de test** — deux boutons debug sur l'écran de sélection ("tout débloquer" / "reset save"), pour éviter de devoir rejouer chaque unlock un par un en playtest.
+
+Validé en jeu par le user : run terminée avec Le Simplet, badge COMPLETED apparu, Le Généreux débloqué comme prévu. GDD mis à jour en conséquence (`decisions-tranchees.md`, `structure-run.md`, `shore/unlocks.md`) après validation, conformément à l'habitude de discuter avant d'écrire.
+
+## Bugfix — freeze du Pétard à mèche + nettoyage warnings
+
+Signalé par le user : un freeze total du jeu après l'explosion d'un Pétard à mèche (un seul, rien de particulier sur la grille), obligeant à redémarrer. Cause exacte non confirmée avec certitude (pas de reproduction possible dans cet environnement), mais diagnostic par élimination : la boucle `while true` de résolution des cascades (`CascadeResolver.resolve`) est la seule boucle non bornée de tout le pipeline — cohérent avec un vrai freeze moteur (thread principal bloqué) plutôt qu'un tour simplement coincé. Garde-fou ajouté : `GameRules.MAX_CASCADE_PASSES` (200, très large marge — une grille 7×7 pleine ne peut pas dépasser 49 suppressions), la résolution s'interrompt proprement avec une erreur au lieu de geler si jamais dépassé.
+
+En cours de route, plusieurs warnings/erreurs GDScript repérés dans la console de l'éditeur et corrigés :
+- Shadowing de variable (`TokenData.value_label`, `CascadeResolver._score_group` — deux `raw_value` dans la même fonction), paramètres jamais utilisés (`find_bottom_corners`, `grow_liane`, `_value_sum_bonus`) — renommages sans changement de comportement.
+- Division entière volontaire (malus GRANDE FAIM) — annotée `@warning_ignore("integer_division")`, convention déjà utilisée ailleurs dans le projet.
+- **"Lambda capture was freed"** (erreurs rouges, répétées) — causé par le nouveau bouton `DEBUG: +CIBLE` (voir ci-dessous) : en enchaînant les manches vite, l'écran de jeu peut être libéré pendant qu'un tween de compteur de score est encore actif. Corrigé avec un garde-fou `is_instance_valid()` dans `GameScene._animate_score_to`, réappliqué ensuite aux nouvelles animations de compteur de la bannière de résolution par précaution.
+
+**Ajout à part** : bouton `DEBUG: +CIBLE` sur l'écran de jeu (sous SHAKE) — complète le score jusqu'à la cible de la manche en un clic, sans déclarer la victoire instantanément (il suffit de rejouer un coup pour voir l'écran de victoire, flow normal inchangé). Pratique pour enchaîner les manches/biomes rapidement en test.
+
+## Refonte de la bannière de résolution — duo Tickets/Multi
+
+Discussion de fond sur le ressenti "brouillon" du calcul de score affiché à chaque Partition résolue. Le user aimait le principe Balatro (chips/mult qui s'incrémentent) sans vouloir le copier tel quel. Plusieurs pistes discutées (ticket qui s'imprime, score ancré sur la grille, zone dédiée) avant de définir un ordre de calcul précis, vérifié contre le code (`CascadeResolver`/`RunContext`) pour ne pas oublier de source :
+
+1. **Bloc Partition** — jetons bruts × multi intrinsèque (forme × level up, déjà fondus en un seul nombre, pas de ligne "level up" séparée)
+2. **Badges**, un par un dans l'ordre des slots, chacun modifie soit les tickets soit le multi
+3. **Total intermédiaire**
+4. **Multiplicateur externe** (cellules de grille) — **nouveau** : jusque-là fondu silencieusement dans le multi intrinsèque sans jamais apparaître dans la bannière (`CascadeResolver._attach_breakdown` : `grid_mult` séparé en un champ `cell_mult` à part)
+5. **Multi de cascade**, à part (déjà existant, inchangé), l'"ultime bonus"
+6. → ajouté au score total
+
+Malus de boss (Famille/Partition Ternie) : pas de ligne dédiée, ils influent directement sur les valeurs affichées (un jeton Famille Ternie compte pour 1 ticket, une Partition Ternie affiche son multi intrinsèque à ×1) plutôt que d'ajouter de la complexité d'affichage.
+
+**Deux tentatives de présentation avant de retomber sur le popup existant** :
+- Deux cases fixes sous la grille ("TICKETS" / "MULTI" toujours visibles, animées au scoring) — implémenté (`ScoreBreakdownUI`), testé en jeu, **jugé pas concluant par le user** ("l'œil ne va pas sur un bloc fixe") : retiré entièrement (nœuds, script, câblage).
+- Retour au popup central existant (`ResolutionBanner`), mais enrichi : le duo Tickets/Multi vit maintenant *dans* le popup qui apparaît/disparaît à chaque étape (au lieu d'un seul texte qui se remplace), avec compteur animé (tween, pas de saut instantané — deuxième retour après un premier essai jugé "trop rapide" en lecture, puis en décomposition insuffisante des étapes). Rythme final : `step_duration` 0.45s → 1.0s, jetons et multi comptent chacun sur leur propre étape avant les Badges.
+
+**Discussion "ça ressemble à Balatro"** : conclusion assumée — la formule tickets × multi est un motif de genre désormais commun, pas évitable sans changer le système de scoring (hors scope). La différenciation reste sur la présentation (popup ponctuel, pas un HUD permanent) et sur la DA à venir (identité tarot/cirque mystique), pas sur la mécanique elle-même.
+
 ## Liens
 
-- [Questions ouvertes](../gdd/meta/questions-ouvertes.md) (ligne Boss Malus périmée retirée cette session ; section Univers mise à jour en fin de session)
+- [Questions ouvertes](../gdd/meta/questions-ouvertes.md) (ligne Boss Malus périmée retirée cette session ; section Univers mise à jour en fin de session ; ligne Badges session 17 mise à jour après playtest réel confirmé)
 - [Modifiers de cellules](../gdd/grille/modifiers-cellules.md)
 - [Grille cabossée (trous)](../gdd/grille/trous.md)
 - [Rocks](../gdd/jetons/rocks.md)
-- [Forme du Shore](../gdd/shore/unlocks.md)
+- [Forme du Shore / unlocks](../gdd/shore/unlocks.md) (nouvelle section "Déblocage en jeu — implémenté (session 25)")
 - [Pitch — le sens caché](../gdd/univers/pitch.md#le-sens-caché-privé--jamais-montré-en-jeu)
 - [L'Entity — lecture profonde](../gdd/univers/personnages/entity.md#lecture-profonde-privée-session-24)
-- [Structure du run — fin de run](../gdd/progression/structure-run.md#fin-de-run--le-starter-final)
-- [Décisions tranchées](../gdd/meta/decisions-tranchees.md)
+- [Structure du run — fin de run et choix de départ](../gdd/progression/structure-run.md#fin-de-run--le-starter-final)
+- [Décisions tranchées](../gdd/meta/decisions-tranchees.md) (packs day-one en chaîne, session 25)
+- [Scoring — bannière de résolution](../gdd/partitions/scoring.md#bannière-de-résolution--duo-ticketsmulti-session-17-réordonné-session-25)
