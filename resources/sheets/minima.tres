@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
+unlock_id = "sheet:minima"
 sheet_name = &"minima"
 shape = &"line"
 rule = &"minima"

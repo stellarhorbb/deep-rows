@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
+unlock_id = "sheet:fibonacci"
 sheet_name = &"fibonacci"
 shape = &"line"
 rule = &"fibonacci"

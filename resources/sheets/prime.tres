@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
+unlock_id = "sheet:prime"
 sheet_name = &"prime"
 shape = &"line"
 rule = &"prime"

@@ -3,12 +3,16 @@
 [ext_resource type="Script" uid="uid://cncok8imjgcug" path="res://scripts/data/starter_pack_data.gd" id="1_script"]
 [ext_resource type="Resource" uid="uid://bnftdi0liay22" path="res://resources/sheets/suite.tres" id="2_sheet_a"]
 [ext_resource type="Resource" path="res://resources/sheets/diamond_family.tres" id="3_sheet_b"]
+[ext_resource type="Resource" path="res://resources/starter_packs/le_genereux.tres" id="4_requires"]
 
 [resource]
 script = ExtResource("1_script")
 pack_name = "Le Prévoyant"
+unlock_id = "pack:le_prevoyant"
 description = "+1 slot de hold, mais preview -1 (2 au lieu de 3)."
 fixed_sheet_a = ExtResource("2_sheet_a")
 fixed_sheet_b = ExtResource("3_sheet_b")
 hold_slot_bonus = 1
 preview_size_bonus = -1
+locked = true
+unlock_requires_win_of = ExtResource("4_requires")

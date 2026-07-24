@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
+unlock_id = "sheet:square_number"
 sheet_name = &"square_number"
 shape = &"square"
 rule = &"value"

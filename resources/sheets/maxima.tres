@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
+unlock_id = "sheet:maxima"
 sheet_name = &"maxima"
 shape = &"line"
 rule = &"maxima"

@@ -1,13 +1,17 @@
-[gd_resource type="Resource" script_class="StarterPackData" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="StarterPackData" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/starter_pack_data.gd" id="1_script"]
 [ext_resource type="Resource" path="res://resources/sheets/t_family.tres" id="2_sheet_a"]
 [ext_resource type="Resource" path="res://resources/sheets/fibonacci.tres" id="3_sheet_b"]
+[ext_resource type="Resource" path="res://resources/starter_packs/le_simplet.tres" id="4_requires"]
 
 [resource]
 script = ExtResource("1_script")
+unlock_id = "pack:le_genereux"
 pack_name = "Le Généreux"
 description = "+2 mouches par manche gagnée."
 fixed_sheet_a = ExtResource("2_sheet_a")
 fixed_sheet_b = ExtResource("3_sheet_b")
 flies_per_round_bonus = 2
+locked = true
+unlock_requires_win_of = ExtResource("4_requires")

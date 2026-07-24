@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
+unlock_id = "sheet:carre_poker"
 sheet_name = &"carre_poker"
 shape = &"line"
 rule = &"value"

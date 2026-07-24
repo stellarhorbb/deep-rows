@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
+unlock_id = "sheet:legendary_lost_corners"
 sheet_name = &"lost_corners"
 shape = &"corners"
 rule = &"family"

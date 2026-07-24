@@ -373,7 +373,8 @@ func _available_sheets(run_manager: RunManager) -> Array[SheetData]:
 	var equipped: Array[SheetData] = run_manager.get_equipped_sheets()
 	var pool: Array[SheetData] = []
 	for sheet in _all_sheets:
-		if not sheet.locked and not equipped.has(sheet):
+		var accessible: bool = not sheet.locked or MetaProgression.is_unlocked(sheet.unlock_id)
+		if accessible and not equipped.has(sheet):
 			pool.append(sheet)
 	return pool
 

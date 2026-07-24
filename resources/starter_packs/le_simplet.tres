@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("1_script")
+unlock_id = "pack:le_simplet"
 pack_name = "Le Simplet"
 description = "Aucun modificateur — le point de départ, sans filtre."
 fixed_sheet_a = ExtResource("2_sheet_a")

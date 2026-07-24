@@ -2,6 +2,13 @@ class_name SheetData
 extends Resource
 
 @export var sheet_name: StringName = &""
+
+## ID stable pour la sauvegarde du Shore (MetaProgression), independant du
+## label/nom affiche qui peut etre renomme (voir session 18 : Encree->Hivernal
+## etc.). Prefixe "sheet:" pour eviter toute collision avec d'autres
+## categories de contenu debloquable (packs, badges...). Jamais renomme une
+## fois pose, meme si sheet_name ou label changent.
+@export var unlock_id: String = ""
 @export var shape: StringName = &""       # &"line" | &"square" | &"diamond" | &"plus" | &"cross" | &"ring" | &"t" | &"corners"
 @export var rule: StringName = &""        # &"family" | &"value" | &"suite" | &"rock" | &"rainbow" | &"fibonacci" | &"minima" | &"maxima" | &"prime"
 @export var min_size: int = 3             # 3 pour lignes, 4 pour carres (2x2 = 4 cells)
@@ -28,11 +35,11 @@ extends Resource
 @export var label: String = ""
 @export var price: int = 0
 
-## Acces meta (session 19) : une Partition verrouillee n'apparait ni au
-## tirage du shop ni dans les packs de demarrage tant qu'elle n'a pas ete
-## debloquee au Shore (voir docs/gdd/partitions/catalogue-implemente.md#acces-generique-vs-verrouille).
-## Toutes decochees pour l'instant (aucune sauvegarde inter-runs encore
-## construite) — a cocher une fois le systeme d'unlock du Shore implemente.
+## Acces meta (session 19) : une Partition verrouillee n'apparait au tirage
+## du shop que si MetaProgression.is_unlocked(sheet_name) (voir
+## ShopManager._available_sheets et docs/gdd/partitions/catalogue-implemente.md#acces-generique-vs-verrouille).
+## Toutes decochees pour l'instant (aucune n'a encore de vecteur d'unlock
+## reel construit cote gameplay) — a cocher une fois les 5 vecteurs poses.
 @export var locked: bool = false
 
 ## DEBUG : si true, cette Partition est equipee des le debut du run (bypass

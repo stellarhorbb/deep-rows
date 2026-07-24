@@ -1,14 +1,18 @@
-[gd_resource type="Resource" script_class="StarterPackData" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="StarterPackData" format=3 uid="uid://dacwbvj1kpia"]
 
-[ext_resource type="Script" path="res://scripts/data/starter_pack_data.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cncok8imjgcug" path="res://scripts/data/starter_pack_data.gd" id="1_script"]
 [ext_resource type="Resource" path="res://resources/sheets/square_family.tres" id="2_sheet_a"]
 [ext_resource type="Resource" path="res://resources/sheets/prime.tres" id="3_sheet_b"]
+[ext_resource type="Resource" uid="uid://c6ljusuhg48ed" path="res://resources/starter_packs/le_prevoyant.tres" id="4_requires"]
 
 [resource]
 script = ExtResource("1_script")
 pack_name = "Le Collectionneur"
+unlock_id = "pack:le_collectionneur"
 description = "+1 emplacement de Badge, mais +2 rocks dans le deck."
 fixed_sheet_a = ExtResource("2_sheet_a")
 fixed_sheet_b = ExtResource("3_sheet_b")
 badge_slot_bonus = 1
 rock_count_bonus = 2
+locked = true
+unlock_requires_win_of = ExtResource("4_requires")

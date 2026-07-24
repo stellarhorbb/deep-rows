@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
+unlock_id = "sheet:suite"
 sheet_name = &"suite"
 shape = &"line"
 rule = &"suite"

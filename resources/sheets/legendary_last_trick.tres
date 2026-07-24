@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
+unlock_id = "sheet:legendary_last_trick"
 sheet_name = &"last_trick"
 shape = &"diamond"
 rule = &"family"

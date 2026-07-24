@@ -62,6 +62,13 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 28
 horizontal_alignment = 1
 
+[node name="CompletedLabel" type="Label" parent="Panel/VBox/CarouselRow/CardPanel/CardVBox" unique_id=-1849302615]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.8, 0.4, 1)
+text = "COMPLETED"
+horizontal_alignment = 1
+
 [node name="PackDescriptionLabel" type="Label" parent="Panel/VBox/CarouselRow/CardPanel/CardVBox" unique_id=443967123]
 layout_mode = 2
 horizontal_alignment = 1
@@ -85,3 +92,16 @@ horizontal_alignment = 1
 [node name="ConfirmButton" type="Button" parent="Panel/VBox" unique_id=2136387968]
 layout_mode = 2
 text = "COMMENCER"
+
+[node name="DebugRow" type="HBoxContainer" parent="Panel/VBox" unique_id=-1337665452]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="DebugUnlockAllButton" type="Button" parent="Panel/VBox/DebugRow" unique_id=1408216221]
+layout_mode = 2
+text = "DEBUG: tout débloquer"
+
+[node name="DebugResetSaveButton" type="Button" parent="Panel/VBox/DebugRow" unique_id=-473022279]
+layout_mode = 2
+text = "DEBUG: reset save"

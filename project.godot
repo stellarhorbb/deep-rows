@@ -16,6 +16,7 @@ config/features=PackedStringArray("4.6", "GL Compatibility")
 
 [autoload]
 
+MetaProgression="*res://scripts/core/meta_progression.gd"
 RunService="*res://scripts/core/run_service.gd"
 SceneRouter="*res://scripts/core/scene_router.gd"
 

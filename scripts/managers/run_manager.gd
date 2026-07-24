@@ -123,7 +123,7 @@ var _active_context: RunContext = null
 
 
 ## Initialise un nouveau run. Les Partitions de depart ne sont plus auto-equipees
-## ici : c'est l'ecran de selection du pack de demarrage (get_available_starter_packs)
+## ici : c'est l'ecran de selection du pack de demarrage (get_all_starter_packs)
 ## qui appelle apply_starter_pack() avec le choix du joueur avant le debut de la manche 1.
 func init_run() -> void:
 	_flies = 0
@@ -198,15 +198,22 @@ func _generate_starter_buttons() -> Array[TokenData]:
 	return buttons
 
 
-## Charge le roster des packs de demarrage day-one (STARTER_PACK_PATHS). Ne
-## mute rien — pour l'ecran de selection de pack.
-func get_available_starter_packs() -> Array[StarterPackData]:
+## Charge le roster complet des packs de demarrage (STARTER_PACK_PATHS),
+## verrouilles inclus — pour l'ecran de selection de pack, qui affiche aussi
+## les packs pas encore debloques (voir is_pack_locked). Ne mute rien.
+func get_all_starter_packs() -> Array[StarterPackData]:
 	var packs: Array[StarterPackData] = []
 	for path in STARTER_PACK_PATHS:
 		var pack: StarterPackData = load(path) as StarterPackData
 		if pack != null:
 			packs.append(pack)
 	return packs
+
+
+## true si ce pack est encore verrouille pour la sauvegarde du Shore
+## courante (MetaProgression) — donc affichable mais pas selectionnable.
+func is_pack_locked(pack: StarterPackData) -> bool:
+	return pack.locked and not MetaProgression.is_unlocked(pack.unlock_id)
 
 
 ## Applique le pack de demarrage choisi par le joueur : equipe ses Partitions
@@ -221,6 +228,33 @@ func apply_starter_pack(pack: StarterPackData) -> void:
 
 func get_starter_pack() -> StarterPackData:
 	return _starter_pack
+
+
+## Marque le pack de demarrage courant comme gagne dans la sauvegarde du
+## Shore (MetaProgression), et debloque en cascade tout pack dont le
+## prerequis (unlock_requires_win_of) vient d'etre rempli. Appele une seule
+## fois, au moment ou la derniere manche du run est gagnee (voir
+## GameScene._on_round_won).
+func record_starter_win() -> void:
+	if _starter_pack == null:
+		return
+	MetaProgression.unlock(_win_id(_starter_pack))
+	for path in STARTER_PACK_PATHS:
+		var pack: StarterPackData = load(path) as StarterPackData
+		if pack != null and pack.unlock_requires_win_of == _starter_pack:
+			MetaProgression.unlock(pack.unlock_id)
+
+
+## true si le joueur a deja gagne un run avec ce pack — pour l'affichage
+## "COMPLETED" a l'ecran de selection (voir StarterPackSelectUI).
+func has_won_with_pack(pack: StarterPackData) -> bool:
+	return MetaProgression.is_unlocked(_win_id(pack))
+
+
+## ID de sauvegarde pour "ce pack a ete gagne au moins une fois", distinct de
+## StarterPackData.unlock_id (qui gate l'acces au pack lui-meme).
+static func _win_id(pack: StarterPackData) -> String:
+	return "win:" + pack.unlock_id
 
 
 ## Slots de Badge disponibles pour cette run (base + bonus permanent du pack

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
+unlock_id = "sheet:brelan"
 sheet_name = &"brelan"
 shape = &"line"
 rule = &"value"
