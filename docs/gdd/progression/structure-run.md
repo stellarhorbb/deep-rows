@@ -51,6 +51,12 @@ Après le boss de la zone 4, l'écran "you win" propose une **option de continue
 
 C'est le terrain où les [dan sans plafond du level up](../partitions/level-up.md#au-delà-de-maestro--les-dan-piste-décidée-session-16) et une courbe de [score cible](../manche/score-cible.md) exponentielle (question ouverte depuis longtemps) trouvent enfin une vraie raison d'être — dans la campagne fixe à durée bornée, ces deux systèmes ne servent presque jamais ; dans un mode qui continue tant que le joueur tient, ils deviennent le cœur du scaling de fin de partie.
 
+## Fin de run — le starter final
+
+**Genre tranché session 23, condition précisée session 24** : pas de true ending façon Hades (paliers narratifs, plusieurs états de fin — contredirait le scope "quelques flags" de la [boucle narrative](../shore/boucle-narrative.md) et le pilier [Ambivalence](../univers/pitch.md#lambivalence)). À la place, façon Cult of the Lamb — accumuler des conditions remplies à travers plusieurs runs pour débloquer une scène finale courte et ambiguë, le jeu continuant normalement après (mode infini, défis, malus — rien ne s'arrête).
+
+Condition retenue, liée à la [lecture profonde des packs de démarrage](../univers/pitch.md#le-sens-caché-privé--jamais-montré-en-jeu) (chaque pack = un trait de personnalité du garçon) : finir une run avec chaque starter débloque progressivement, jusqu'à révéler un **starter final** — celui le plus proche de qui il est, le cœur de sa psyché. Finir une run avec ce starter final propose la scène de fin. Reste ouvert (voir [Questions ouvertes](../meta/questions-ouvertes.md)) : faut-il *gagner* une run avec chaque starter ou juste la *finir*/l'essayer, l'ordre importe-t-il, combien de starters faut-il avant que le final ne se révèle (tous les 10, ou un sous-ensemble) ?
+
 ## Arborescence
 
 ```

@@ -48,9 +48,14 @@ La plupart des perturbations passeront par les [modifiers de cellules](../../gri
 - Forcer la **flexibilité** — un build trop spécialisé peut être mis en difficulté par la bonne perturbation
 - Les [Badges](../../badges/principe.md) peuvent contrer certaines perturbations
 
+## Lecture profonde (privée, session 24)
+
+L'Entity se relit comme la peur / la folie / la mort — celle qui veut que le garçon reste perdu dans le monde plutôt que d'en sortir. Jamais nommé ni montré ainsi en jeu, voir [Pitch — le sens caché](../pitch.md#le-sens-caché-privé--jamais-montré-en-jeu).
+
 ## Liens
 
 - [Jeton entity-skull](../../jetons/entity-skull.md)
 - [Modifiers de cellules](../../grille/modifiers-cellules.md)
 - [Le garçon](garcon.md)
+- [Pitch — le sens caché](../pitch.md#le-sens-caché-privé--jamais-montré-en-jeu)
 - [HOB-11 — règles d'override des modifiers](https://linear.app/hobbes-game/issue/HOB-11)
