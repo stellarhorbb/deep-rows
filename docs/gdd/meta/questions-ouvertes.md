@@ -27,11 +27,11 @@ Ce qui reste à trancher, par le proto ou par réflexion.
 
 ## Axe casino (session 25)
 
-- **Calibrage fin du [seuil de roulette](../manche/roulette-casino.md)** — 21 est tranché comme valeur de départ (raisonnement posé sur le budget du deck de départ, ~72 en valeur cumulée), mais le rythme réel (3-4 tours/manche en zone 1, fréquence en fin de run avec un deck buildé) reste à valider en playtest. Le forfait de remplissage des Spéciaux n'a pas de chiffre encore.
-- **Ampleur du prix de roulette indexée sur le dépassement du seuil** — piste évoquée (un gros dépassement du seuil pioche dans un meilleur palier de prix) mais pas spécifiée : formule de conversion dépassement → palier à définir.
+- **Calibrage fin du [seuil et du pool de roulette](../manche/roulette-casino.md)** — 21 et les valeurs Multiplicateur/Frog par palier sont un premier jet (raisonnement posé sur le budget du deck de départ, ~72 en valeur cumulée), mais le rythme réel (fréquence en zone 1 vs fin de run avec un deck buildé, ressenti du fizzle quand le multiplicateur tombe sur un coup mort) reste à valider en playtest.
 - **Accroche Badges/Boss malus sur la roulette et les cases mystère** — architecture jugée compatible (même moule que "Pluie de cailloux" côté Boss malus), mais aucun Badge ni malus concret nommé. À faire au moment de l'implémentation plutôt qu'en amont.
 - **[Siphon](../jetons/specials.md#spéciaux-réactifs--famille-identifiée-session-25) à surveiller** — contrairement aux autres mangeurs (limite fixe en coups), sa durée dépend du remplissage de la colonne où il est posé au moment du drop. Potentiellement un swing beaucoup plus fort que son palier "rare" ne le suggère — pas encore joué, à observer en playtest une fois codé.
 - **Résine** — écartée après deux angles ratés (voir [Spéciaux](../jetons/specials.md#spéciaux-réactifs--famille-identifiée-session-25)), pas définitivement enterrée. Revisitable si un angle évite (1) l'absence de gain réel de cascade et (2) le manque de contrôle du joueur sur où atterrissent les jetons.
+- **Passe UI/juice sur la roulette (session 25)** — premier jet fonctionnel mais volontairement plat : `ProgressBar` par défaut sans identité visuelle, pas de particules/son sur le déclenchement, le défilement de `play_prize_spin_announcement` reste du texte brut. Le pool est maintenant fixé (Multiplicateur/Frog) donc plus de raison d'attendre pour polir — cohérent avec la priorité déjà actée ailleurs (clarté + juice sur le pipeline de résolution).
 
 ## Économie
 

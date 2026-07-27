@@ -70,6 +70,35 @@ text = "SALT
 0"
 horizontal_alignment = 2
 
+[node name="RouletteGauge" type="ProgressBar" parent="." unique_id=1000000420]
+offset_left = 1780.0
+offset_top = 90.0
+offset_right = 1900.0
+offset_bottom = 106.0
+show_percentage = false
+
+[node name="RouletteGaugeLabel" type="Label" parent="." unique_id=1000000421]
+offset_left = 1780.0
+offset_top = 108.0
+offset_right = 1900.0
+offset_bottom = 128.0
+theme_override_colors/font_color = Color(0.239, 0.239, 0.361, 1)
+theme_override_font_sizes/font_size = 16
+text = "0/21"
+horizontal_alignment = 2
+
+[node name="RouletteMultiLabel" type="Label" parent="." unique_id=1000000422]
+visible = false
+offset_left = 1780.0
+offset_top = 132.0
+offset_right = 1900.0
+offset_bottom = 158.0
+theme_override_colors/font_color = Color(0.725, 0.408, 0.941, 1)
+theme_override_fonts/font = ExtResource("6_font_black")
+theme_override_font_sizes/font_size = 18
+text = "MULTI x1.2"
+horizontal_alignment = 2
+
 [node name="GridVisual" type="Node2D" parent="." unique_id=1596514991]
 position = Vector2(600, 130)
 script = ExtResource("2_grid")

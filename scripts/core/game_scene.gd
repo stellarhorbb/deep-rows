@@ -18,8 +18,14 @@ extends Node2D
 @onready var zone_label: Label = $ZoneLabel
 @onready var background: ColorRect = $Background
 @onready var flies_label: Label = $SaltLabel
+@onready var roulette_gauge: ProgressBar = $RouletteGauge
+@onready var roulette_gauge_label: Label = $RouletteGaugeLabel
+@onready var roulette_multi_label: Label = $RouletteMultiLabel
 @onready var shake_button: Button = $ShakeButton
 @onready var debug_win_button: Button = $DebugWinButton
+
+## Boucle du pulse "heartbeat" de RouletteMultiLabel -- voir _on_multi_status_changed.
+var _multi_pulse_tween: Tween = null
 
 # --- UI persistante, portee par le Shell (voir scripts/core/shell.gd) ---
 var sheets_ui: SheetsUI
@@ -84,6 +90,10 @@ func _create_managers() -> void:
 
 	# Branche les badges sur les hooks de la manche.
 	RunService.badge_manager.bind_round(turn_controller)
+	RunService.roulette_manager.bind_round(turn_controller)
+	RunService.roulette_manager.roulette_triggered.connect(_on_roulette_triggered)
+	RunService.roulette_manager.gauge_changed.connect(_on_roulette_gauge_changed)
+	RunService.roulette_manager.multi_status_changed.connect(_on_multi_status_changed)
 
 
 func _wire_references() -> void:
@@ -159,6 +169,7 @@ func _start_round() -> void:
 	_update_zone_display()
 	_on_flies_changed(RunService.run_manager.get_flies())
 	_on_shake_charges_changed(RunService.run_manager.get_shake_charges())
+	_on_roulette_gauge_changed(RunService.roulette_manager.get_gauge(), GameRules.ROULETTE_THRESHOLD)
 	grid_visual.refresh()
 	stream_ui.queue_redraw()
 
@@ -418,6 +429,59 @@ func _on_mystery_cell_resolved(col: int, row: int, effect: MysteryCellEffects.Ty
 				grid_visual.replace_sprite(Vector2i(col, row), token)
 		MysteryCellEffects.Type.TELEPORT:
 			grid_visual.rebuild_sprites()
+
+
+## Noms affiches pendant le defile de la roulette (voir _on_roulette_triggered)
+## -- purement cosmetique, les deux vraies familles (RouletteRewards.Family)
+## sont ce qui atterrit reellement.
+const _ROULETTE_FLAVOR_POOL: Array[String] = ["MULTIPLICATEUR", "FROG"]
+
+
+## Jauge casino pleine (RouletteManager.roulette_triggered, session 25) --
+## tirage deja resolu cote manager (tier/family/amount), on construit juste le
+## texte d'annonce ici. Ne pas reutiliser le label "ROULETTE" : deja pris par
+## play_roll_announcement (roll du Diamond Rock). Attend la fin de l'annonce
+## avant de prevenir RouletteManager (notify_banner_done) -- sinon le popup
+## et la chute d'un Frog gagne se chevauchent visuellement.
+func _on_roulette_triggered(tier: RouletteRewards.Tier, family: RouletteRewards.Family, amount: float) -> void:
+	var landed_label: String
+	var landed_description: String = RouletteRewards.tier_label(tier)
+	match family:
+		RouletteRewards.Family.MULTI:
+			landed_label = "MULTIPLICATEUR x%s" % String.num(amount, 1)
+		RouletteRewards.Family.FROG:
+			var count: int = int(amount)
+			landed_label = "%d FROG%s !" % [count, "S" if count > 1 else ""]
+		_:
+			landed_label = ""
+	await grid_visual.play_prize_spin_announcement(_ROULETTE_FLAVOR_POOL, landed_label, landed_description)
+	RunService.roulette_manager.notify_banner_done()
+
+
+func _on_roulette_gauge_changed(current: int, threshold: int) -> void:
+	roulette_gauge.max_value = threshold
+	roulette_gauge.value = current
+	roulette_gauge_label.text = "%d/%d" % [current, threshold]
+
+
+## Multiplicateur roulette pret pour le prochain drop (RouletteManager.
+## multi_status_changed, session 25) -- pulse en boucle façon heartbeat tant
+## qu'actif, disparait des que le drop attendu s'est resolu (score ou non,
+## voir RouletteManager._on_turn_resolved) : le joueur voit disparaitre le
+## bonus meme s'il n'a servi a rien, pas de fausse promesse silencieuse.
+func _on_multi_status_changed(active: bool, value: float) -> void:
+	if _multi_pulse_tween != null:
+		_multi_pulse_tween.kill()
+		_multi_pulse_tween = null
+	if not active:
+		roulette_multi_label.visible = false
+		return
+	roulette_multi_label.visible = true
+	roulette_multi_label.text = "MULTI x%s" % String.num(value, 1)
+	roulette_multi_label.scale = Vector2.ONE
+	_multi_pulse_tween = create_tween().set_loops()
+	_multi_pulse_tween.tween_property(roulette_multi_label, "scale", Vector2(1.15, 1.15), 0.4).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	_multi_pulse_tween.tween_property(roulette_multi_label, "scale", Vector2.ONE, 0.4).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 
 
 func _animate_score_to(target: int) -> void:

@@ -214,6 +214,32 @@ func _drop_token(token: TokenData, col: int) -> void:
 		await special_effect_done
 
 
+## Meme pipeline anime que _drop_token (placement -> attendre la chute ->
+## effet special -> attendre son animation), pour un jeton "cadeau" hors
+## deck/pioche (ex: Frog de la roulette, session 25, voir RouletteManager).
+## Deux differences deliberees avec _drop_token : ne consomme jamais
+## l'inventaire de Speciaux du joueur (ce jeton n'a jamais ete achete) et
+## n'emet pas token_dropped (sinon le cadeau rechargerait sa propre jauge
+## de declenchement).
+##
+## A appeler uniquement quand _state == AWAITING_INPUT (voir
+## RouletteManager, branche sur le signal awaiting_input plutot que
+## turn_resolved pour cette raison precise) : passe l'etat a DROPPING le
+## temps de l'animation pour bloquer un nouveau coup du joueur en plein
+## milieu (bug session 25 -- collision avec le pipeline d'animation), puis
+## restaure AWAITING_INPUT a la fin.
+func drop_bonus_token(token: TokenData, col: int) -> void:
+	if _state != State.AWAITING_INPUT:
+		return
+	_state = State.DROPPING
+	grid_manager.place_token(token, col, 0)
+	await drop_animated
+	if token.kind == TokenData.Kind.SPECIAL:
+		grid_manager.execute_special(token, col)
+		await special_effect_done
+	_state = State.AWAITING_INPUT
+
+
 func notify_drop_complete() -> void:
 	drop_animated.emit()
 

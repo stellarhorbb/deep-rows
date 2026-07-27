@@ -208,6 +208,15 @@ func play_mystery_announcement(label: String, description: String = "") -> void:
 	resolution_banner.play_mystery_announcement(label, description)
 
 
+## Jauge de roulette pleine (voir GameScene._on_roulette_triggered) --
+## contrairement a play_mystery_announcement ci-dessus, l'appelant a besoin
+## d'attendre la fin reelle de l'annonce (pour prevenir RouletteManager.
+## notify_banner_done avant de lacher un Frog gagne), donc await ici plutot
+## que fire-and-forget.
+func play_prize_spin_announcement(flavor_pool: Array[String], landed_label: String, landed_description: String = "") -> void:
+	await resolution_banner.play_prize_spin_announcement(flavor_pool, landed_label, landed_description)
+
+
 ## Joue la timeline de resolution complete avec animations.
 func play_timeline(timeline: Array[Dictionary]) -> void:
 	_is_animating = true

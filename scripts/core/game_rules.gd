@@ -160,6 +160,11 @@ const MODIFIER_MYSTERY_X10_MULT: float = 10.0
 # Cases mystere (session 24, axe casino) — quelques cases par manche, visibles
 # mais au contenu inconnu jusqu'a ce qu'un jeton/rock/special y atterrisse
 # (voir GridManager.generate_random_mystery_cells, MysteryCellEffects).
+# Retour a 2-4 en session 25 apres un aller-retour a 1-2 : la roulette a
+# d'abord ajoute des cases en plus (Planter), puis ce pont a ete retire pour
+# garder les deux systemes casino totalement independants (voir
+# docs/gdd/manche/roulette-casino.md) — les cases mystere redeviennent donc
+# la seule source, retour au chiffre valide fun en session 24.
 const ROUND_START_MYSTERY_MIN: int = 2
 const ROUND_START_MYSTERY_MAX: int = 4
 
@@ -176,6 +181,40 @@ const MYSTERY_JACKPOT_FLIES: int = 20
 
 # Entity
 const ENTITY_DROP_INTERVAL: int = 5  # Un drop tous les N poses joueur
+
+## Axe casino (session 25) -- jauge qui accumule la valeur brute des jetons
+## poses (voir RouletteManager), fixe pour toute la run, PAS un ratio de la
+## valeur du deck de la manche -- delibere pour ne pas amortir le snowball
+## d'un bon build en fin de run (voir docs/gdd/manche/roulette-casino.md).
+## 21 choisi pour qu'aucun jeton seul, meme un Roi (FACE_CARD_VALUES max =
+## 20, voir plus bas), ne puisse declencher la roulette a lui seul -- toujours
+## au moins 2 drops.
+const ROULETTE_THRESHOLD: int = 21
+
+## Forfait de remplissage pour un Special pose -- pas de valeur numerique
+## porteuse de sens (TokenData.value reste a 1 par defaut pour Kind.SPECIAL),
+## generosite volontaire vu leur rarete au tirage.
+const ROULETTE_SPECIAL_GAUGE_VALUE: int = 5
+
+## Pool de recompenses de la roulette (session 25) -- deux familles seulement
+## (Multiplicateur / Frog, cadeau des grenouilles orchestre), volontairement
+## reduit apres plusieurs tentatives plus larges (voir docs/gdd/manche/
+## roulette-casino.md) : la rarete ne change jamais la mecanique, juste son
+## ampleur ("juste le nombre"). Meme principe a taux fixe par palier que
+## MYSTERY_RARITY_RATES, catalogue totalement independant -- voir
+## RouletteRewards.
+const ROULETTE_RARITY_RATES: Array[float] = [0.55, 0.40, 0.05]  # Commun/Rare/Legendaire
+
+## Multiplicateur applique uniquement au PROCHAIN drop apres le declenchement
+## (jamais celui qui declenche la roulette) -- voir RouletteManager. Fixe, pas
+## de roll dans une fourchette : "ce sera memorable" (choix du user pour le
+## palier Legendaire).
+const ROULETTE_MULTI_VALUES: Array[float] = [1.2, 3.0, 10.0]  # index = palier
+
+## Nombre de Frogs lachés (colonnes aleatoires, voir RouletteManager) --
+## fourchette par palier, Commun et Legendaire fixes (min == max).
+const ROULETTE_FROG_MIN_COUNTS: Array[int] = [1, 2, 5]  # Commun/Rare/Legendaire
+const ROULETTE_FROG_MAX_COUNTS: Array[int] = [1, 3, 5]
 
 # Valeurs des jetons de base
 const TOKEN_MIN_VALUE: int = 1

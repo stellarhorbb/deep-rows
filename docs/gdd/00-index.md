@@ -58,7 +58,7 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
 - [Déroulement](manche/deroulement.md) — les étapes d'un tour
 - [Score cible](manche/score-cible.md) — courbe exponentielle, figée session 18
 - [Dernier Souffle](manche/dernier-souffle.md) — explosion rocks, cascade surprise
-- [Axe casino — roulette et cases mystère](manche/roulette-casino.md) — jauge, seuil fixe 21, spéciaux réactifs (session 25, pas implémenté)
+- [Axe casino — roulette et cases mystère](manche/roulette-casino.md) — jauge, seuil fixe 21, spéciaux réactifs (session 25 ; jauge + seuil + Planter codés, reste à faire : UI dédiée, Récolter, les autres prix, les spéciaux réactifs)
 
 ### [Badges](badges/)
 - [Principe](badges/principe.md) — 5 slots, passifs permanents

@@ -74,14 +74,16 @@ Le registre des décisions de design qui ne sont plus à rediscuter, sauf à l'e
 
 ## Axe casino (session 25)
 
-Conçu en réaction à une comparaison avec Raccoin (coin-pusher roguelite) — voir [détail complet](../manche/roulette-casino.md). Pas encore implémenté.
+Conçu en réaction à une comparaison avec Raccoin (coin-pusher roguelite) — voir [détail complet](../manche/roulette-casino.md). Implémenté en session 25.
 
 | Question | Décision | Raison |
 |---|---|---|
-| [Cohabitation cases mystère / roulette](../manche/roulette-casino.md) | Le quota de cases mystère au début de manche **reste** (déjà codé, session 24), la roulette vient s'ajouter en plus via un duo Planter/Récolter | Sans le quota de départ, la grille serait vide de cases mystère tant que la jauge n'a pas fait un premier tour — les tout premiers coups de la manche perdraient toute texture "pari spatial" |
+| [Séparation roulette / cases mystère](../manche/roulette-casino.md) | **Deux systèmes totalement indépendants**, aucun pont entre les deux (le duo Planter/Récolter envisagé un temps a été retiré) | Après plusieurs tentatives de faire cohabiter les deux (nesting confus, puis chevauchement de contenu avec `MysteryCellEffects`), la seule séparation qui reste cognitivement nette est l'absence totale de lien — deux familles, deux déclencheurs, jamais l'un ne cause l'autre |
+| [Quota de cases mystère](../grille/trous.md) | **Reste à 2-4** (valeur de session 24, inchangée) | N'a plus besoin de compenser un apport de la roulette puisque celle-ci n'en fournit plus |
 | [Remplissage de la jauge](../manche/roulette-casino.md) | Valeur brute du jeton posé, **sans plafond**. Rocks ~0, Spéciaux = forfait fixe | Un tirage aléatoire indépendant du jeton posé est illisible (impossible de justifier pourquoi un 1 avancerait plus qu'un 9) ; la valeur affichée sur le jeton EST la justification |
 | [Seuil de déclenchement](../manche/roulette-casino.md) | **Fixe à 21, pour toute la run** — pas un ratio recalculé sur la valeur du deck de la manche | Un seuil relatif au deck grossissant amortirait volontairement le snowball recherché : le joueur doit pouvoir "casser le jeu" avec un bon build (Fusion/figures) en spammant la roulette en fin de run, à la Balatro. 21 garantit aussi qu'aucun jeton seul (même un Roi = 20) ne déclenche à lui seul, toujours minimum 2 drops |
 | [Roulette et vitesse de drop](../manche/roulette-casino.md) | **Écarté** — aucune mécanique temps réel dans le jeu (tous les countdowns existants sont par tour) | Récompenser la nervosité physique irait contre l'identité "jeu de stratégie" que le projet assume désormais face à des jeux-spectacle comme Raccoin/Balatro |
+| [Pool de prix de la roulette](../manche/roulette-casino.md) | **Deux familles seulement** — Multiplicateur (x1.2/x3/x10 selon palier, sur le prochain drop uniquement) et Frog (1/2-3/5 exemplaires du spécial Frog lâchés en colonnes aléatoires) | Toute tentative plus large (Pièces/Capsules façon Raccoin, Récolter, Résolution forcée, accélérer un level up) a échoué sur un point précis (bloat de deck, perte d'agency, incohérence avec le jeu) — la rareté ne change jamais que l'ampleur ("juste le nombre"), jamais la mécanique |
 
 ## Badges
 
