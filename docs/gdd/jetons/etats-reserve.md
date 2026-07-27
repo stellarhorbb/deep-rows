@@ -2,6 +2,8 @@
 
 **Déprioritisé** — à implémenter plus tard si le jeu manque de profondeur après les [Badges](../badges/principe.md) et les [modifiers de cellules](../grille/modifiers-cellules.md).
 
+**Revisité en session 25** — l'idée d'un état généralisé (ex. un état "électrique" qui ferait scorer un groupe de jetons connectés en dehors de toute Partition) est ressortie en discussion, mais jugée trop coûteuse à maintenir/comprendre en plus de tout ce qui existe déjà. L'appétit a été redirigé vers une poignée de [spéciaux réactifs](../jetons/specials.md#spéciaux-réactifs--famille-identifiée-session-25) ciblés (Électrique, Cristal, Diamant, Amplificateur), qui réutilisent l'architecture Spécial existante au lieu d'ouvrir une nouvelle couche transversale. Cette page reste en réserve pour un système d'état généralisé — pas remplacée, juste toujours pas prioritaire.
+
 ## Principe
 
 Un [bouton](boutons.md) pourrait recevoir un **état** qui ajoute un effet bonus tout en gardant sa famille et son chiffre. Exemple : `Bâtons 4 "Explosif"` — reste un Bâtons 4 pour les patterns, mais déclenche un effet bonus à la résolution.
