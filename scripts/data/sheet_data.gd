@@ -81,7 +81,13 @@ func describe() -> String:
 	if rule_desc != "":
 		text += ", " + rule_desc
 
-	if is_legendary:
+	# Fix session 25 : "Multiplicateur variable" etait affiche pour TOUS les
+	# legendaires sans distinction, y compris Last Trick dont le multiplicateur
+	# est en fait fixe (score_multiplier = 2.5 sur la resource) -- seuls Royal
+	# Square et Lost Corners ont un multiplicateur reellement variable (roll /
+	# somme de la rangee du bas), reconnaissables par score_multiplier reste a
+	# sa valeur par defaut (1.0, pas fixe sur la resource).
+	if is_legendary and score_multiplier <= 1.0:
 		text += "\nMultiplicateur variable (légendaire)"
 	elif score_multiplier > 1.0:
 		text += "\nMultiplicateur fixe x%.1f" % score_multiplier

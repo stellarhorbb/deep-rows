@@ -32,6 +32,8 @@ static func can_play(grid: Array, token: TokenData, col: int, _row: int, cols: i
 				return _column_height(grid, col, rows, holes) < rows
 			TokenData.SpecialType.HYPERCUBE:
 				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.ARMAGEDDON:
+				return _column_height(grid, col, rows, holes) < rows
 
 	return false
 
@@ -69,29 +71,6 @@ static func execute_fantome(grid: Array, col: int, rows: int, holes: Dictionary 
 		if i + 1 >= usable_rows.size():
 			break
 		grid[col][usable_rows[i + 1]] = col_tokens[i]
-
-
-## Bombe : atterrit en haut de colonne, detruit 3x3 autour. Pas de score, juste deblayage.
-## Retourne { "score": int, "destroyed": Array[Vector2i] }
-static func execute_bombe(grid: Array, col: int, cols: int, rows: int, holes: Dictionary = {}) -> Dictionary:
-	var landing_row: int = _column_height(grid, col, rows, holes)
-	if landing_row >= rows:
-		return { "score": 0, "destroyed": [] as Array[Vector2i] }
-
-	var destroyed: Array[Vector2i] = []
-
-	for dc in range(-1, 2):
-		for dr in range(-1, 2):
-			var cc: int = col + dc
-			var rr: int = landing_row + dr
-			if cc < 0 or cc >= cols or rr < 0 or rr >= rows:
-				continue
-			if grid[cc][rr] == null:
-				continue
-			destroyed.append(Vector2i(cc, rr))
-			grid[cc][rr] = null
-
-	return { "score": 0, "destroyed": destroyed }
 
 
 ## Maree : vague qui ecarte la ligne autour du point d'impact.
@@ -163,23 +142,36 @@ static func execute_enclume(grid: Array, col: int, rows: int, holes: Dictionary 
 ## (sans multiplicateur — meme convention que la Bombe/le Pétard) est
 ## retournee comme score. Un jeton non scorable (Rock, Special, Entity) est
 ## quand meme retire (nettoyage de la case), mais ne rapporte rien. Case
-## vide : rien a manger, retourne 0.
-static func _eat_cell(grid: Array, cell: Vector2i) -> int:
+## vide : rien a manger. Retourne {"score": int, "ate": bool} -- "ate" (session
+## 25) distingue "case vide traversee" de "quelque chose y a ete mange" (meme
+## un Rock, score 0) : Cavalier/Frog s'en servent pour disparaitre des leur
+## premiere bouchee plutot que d'attendre la fin de leur countdown.
+static func _eat_cell(grid: Array, cell: Vector2i) -> Dictionary:
 	var token: TokenData = grid[cell.x][cell.y] as TokenData
 	if token == null:
-		return 0
+		return {"score": 0, "ate": false}
 	var score: int = token.value if token.is_scorable() else 0
 	grid[cell.x][cell.y] = null
-	return score
+	return {"score": score, "ate": true}
+
+
+## Applique GameRules.MOBILE_EATER_GAMBLE_MULT au score brut d'une bouchee de
+## Cavalier/Frog (voir move_cavalier/move_frog) -- Liane n'y a pas droit,
+## sa croissance est deterministe (toujours vers la droite), pas un gamble.
+static func _apply_gamble_mult(score: int) -> int:
+	return int(round(score * GameRules.MOBILE_EATER_GAMBLE_MULT))
 
 
 ## Cavalier : deplacement d'echecs en L (8 destinations possibles), tire au
 ## hasard parmi celles valides (dans la grille, hors trous). Case occupee :
 ## mange son contenu (voir _eat_cell) au lieu de le decaler. Retourne
-## {"dest": Vector2i, "score": int} — dest = (col, row) inchange si aucune
-## destination n'est valide (rarissime, seulement si les 8 sont hors grille
-## ou trouees) ; l'appelant (GridManager.tick_mobile_specials) ne consomme un
-## des deplacements restants que si la position a reellement change.
+## {"dest": Vector2i, "score": int, "ate": bool} — dest = (col, row) inchange
+## si aucune destination n'est valide (rarissime, seulement si les 8 sont
+## hors grille ou trouees) ; l'appelant (GridManager.tick_mobile_specials) ne
+## consomme un des deplacements restants que si la position a reellement
+## change, et fait disparaitre le special immediatement si "ate" est vrai
+## (session 25 : attendre la fin du countdown apres avoir deja mange rendait
+## le special imprevisible trop longtemps).
 static func move_cavalier(grid: Array, col: int, row: int, cols: int, rows: int, holes: Dictionary = {}) -> Dictionary:
 	var deltas: Array[Vector2i] = [
 		Vector2i(1, 2), Vector2i(1, -2), Vector2i(-1, 2), Vector2i(-1, -2),
@@ -194,13 +186,13 @@ static func move_cavalier(grid: Array, col: int, row: int, cols: int, rows: int,
 			continue
 		candidates.append(c)
 	if candidates.is_empty():
-		return {"dest": Vector2i(col, row), "score": 0}
+		return {"dest": Vector2i(col, row), "score": 0, "ate": false}
 	var dest: Vector2i = candidates[randi() % candidates.size()]
-	var score: int = _eat_cell(grid, dest)
+	var eaten: Dictionary = _eat_cell(grid, dest)
 	var token: TokenData = grid[col][row] as TokenData
 	grid[col][row] = null
 	grid[dest.x][dest.y] = token
-	return {"dest": dest, "score": score}
+	return {"dest": dest, "score": _apply_gamble_mult(eaten["score"] as int), "ate": eaten["ate"]}
 
 
 ## Frog : saute en diagonale haut-gauche ou haut-droite, tiree au hasard.
@@ -217,13 +209,13 @@ static func move_frog(grid: Array, col: int, row: int, cols: int, rows: int, hol
 			continue
 		candidates.append(c)
 	if candidates.is_empty():
-		return {"dest": Vector2i(col, row), "score": 0}
+		return {"dest": Vector2i(col, row), "score": 0, "ate": false}
 	var dest: Vector2i = candidates[randi() % candidates.size()]
-	var score: int = _eat_cell(grid, dest)
+	var eaten: Dictionary = _eat_cell(grid, dest)
 	var token: TokenData = grid[col][row] as TokenData
 	grid[col][row] = null
 	grid[dest.x][dest.y] = token
-	return {"dest": dest, "score": score}
+	return {"dest": dest, "score": _apply_gamble_mult(eaten["score"] as int), "ate": eaten["ate"]}
 
 
 ## Liane : fait grandir la vigne d'un cran vers la droite, a partir de la
@@ -246,9 +238,9 @@ static func grow_liane(grid: Array, col: int, row: int, cols: int, _rows: int, h
 	var new_col: int = tip_col + 1
 	if holes.has(Vector2i(new_col, row)):
 		return 0
-	var score: int = _eat_cell(grid, Vector2i(new_col, row))
+	var eaten: Dictionary = _eat_cell(grid, Vector2i(new_col, row))
 	grid[new_col][row] = TokenData.make_special(TokenData.SpecialType.LIANE)
-	return score
+	return eaten["score"] as int
 
 
 ## Fane et efface toute la vigne contigue (tete + segments) a partir de
@@ -264,28 +256,28 @@ static func wither_liane(grid: Array, col: int, row: int, cols: int) -> void:
 		c += 1
 
 
-## Crow : vole un jeton scorable au hasard sur sa ligne (hors sa propre
-## case) et le redepose — drop normal au sommet de sa colonne (column_height),
-## sans le scorer : Crow est un "demenageur", pas un "mangeur" (contrairement
-## a Cavalier/Frog/Liane, voir _eat_cell). Rien a voler sur la ligne : ne
-## fait rien. Le Crow lui-meme est efface par l'appelant juste apres, qu'il
-## y ait eu un vol ou non (voir GridManager.tick_mobile_specials).
-static func steal_row_token(grid: Array, crow_col: int, crow_row: int, cols: int, rows: int, holes: Dictionary = {}) -> void:
-	var candidates: Array[int] = []
-	for c in range(cols):
-		if c == crow_col:
-			continue
-		var token: TokenData = grid[c][crow_row] as TokenData
-		if token != null and token.is_scorable():
-			candidates.append(c)
-	if candidates.is_empty():
+## Crow (retravaille session 25, retour playtest) : vole la case immediatement
+## a sa GAUCHE sur sa ligne — plus de tirage aleatoire sur toute la ligne,
+## cible fixe et previsible pour recuperer strategiquement un jeton mal
+## place. Redepose — drop normal au sommet de sa colonne (column_height),
+## sans le scorer : Crow reste un "demenageur", pas un "mangeur" (contrairement
+## a Cavalier/Frog/Liane, voir _eat_cell). Case vide, non scorable, ou Crow en
+## colonne 0 (rien a sa gauche) : ne fait rien. Le Crow lui-meme est efface
+## par l'appelant juste apres, qu'il y ait eu un vol ou non (voir
+## GridManager.tick_mobile_specials) — jamais de blocage indefini sur la
+## grille, y compris pour un Crow pose en colonne 0 qui ne pourrait sinon
+## jamais rien voler.
+static func steal_row_token(grid: Array, crow_col: int, crow_row: int, rows: int, holes: Dictionary = {}) -> void:
+	var source_col: int = crow_col - 1
+	if source_col < 0:
 		return
-	var source_col: int = candidates[randi() % candidates.size()]
-	var stolen: TokenData = grid[source_col][crow_row] as TokenData
+	var token: TokenData = grid[source_col][crow_row] as TokenData
+	if token == null or not token.is_scorable():
+		return
 	grid[source_col][crow_row] = null
 	var landing_row: int = _column_height(grid, crow_col, rows, holes)
 	if landing_row < rows:
-		grid[crow_col][landing_row] = stolen
+		grid[crow_col][landing_row] = token
 	# Sinon (colonne du Crow deja pleine) : le jeton vole est perdu, cas
 	# limite non specifie — coherent avec "redepose" qui suppose une place.
 

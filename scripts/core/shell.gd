@@ -12,6 +12,7 @@ extends Control
 @onready var badges_ui: BadgesUI = $BadgesUI
 @onready var deck_button: Button = $DeckButton
 @onready var deck_inspector_ui: DeckInspectorUI = $DeckInspectorUI
+@onready var special_inventory_ui: SpecialInventoryUI = $SpecialInventoryUI
 
 var _current_content: Node = null
 
@@ -23,6 +24,8 @@ func _ready() -> void:
 	sheets_ui.setup()
 	badges_ui.run_manager = RunService.run_manager
 	badges_ui.setup()
+	special_inventory_ui.run_manager = RunService.run_manager
+	special_inventory_ui.setup()
 	# Tilt sur le slot d'un Badge des qu'il ajoute des mouches (Vertige,
 	# Pourboire, Un Pour Tous, Mouches en Cascade...) — ces Badges ne passent
 	# jamais par la banniere de resolution (qui tilte deja les Badges de score),
@@ -52,6 +55,7 @@ func load_content(scene_path: String) -> Node:
 	deck_button.disabled = true
 	deck_inspector_ui.deck_manager = null
 	deck_inspector_ui.visible = false
+	special_inventory_ui.clear_selection()
 
 	var packed: PackedScene = load(scene_path) as PackedScene
 	var instance: Node = packed.instantiate()

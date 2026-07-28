@@ -37,9 +37,16 @@ const BOSS_MALUS_ROCK_COUNT: int = 4
 # qu'il explose (voir GridManager.tick_entity_countdowns).
 const MECHE_COURTE_START_COUNTDOWN: int = 5
 
-# Special "Pétard à mèche" — countdown de depart avant qu'il explose et score
-# ses 2 voisins directs (voir GridManager.tick_special_countdowns).
-const PETARD_A_MECHE_START_COUNTDOWN: int = 3
+# Famille des explosifs a retardement (session 25 : Bombe/Armageddon
+# rejoignent Petard a meche, avant elle seule a scorer) — countdown de depart
+# avant explosion, croissant avec la taille de la zone d'impact (voir
+# GridManager.tick_special_countdowns/_explosive_offsets). Plus la zone est
+# grande, plus la grille a le temps de bouger dessous avant que ça parte —
+# c'est le "gamble" propre a cette famille (contrairement aux mobiles
+# Cavalier/Frog, dont le gamble porte sur la destination, pas le temps).
+const PETARD_A_MECHE_START_COUNTDOWN: int = 3  # 2 cases (gauche/droite), Uncommon
+const BOMBE_START_COUNTDOWN: int = 5           # 4 cases (haut/bas/gauche/droite), Rare
+const ARMAGEDDON_START_COUNTDOWN: int = 8      # 8 cases (carre 3x3 autour), Epic
 
 # Speciaux mobiles (session 22) — nombre de deplacements/croissances avant
 # disparition (voir GridManager.tick_mobile_specials).
@@ -47,6 +54,17 @@ const CAVALIER_MOVES: int = 3
 const FROG_MOVES: int = 5
 const LIANE_GROWTH_TICKS: int = 3
 const CROW_IDLE_TICKS: int = 1
+
+## Multiplicateur de valeur (retour playtest session 25) applique au score
+## brut de Cavalier/Frog quand ils mangent effectivement quelque chose — voir
+## SpecialEffects.move_cavalier/move_frog. Compense le seul vrai "gamble" du
+## jeu chez les speciaux : leur destination est tiree au hasard parmi
+## plusieurs cases valides (contrairement a Bombe/Petard/Liane/Underground,
+## toujours visees ou deterministes), donc un coup rate ne rapporte
+## strictement rien — contrairement a la famille Bombe, dont la zone
+## d'impact garantit toujours au moins sa base. Premier jet, a ajuster au
+## ressenti.
+const MOBILE_EATER_GAMBLE_MULT: float = 1.5
 
 # "Grille cabossee" — trous generes au debut de chaque manche (jamais en row 0,
 # le sol reste toujours garanti). Un jeton qui tombe les traverse sans pouvoir
@@ -57,6 +75,15 @@ const ROUND_START_HOLES_MAX: int = 8
 # Stream
 const PREVIEW_SIZE: int = 3
 const BASE_HOLD_SLOTS: int = 1
+
+## Inventaire de speciaux (session 25, remplace le systeme "special = jeton du
+## deck") -- le joueur achete un special au shop, il rejoint cet inventaire
+## possede pour toute la run (pas remis a zero au round_start, contrairement
+## au deck), joue a la demande a la place du coup normal (voir TurnController.
+## play_special_from_inventory). Fixe pour l'instant, pas encore upgradable
+## par Badge comme le Hold (BASE_HOLD_SLOTS) -- a etendre si le besoin se
+## confirme au playtest.
+const SPECIAL_INVENTORY_SLOTS: int = 3
 
 ## "Shake" -- bouton d'urgence qui remelange TOUT ce qui reste a jouer cette
 ## manche (current en main + hold + pioche), jamais la composition -- pas
@@ -157,6 +184,14 @@ const MODIFIER_MYSTERY_X2_MULT: float = 2.0
 const MODIFIER_MYSTERY_X5_MULT: float = 5.0
 const MODIFIER_MYSTERY_X10_MULT: float = 10.0
 
+# Modifier exclusif au Badge "Bord a Bord" (session 25, retune equilibrage) --
+# MODIFIER_BOOST est partage avec Ecume/Colonne Chanceuse/Trench (voir
+# scripts/badges/effect_*.gd) : le retoucher directement aurait aussi nerf
+# ces trois-la sans que ce soit demande. Valeur dediee pour ne changer que
+# Bord a Bord.
+const MODIFIER_BORD_A_BORD: StringName = &"bord_a_bord"
+const MODIFIER_BORD_A_BORD_MULT: float = 1.2
+
 # Cases mystere (session 24, axe casino) — quelques cases par manche, visibles
 # mais au contenu inconnu jusqu'a ce qu'un jeton/rock/special y atterrisse
 # (voir GridManager.generate_random_mystery_cells, MysteryCellEffects).
@@ -176,7 +211,12 @@ const MYSTERY_RARITY_RATES: Array[float] = [0.55, 0.40, 0.05]
 # Effets "score actuel" (multiplicatif) et mouches, voir MysteryCellEffects.
 const MYSTERY_SCORE_PERCENT: float = 0.10
 const MYSTERY_FLIES_SMALL: int = 1
-const MYSTERY_FLIES_BIG: int = 5
+# Separes en session 25 (retune equilibrage, "Piège à mouches" -5 -> -2) --
+# avant, un seul MYSTERY_FLIES_BIG servait aux deux sens (+5/-5), donc
+# adoucir la perte aurait aussi nerf le gain "Trésor de mouches" sans que ce
+# soit demande.
+const MYSTERY_FLIES_BIG_GAIN: int = 5
+const MYSTERY_FLIES_BIG_LOSS: int = 2
 const MYSTERY_JACKPOT_FLIES: int = 20
 
 # Entity
@@ -191,30 +231,39 @@ const ENTITY_DROP_INTERVAL: int = 5  # Un drop tous les N poses joueur
 ## au moins 2 drops.
 const ROULETTE_THRESHOLD: int = 21
 
-## Forfait de remplissage pour un Special pose -- pas de valeur numerique
-## porteuse de sens (TokenData.value reste a 1 par defaut pour Kind.SPECIAL),
-## generosite volontaire vu leur rarete au tirage.
-const ROULETTE_SPECIAL_GAUGE_VALUE: int = 5
-
 ## Pool de recompenses de la roulette (session 25) -- deux familles seulement
-## (Multiplicateur / Frog, cadeau des grenouilles orchestre), volontairement
-## reduit apres plusieurs tentatives plus larges (voir docs/gdd/manche/
-## roulette-casino.md) : la rarete ne change jamais la mecanique, juste son
-## ampleur ("juste le nombre"). Meme principe a taux fixe par palier que
-## MYSTERY_RARITY_RATES, catalogue totalement independant -- voir
-## RouletteRewards.
+## (Multiplicateur / Boost, ce dernier ayant remplace Frog qui cassait trop
+## souvent des Partitions en cours), volontairement reduit apres plusieurs
+## tentatives plus larges (voir docs/gdd/manche/roulette-casino.md) : la
+## rarete ne change jamais la mecanique, juste son ampleur ("juste le
+## nombre"). Meme principe a taux fixe par palier que MYSTERY_RARITY_RATES,
+## catalogue totalement independant -- voir RouletteRewards.
 const ROULETTE_RARITY_RATES: Array[float] = [0.55, 0.40, 0.05]  # Commun/Rare/Legendaire
 
-## Multiplicateur applique uniquement au PROCHAIN drop apres le declenchement
-## (jamais celui qui declenche la roulette) -- voir RouletteManager. Fixe, pas
-## de roll dans une fourchette : "ce sera memorable" (choix du user pour le
-## palier Legendaire).
+## Multiplicateur applique aux prochains drops apres le declenchement (jamais
+## celui qui declenche la roulette) -- voir RouletteManager. Fixe, pas de roll
+## dans une fourchette : "ce sera memorable" (choix du user pour le palier
+## Legendaire).
 const ROULETTE_MULTI_VALUES: Array[float] = [1.2, 3.0, 10.0]  # index = palier
 
-## Nombre de Frogs lachés (colonnes aleatoires, voir RouletteManager) --
-## fourchette par palier, Commun et Legendaire fixes (min == max).
-const ROULETTE_FROG_MIN_COUNTS: Array[int] = [1, 2, 5]  # Commun/Rare/Legendaire
-const ROULETTE_FROG_MAX_COUNTS: Array[int] = [1, 3, 5]
+## Delai MAXIMUM (en drops) pour se servir du multiplicateur avant qu'il
+## n'expire -- pas une duree garantie, voir RouletteManager._on_turn_resolved :
+## des qu'un tour scoré en profite, il s'efface immediatement. 1 seul drop en
+## premier jet (session 25), remonte a 3 apres retour de playtest ("un coup
+## c'est trop chaud a caler") : trop dur a timer precisement sur un coup unique.
+const ROULETTE_MULTI_DROPS: int = 3
+
+## Boost (session 25, remplace Frog dans le pool -- voir docs/gdd/manche/
+## roulette-casino.md#ce-qui-a-été-écarté) : augmente la valeur d'UN jeton de
+## base pris au hasard sur la grille, jamais retire/deplace donc zero risque
+## sur les Partitions/patterns en cours. L'ampleur (pas le nombre, toujours 1
+## jeton) varie par palier -- meme forme que ROULETTE_MULTI_VALUES (1.2/3/10)
+## pour rester coherent visuellement dans le pool. Plafonne a
+## MAX_BUTTON_VALUE (10, voir GridManager.boost_random_token) : les figures
+## restent exclusivement accessibles par le score reel, jamais offertes
+## gratuitement -- +10 sur le palier Legendaire revient donc toujours a fixer
+## la valeur pile a 10, peu importe le point de depart.
+const ROULETTE_BOOST_VALUES: Array[int] = [1, 3, 10]  # Commun/Rare/Legendaire
 
 # Valeurs des jetons de base
 const TOKEN_MIN_VALUE: int = 1
@@ -499,4 +548,5 @@ static func get_modifier_multiplier(type: StringName) -> float:
 		MODIFIER_MYSTERY_X2:  return MODIFIER_MYSTERY_X2_MULT
 		MODIFIER_MYSTERY_X5:  return MODIFIER_MYSTERY_X5_MULT
 		MODIFIER_MYSTERY_X10: return MODIFIER_MYSTERY_X10_MULT
+		MODIFIER_BORD_A_BORD: return MODIFIER_BORD_A_BORD_MULT
 		_:               return 1.0

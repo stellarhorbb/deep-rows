@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SpecialItem" format=3]
+
+[ext_resource type="Script" uid="uid://cnotxoaeku51" path="res://scripts/data/special_item.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+label = "ARMAGEDDON"
+description = "Explose après 8 tours : score les 8 cases autour de l'impact (carré 3x3) avant de disparaître."
+price = 4
+rarity = 3
+special_type = 12

@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://dml5e5e5qgsdp" path="res://scripts/ui/sheets_ui.gd" id="2_sheets"]
 [ext_resource type="Script" uid="uid://d2v6eujd02dg1" path="res://scripts/ui/badges_ui.gd" id="3_badges"]
 [ext_resource type="Script" uid="uid://8wuxu3ia4mw3" path="res://scripts/ui/deck_inspector_ui.gd" id="4_deck_inspector"]
+[ext_resource type="Script" path="res://scripts/ui/special_inventory_ui.gd" id="5_special_inventory"]
 
 [node name="Shell" type="Control" unique_id=75247852]
 layout_mode = 3
@@ -36,6 +37,15 @@ offset_right = 1890.0
 offset_bottom = 1060.0
 mouse_filter = 1
 script = ExtResource("3_badges")
+
+[node name="SpecialInventoryUI" type="Control" parent="." unique_id=1000000430]
+anchors_preset = 0
+offset_left = 1780.0
+offset_top = 180.0
+offset_right = 1900.0
+offset_bottom = 560.0
+mouse_filter = 1
+script = ExtResource("5_special_inventory")
 
 [node name="DeckButton" type="Button" parent="." unique_id=641079349]
 layout_mode = 0

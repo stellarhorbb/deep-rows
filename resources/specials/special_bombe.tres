@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 label = "BOMBE"
-description = "Détruit un carré 3x3 autour de l'impact."
-price = 2
+description = "Explose après 5 tours : score les 4 cases haut/bas/gauche/droite avant de disparaître."
+price = 3
+rarity = 2
 special_type = 2

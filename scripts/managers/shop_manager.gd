@@ -60,6 +60,7 @@ const SPECIAL_PATHS: Array[String] = [
 	"res://resources/specials/special_crow.tres",
 	"res://resources/specials/special_underground.tres",
 	"res://resources/specials/special_hypercube.tres",
+	"res://resources/specials/special_armageddon.tres",
 ]
 
 ## Badges achetables (BadgeData).
@@ -657,6 +658,11 @@ func can_equip_slot(item: Variant, run_manager: RunManager) -> bool:
 		if equipped_badges.size() >= run_manager.get_badge_slot_count():
 			return false
 		if equipped_badges.has(item):
+			return false
+	elif item is SpecialItem:
+		# Inventaire de speciaux (session 25) : meme logique de slot limite
+		# que Sheets/Badges, avant de debiter les mouches.
+		if run_manager.get_special_inventory().size() >= run_manager.get_special_inventory_capacity():
 			return false
 	return true
 

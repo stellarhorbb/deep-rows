@@ -8,7 +8,7 @@ signal flies_changed(amount: int)
 signal shake_charges_changed(amount: int)
 signal sheets_changed(equipped: Array[SheetData])
 signal badges_changed(equipped: Array[BadgeData])
-signal deck_composition_changed()
+signal special_inventory_changed()
 signal grid_modifiers_changed(modifiers: Dictionary)
 signal button_pool_changed()
 signal sheet_leveled_up(sheet_name: StringName, new_level: int)
@@ -33,19 +33,14 @@ var _shake_charges: int = GameRules.SHAKE_CHARGES_DEFAULT
 var _equipped_sheets: Array[SheetData] = []
 var _equipped_badges: Array[BadgeData] = []
 var _button_pool: Array[TokenData] = []
-var _deck_composition: Dictionary = {
-	"bombe_count": 0,
-	"fantome_count": 0,
-	"maree_count": 0,
-	"enclume_count": 0,
-	"petard_a_meche_count": 0,
-	"cavalier_count": 0,
-	"frog_count": 0,
-	"liane_count": 0,
-	"crow_count": 0,
-	"underground_count": 0,
-	"hypercube_count": 0,
-}
+
+## Inventaire de speciaux possede par le joueur (session 25, remplace l'ancien
+## systeme "special = jeton du deck") -- achete au shop, joue a la demande a
+## la place du coup normal (voir TurnController.play_special_from_inventory),
+## jamais mele au stream. Plafonne a GameRules.SPECIAL_INVENTORY_SLOTS.
+## Premier jet : capacite fixe, pas encore de bonus par Badge (contrairement
+## au Hold, voir _hold_slot_bonuses) -- a etendre si le besoin se confirme.
+var _special_inventory: Array[TokenData.SpecialType] = []
 var _grid_modifiers: Dictionary = {}    # Vector2i -> Array[StringName]
 
 ## Canaux alimentables par plusieurs Badges a la fois (session 18) : un seul
@@ -152,31 +147,18 @@ func init_run() -> void:
 	_button_pool = _generate_starter_buttons()
 	_sheet_progress.clear()
 
-	_deck_composition = {
-		"bombe_count": 0,
-		"fantome_count": 0,
-		"maree_count": 0,
-		"enclume_count": 0,
-		"petard_a_meche_count": 0,
-		"cavalier_count": 0,
-		"frog_count": 0,
-		"liane_count": 0,
-		"crow_count": 0,
-		"underground_count": 0,
-		"hypercube_count": 0,
-	}
+	_special_inventory.clear()
 	_scaling_mult_bonuses.clear()
 	_flat_score_bonuses.clear()
 	_token_upgrade_chances.clear()
 	_sheet_multiplier_bonus_contributions.clear()
 	_run_badge_state.clear()
-	_apply_debug_specials_to_deck()
 
 	flies_changed.emit(_flies)
 	shake_charges_changed.emit(_shake_charges)
 	sheets_changed.emit(_equipped_sheets)
 	badges_changed.emit(_equipped_badges)
-	deck_composition_changed.emit()
+	special_inventory_changed.emit()
 
 
 ## Genere le pool de boutons de depart : x copies de chaque (famille, valeur)
@@ -859,7 +841,7 @@ func get_button_pool() -> Array[TokenData]:
 func build_next_round_deck_preview() -> Array[TokenData]:
 	var preview: DeckManager = DeckManager.new()
 	preview.rock_count_bonus = build_context().rock_count_bonus
-	preview.build_deck(get_deck_composition(), get_button_pool())
+	preview.build_deck(get_button_pool())
 	var tokens: Array[TokenData] = preview.get_remaining_tokens()
 	preview.free()
 	return tokens
@@ -868,6 +850,31 @@ func build_next_round_deck_preview() -> Array[TokenData]:
 ## Ajoute un bouton possede au pool (achat unitaire au shop).
 func add_button(family: TokenData.Family, value: int) -> void:
 	_button_pool.append(TokenData.make_base(family, value))
+	button_pool_changed.emit()
+
+
+## Boost de la roulette (session 25) : augmente de `amount` (plafonne a
+## MAX_BUTTON_VALUE) la valeur d'UN bouton de base pris au hasard dans le
+## pool POSSEDE -- c'est ici, et non sur la copie ephemere de la grille (voir
+## GridManager.boost_random_token, qui ne fait que rejouer le highlight visuel
+## du meme tour), que l'effet doit vivre pour etre reellement acquis d'une
+## manche a l'autre. Sans ce cote pool, un Boost ne survivait jamais a la fin
+## de la manche (copie fraiche a chaque build_deck), qu'il ait scoré ou non --
+## contraire a sa raison d'etre (voir docs/logs/Session 25.md). Exclut les
+## boutons deja a MAX_BUTTON_VALUE (10) ou au-dela (Figures, Valet+) -- meme
+## raison que GridManager.boost_random_token, en pire ici puisque l'effet
+## gaspille serait definitivement perdu (pas juste ce tour-ci). Ne fait rien
+## si le pool est vide ou n'a plus aucun candidat boostable.
+func boost_random_button(amount: int) -> void:
+	var candidates: Array[int] = []
+	for i in range(_button_pool.size()):
+		if _button_pool[i].kind == TokenData.Kind.BASE and _button_pool[i].value < GameRules.MAX_BUTTON_VALUE:
+			candidates.append(i)
+	if candidates.is_empty():
+		return
+	var index: int = candidates.pick_random()
+	var token: TokenData = _button_pool[index]
+	_button_pool[index] = TokenData.make_base(token.family, mini(token.value + amount, GameRules.MAX_BUTTON_VALUE))
 	button_pool_changed.emit()
 
 
@@ -982,90 +989,45 @@ func remove_button(index: int) -> bool:
 	return true
 
 
-func get_deck_composition() -> Dictionary:
-	return _deck_composition.duplicate()
+func get_special_inventory() -> Array[TokenData.SpecialType]:
+	return _special_inventory.duplicate()
 
 
-func add_special(type: TokenData.SpecialType) -> void:
-	_increment_special_count(type)
-	deck_composition_changed.emit()
+func get_special_inventory_capacity() -> int:
+	return GameRules.SPECIAL_INVENTORY_SLOTS
 
 
-## Un special achete est un bien persistant (comme un bouton ou un Badge) :
-## il reste dans le deck manche apres manche jusqu'a etre reellement joue sur
-## la grille (voir TurnController.play_current_to). La seule facon d'en
-## obtenir un autre est d'en racheter au shop.
-func consume_special(type: TokenData.SpecialType) -> void:
-	_decrement_special_count(type)
-	deck_composition_changed.emit()
+## Ajoute un special a l'inventaire (achat shop ou effet de Badge, ex:
+## Artificier) -- ne fait rien si l'inventaire est deja plein, retourne false
+## dans ce cas pour que l'appelant sache que l'ajout a echoue (le shop doit
+## bloquer l'achat, voir ShopManager).
+func add_special(type: TokenData.SpecialType) -> bool:
+	if _special_inventory.size() >= get_special_inventory_capacity():
+		return false
+	_special_inventory.append(type)
+	special_inventory_changed.emit()
+	return true
 
 
-## Re-ajoute au deck les specials dont le flag debug_always_in_deck est actif
-## (outil de test, voir SpecialItem — n'affecte jamais les specials achetes).
-func apply_debug_specials() -> void:
-	_apply_debug_specials_to_deck()
-	deck_composition_changed.emit()
+## Retire et retourne le special a `index` (le joueur vient de le jouer, voir
+## TurnController.play_special_from_inventory) -- SpecialType.NONE si l'index
+## est invalide.
+func remove_special_from_inventory(index: int) -> TokenData.SpecialType:
+	if index < 0 or index >= _special_inventory.size():
+		return TokenData.SpecialType.NONE
+	var type: TokenData.SpecialType = _special_inventory[index]
+	_special_inventory.remove_at(index)
+	special_inventory_changed.emit()
+	return type
 
 
-## Parcourt tous les SpecialItem connus du ShopManager et ajoute au deck ceux
-## dont le flag debug_always_in_deck est actif.
-func _apply_debug_specials_to_deck() -> void:
-	for path in ShopManager.SPECIAL_PATHS:
-		var item: SpecialItem = load(path) as SpecialItem
-		if item != null and item.debug_always_in_deck:
-			_increment_special_count(item.special_type)
-
-
-func _increment_special_count(type: TokenData.SpecialType) -> void:
-	match type:
-		TokenData.SpecialType.BOMBE:
-			_deck_composition["bombe_count"] += 1
-		TokenData.SpecialType.FANTOME:
-			_deck_composition["fantome_count"] += 1
-		TokenData.SpecialType.MAREE:
-			_deck_composition["maree_count"] += 1
-		TokenData.SpecialType.ENCLUME:
-			_deck_composition["enclume_count"] += 1
-		TokenData.SpecialType.PETARD_A_MECHE:
-			_deck_composition["petard_a_meche_count"] += 1
-		TokenData.SpecialType.CAVALIER:
-			_deck_composition["cavalier_count"] += 1
-		TokenData.SpecialType.FROG:
-			_deck_composition["frog_count"] += 1
-		TokenData.SpecialType.LIANE:
-			_deck_composition["liane_count"] += 1
-		TokenData.SpecialType.CROW:
-			_deck_composition["crow_count"] += 1
-		TokenData.SpecialType.UNDERGROUND:
-			_deck_composition["underground_count"] += 1
-		TokenData.SpecialType.HYPERCUBE:
-			_deck_composition["hypercube_count"] += 1
-
-
-func _decrement_special_count(type: TokenData.SpecialType) -> void:
-	var key: String = ""
-	match type:
-		TokenData.SpecialType.BOMBE:
-			key = "bombe_count"
-		TokenData.SpecialType.FANTOME:
-			key = "fantome_count"
-		TokenData.SpecialType.MAREE:
-			key = "maree_count"
-		TokenData.SpecialType.ENCLUME:
-			key = "enclume_count"
-		TokenData.SpecialType.PETARD_A_MECHE:
-			key = "petard_a_meche_count"
-		TokenData.SpecialType.CAVALIER:
-			key = "cavalier_count"
-		TokenData.SpecialType.FROG:
-			key = "frog_count"
-		TokenData.SpecialType.LIANE:
-			key = "liane_count"
-		TokenData.SpecialType.CROW:
-			key = "crow_count"
-		TokenData.SpecialType.UNDERGROUND:
-			key = "underground_count"
-		TokenData.SpecialType.HYPERCUBE:
-			key = "hypercube_count"
-	if key != "":
-		_deck_composition[key] = maxi(0, (_deck_composition[key] as int) - 1)
+## Vend un special de l'inventaire contre GameRules.SELL_REFUND_RATIO de
+## `price` (le prix d'achat du SpecialItem correspondant -- l'inventaire ne
+## stocke qu'un SpecialType, pas un prix, donc l'appelant le resout via
+## ShopManager.get_special_item avant d'appeler cette fonction, voir
+## SpecialInventoryUI). Aucun plancher.
+func sell_special(index: int, price: int) -> bool:
+	if remove_special_from_inventory(index) == TokenData.SpecialType.NONE:
+		return false
+	add_flies(int(price * GameRules.SELL_REFUND_RATIO))
+	return true

@@ -17,7 +17,7 @@ enum Type {
 	FLIES_UP_SMALL,    # +1 mouche
 	FLIES_UP_BIG,      # +5 mouches
 	FLIES_DOWN_SMALL,  # -1 mouche
-	FLIES_DOWN_BIG,    # -5 mouches
+	FLIES_DOWN_BIG,    # -2 mouches (retune session 25, etait -5)
 	HOLE_ADD,          # ajoute un trou ailleurs sur la grille
 	HOLE_REMOVE,       # bouche un trou existant ailleurs
 	FAMILY_SHUFFLE,    # change le jeton pose en une autre famille aleatoire
@@ -49,9 +49,9 @@ const DESCRIPTIONS: Dictionary = {
 	Type.SCORE_UP: "Augmente le score actuel de %d%%." % int(GameRules.MYSTERY_SCORE_PERCENT * 100),
 	Type.SCORE_DOWN: "Diminue le score actuel de %d%%." % int(GameRules.MYSTERY_SCORE_PERCENT * 100),
 	Type.FLIES_UP_SMALL: "Gagne %d mouche." % GameRules.MYSTERY_FLIES_SMALL,
-	Type.FLIES_UP_BIG: "Gagne %d mouches." % GameRules.MYSTERY_FLIES_BIG,
+	Type.FLIES_UP_BIG: "Gagne %d mouches." % GameRules.MYSTERY_FLIES_BIG_GAIN,
 	Type.FLIES_DOWN_SMALL: "Perd %d mouche." % GameRules.MYSTERY_FLIES_SMALL,
-	Type.FLIES_DOWN_BIG: "Perd %d mouches." % GameRules.MYSTERY_FLIES_BIG,
+	Type.FLIES_DOWN_BIG: "Perd %d mouches." % GameRules.MYSTERY_FLIES_BIG_LOSS,
 	Type.HOLE_ADD: "Ouvre un trou ailleurs sur la grille.",
 	Type.HOLE_REMOVE: "Comble un trou existant ailleurs.",
 	Type.FAMILY_SHUFFLE: "Le jeton change de famille au hasard.",

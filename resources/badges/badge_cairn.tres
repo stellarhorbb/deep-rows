@@ -7,7 +7,7 @@
 script = ExtResource("1_data")
 id = &"cairn"
 label = "CAIRN"
-description = "Compte les Rocks sur la grille à chaque manche gagnée : chaque Rock cumule +0.1 au multi global"
+description = "Compte les Rocks sur la grille à chaque manche gagnée : chaque Rock ajoute +0.1 au multiplicateur total, qui démarre à ×1"
 price = 8
 rarity = 3
 trigger = &"on_round_end"

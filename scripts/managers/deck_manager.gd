@@ -27,8 +27,10 @@ var _hold: Array[TokenData] = []
 
 ## button_pool : pool persistant du RunManager (possede pour toute la run).
 ## On en cree des copies fraiches ici — consommer le deck de la manche ne doit
-## jamais muter les instances possedees.
-func build_deck(composition: Dictionary, button_pool: Array[TokenData]) -> void:
+## jamais muter les instances possedees. Les speciaux ne font plus partie du
+## deck depuis la session 25 (voir RunManager._special_inventory) : joues a
+## la demande, jamais melanges dans le stream.
+func build_deck(button_pool: Array[TokenData]) -> void:
 	_deck.clear()
 	_current = null
 	_hold.clear()
@@ -45,42 +47,6 @@ func build_deck(composition: Dictionary, button_pool: Array[TokenData]) -> void:
 	# Rocks
 	for i in range(GameRules.DECK_ROCK_COUNT + rock_count_bonus):
 		_deck.append(TokenData.make_rock())
-
-	# Speciaux issus de la composition du run
-	var bombe_count: int = composition.get("bombe_count", 0) as int
-	var fantome_count: int = composition.get("fantome_count", 0) as int
-	var maree_count: int = composition.get("maree_count", 0) as int
-	var enclume_count: int = composition.get("enclume_count", 0) as int
-	var petard_a_meche_count: int = composition.get("petard_a_meche_count", 0) as int
-	var cavalier_count: int = composition.get("cavalier_count", 0) as int
-	var frog_count: int = composition.get("frog_count", 0) as int
-	var liane_count: int = composition.get("liane_count", 0) as int
-	var crow_count: int = composition.get("crow_count", 0) as int
-	var underground_count: int = composition.get("underground_count", 0) as int
-	var hypercube_count: int = composition.get("hypercube_count", 0) as int
-
-	for i in range(bombe_count):
-		_deck.append(TokenData.make_special(TokenData.SpecialType.BOMBE))
-	for i in range(fantome_count):
-		_deck.append(TokenData.make_special(TokenData.SpecialType.FANTOME))
-	for i in range(maree_count):
-		_deck.append(TokenData.make_special(TokenData.SpecialType.MAREE))
-	for i in range(enclume_count):
-		_deck.append(TokenData.make_special(TokenData.SpecialType.ENCLUME))
-	for i in range(petard_a_meche_count):
-		_deck.append(TokenData.make_special(TokenData.SpecialType.PETARD_A_MECHE))
-	for i in range(cavalier_count):
-		_deck.append(TokenData.make_special(TokenData.SpecialType.CAVALIER))
-	for i in range(frog_count):
-		_deck.append(TokenData.make_special(TokenData.SpecialType.FROG))
-	for i in range(liane_count):
-		_deck.append(TokenData.make_special(TokenData.SpecialType.LIANE))
-	for i in range(crow_count):
-		_deck.append(TokenData.make_special(TokenData.SpecialType.CROW))
-	for i in range(underground_count):
-		_deck.append(TokenData.make_special(TokenData.SpecialType.UNDERGROUND))
-	for i in range(hypercube_count):
-		_deck.append(TokenData.make_special(TokenData.SpecialType.HYPERCUBE))
 
 	# Shuffle (Fisher-Yates)
 	_shuffle()

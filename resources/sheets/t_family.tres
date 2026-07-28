@@ -9,6 +9,6 @@ sheet_name = &"t_family"
 shape = &"t"
 rule = &"family"
 min_size = 4
-score_multiplier = 1.5
+score_multiplier = 2.0
 label = "SMALL T"
 price = 7

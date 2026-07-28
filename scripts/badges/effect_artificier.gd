@@ -1,6 +1,7 @@
 ## Badge "Artificier" : chaque jeton de valeur 5 qui score a 1 chance sur 4 de
-## créer un jeton spécial "Pétard à mèche" dans le deck (rejoint le pool
-## persistant comme un special acheté, voir RunManager.add_special).
+## créer un jeton spécial "Pétard à mèche", ajouté à l'inventaire de spéciaux
+## du joueur comme s'il l'avait acheté (voir RunManager.add_special, session
+## 25) -- silencieusement sans effet si l'inventaire est déjà plein.
 ## Trigger : on_turn_resolved
 extends BadgeEffect
 

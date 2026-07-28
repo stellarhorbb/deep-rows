@@ -38,6 +38,14 @@ signal group_score_revealed(amount: int)
 @export var badges_ui: BadgesUI
 @export var resolution_banner: ResolutionBanner
 
+## Bombe/Armageddon (session 25) : meme famille "explosif a retardement" que
+## Petard à mèche, mais pas encore de texture rouge/noir dediee -- voir
+## _create_sprite, qui leur affiche quand meme le chiffre de countdown
+## (_add_countdown_label) sans le clignotement de _setup_countdown_sprite.
+const _EXPLOSIVE_COUNTDOWN_TYPES: Array[TokenData.SpecialType] = [
+	TokenData.SpecialType.BOMBE, TokenData.SpecialType.ARMAGEDDON,
+]
+
 var _token_sprites: Dictionary = {}  # Vector2i -> Sprite2D
 var _grid_modifiers: Dictionary = {}  # Vector2i -> Array[StringName]
 var _holes: Dictionary = {}  # Vector2i -> true
@@ -101,6 +109,10 @@ func _modifier_color(type: StringName) -> Color:
 		GameRules.MODIFIER_BOOST:  return modifier_color_boost
 		GameRules.MODIFIER_DOUBLE: return modifier_color_double
 		GameRules.MODIFIER_TRIPLE: return modifier_color_triple
+		# Meme couleur que BOOST -- reste conceptuellement le meme type d'effet
+		# pour le joueur, seule l'ampleur numerique differe (voir GameRules.
+		# MODIFIER_BORD_A_BORD_MULT).
+		GameRules.MODIFIER_BORD_A_BORD: return modifier_color_boost
 	return modifier_color_double
 
 
@@ -157,6 +169,18 @@ func sync_sprites() -> void:
 ## deja l'ancien sprite avant d'en creer un nouveau.
 func replace_sprite(cell: Vector2i, token: TokenData) -> void:
 	_create_sprite(cell, token)
+
+
+## Prix "Boost" de la roulette (session 25, GameRules.ROULETTE_BOOST_VALUES) :
+## flash dore (meme couleur que _animate_upgrade, meme langage visuel pour
+## "la valeur d'un jeton vient de monter") puis replace_sprite pour refleter
+## la nouvelle valeur deja appliquee cote logique (voir GridManager.
+## boost_random_token, appele avant ce highlight).
+func animate_boost(cell: Vector2i, token: TokenData) -> void:
+	if _token_sprites.has(cell):
+		(_token_sprites[cell] as Sprite2D).modulate = Color(2.5, 2.0, 0.4, 1.0)
+	await get_tree().create_timer(0.3).timeout
+	replace_sprite(cell, token)
 
 
 ## Rebuild complet — detruit tous les sprites et les recree depuis l'etat de la grille.
@@ -255,21 +279,21 @@ func refresh() -> void:
 	queue_redraw()
 
 
-## Les jetons a countdown (entity-skull de MÈCHE COURTE, special PETARD_A_MECHE)
-## affichent leur chiffre dans un Label enfant du sprite (voir
-## _setup_countdown_sprite), qui ne se met a jour que si on le repousse
-## explicitement — sync_sprites ne fait que creer/detruire des sprites,
-## jamais rafraichir le contenu d'un sprite deja existant. Sans ca, le
-## chiffre affiche reste fige sur sa valeur de creation meme si le countdown
-## logique continue de descendre (le jeton explose bien au bon moment, seul
-## l'affichage etait fige).
+## Les jetons a countdown (entity-skull de MÈCHE COURTE, famille Petard/
+## Bombe/Armageddon) affichent leur chiffre dans un Label enfant du sprite
+## (voir _setup_countdown_sprite/_add_countdown_label), qui ne se met a jour
+## que si on le repousse explicitement — sync_sprites ne fait que creer/
+## detruire des sprites, jamais rafraichir le contenu d'un sprite deja
+## existant. Sans ca, le chiffre affiche reste fige sur sa valeur de creation
+## meme si le countdown logique continue de descendre (le jeton explose bien
+## au bon moment, seul l'affichage etait fige).
 func _refresh_countdown_labels() -> void:
 	for cell_key in _token_sprites:
 		var cell: Vector2i = cell_key as Vector2i
 		var token: TokenData = grid_manager.get_cell(cell.x, cell.y)
 		if token == null or token.countdown < 0:
 			continue
-		var is_countdown_kind: bool = token.kind == TokenData.Kind.ENTITY or (token.kind == TokenData.Kind.SPECIAL and token.special_type == TokenData.SpecialType.PETARD_A_MECHE)
+		var is_countdown_kind: bool = token.kind == TokenData.Kind.ENTITY or (token.kind == TokenData.Kind.SPECIAL and (token.special_type == TokenData.SpecialType.PETARD_A_MECHE or _EXPLOSIVE_COUNTDOWN_TYPES.has(token.special_type)))
 		if not is_countdown_kind:
 			continue
 		var sprite: Sprite2D = _token_sprites[cell] as Sprite2D
@@ -383,34 +407,44 @@ func _animate_match(event: Dictionary) -> void:
 			var sprite: Sprite2D = _token_sprites[cell] as Sprite2D
 			sprite.modulate = Color.WHITE
 
-	# Shake rapide sur chaque sprite matche
-	var shake_amount: float = 4.0
-	var shake_tw: Tween = create_tween()
-	for step in range(3):
-		var dir: float = 1.0 if step % 2 == 0 else -1.0
-		shake_tw.set_parallel(true)
-		for cell_key in all_cells:
-			var cell: Vector2i = cell_key as Vector2i
-			if _token_sprites.has(cell):
+	# Shake rapide sur chaque sprite matche -- garde-fou (session 25) : si
+	# aucune case du groupe n'a plus de sprite au moment ou ça joue (ex: un
+	# Frog qui vient de manger le jeton juste avant, voir GridManager.
+	# tick_mobile_specials), le Tween ci-dessous se retrouverait cree sans
+	# aucun tween_property ajoute -- "Tween started with no Tweeners",
+	# freeze garanti sur l'await. Meme famille de bug que celui trouve sur
+	# le lacher de Frogs plus tot dans la session.
+	var shakeable_cells: Array = []
+	for cell_key in all_cells:
+		if _token_sprites.has(cell_key as Vector2i):
+			shakeable_cells.append(cell_key)
+
+	if not shakeable_cells.is_empty():
+		var shake_amount: float = 4.0
+		var shake_tw: Tween = create_tween()
+		for step in range(3):
+			var dir: float = 1.0 if step % 2 == 0 else -1.0
+			shake_tw.set_parallel(true)
+			for cell_key in shakeable_cells:
+				var cell: Vector2i = cell_key as Vector2i
 				var sprite: Sprite2D = _token_sprites[cell] as Sprite2D
 				var base_pos: Vector2 = _grid_to_pixel(cell.x, cell.y)
 				var offset_pos: Vector2 = base_pos + Vector2(shake_amount * dir, 0.0)
 				shake_tw.tween_property(sprite, "position", offset_pos, 0.04)
-		shake_tw.set_parallel(false)
-		shake_tw.tween_interval(0.0)
-		shake_amount *= 0.6
+			shake_tw.set_parallel(false)
+			shake_tw.tween_interval(0.0)
+			shake_amount *= 0.6
 
-	# Retour a la position d'origine
-	shake_tw.set_parallel(true)
-	for cell_key in all_cells:
-		var cell: Vector2i = cell_key as Vector2i
-		if _token_sprites.has(cell):
+		# Retour a la position d'origine
+		shake_tw.set_parallel(true)
+		for cell_key in shakeable_cells:
+			var cell: Vector2i = cell_key as Vector2i
 			var sprite: Sprite2D = _token_sprites[cell] as Sprite2D
 			var base_pos: Vector2 = _grid_to_pixel(cell.x, cell.y)
 			shake_tw.tween_property(sprite, "position", base_pos, 0.03)
-	shake_tw.set_parallel(false)
+		shake_tw.set_parallel(false)
 
-	await shake_tw.finished
+		await shake_tw.finished
 
 	# Annonce dediee si ce MATCH event est une vraie cascade (2+ resolutions
 	# chainees dans le tour, cascade_level >= 1) — un seul appel ici suffit,
@@ -477,12 +511,20 @@ func _animate_upgrade(event: Dictionary) -> void:
 
 	await get_tree().create_timer(upgrade_hold_duration).timeout
 
-	var fade_tween: Tween = create_tween().set_parallel(true)
+	# Garde-fou (session 25) : si aucune des cases n'a plus de sprite a ce
+	# stade, ne pas creer/attendre un Tween vide ("Tween started with no
+	# Tweeners", freeze garanti) -- meme famille de bug que _animate_match/
+	# _animate_gravity.
+	var fade_cells: Array = []
 	for entry in upgrades:
 		var cell: Vector2i = (entry as Dictionary)["cell"] as Vector2i
 		if _token_sprites.has(cell):
+			fade_cells.append(cell)
+	if not fade_cells.is_empty():
+		var fade_tween: Tween = create_tween().set_parallel(true)
+		for cell in fade_cells:
 			fade_tween.tween_property(_token_sprites[cell] as Sprite2D, "modulate", Color.WHITE, upgrade_fade_duration)
-	await fade_tween.finished
+		await fade_tween.finished
 
 	await get_tree().create_timer(upgrade_pause).timeout
 
@@ -543,16 +585,25 @@ func _animate_transform(event: Dictionary) -> void:
 func _animate_remove(event: Dictionary) -> void:
 	var cells: Array = event["cells"] as Array
 
-	# Shrink + fade out
-	var remove_tween: Tween = create_tween().set_parallel(true)
+	# Garde-fou (session 25) : si aucune des cases n'a plus de sprite (ex:
+	# deja mange/deplace par un Frog entre-temps), ne pas creer/attendre un
+	# Tween vide ("Tween started with no Tweeners", freeze garanti) -- meme
+	# famille de bug que _animate_match/_animate_gravity/_animate_upgrade.
+	var remove_cells: Array = []
 	for cell_key in cells:
-		var cell: Vector2i = cell_key as Vector2i
-		if _token_sprites.has(cell):
+		if _token_sprites.has(cell_key as Vector2i):
+			remove_cells.append(cell_key)
+
+	if not remove_cells.is_empty():
+		# Shrink + fade out
+		var remove_tween: Tween = create_tween().set_parallel(true)
+		for cell_key in remove_cells:
+			var cell: Vector2i = cell_key as Vector2i
 			var sprite: Sprite2D = _token_sprites[cell] as Sprite2D
 			remove_tween.tween_property(sprite, "scale", Vector2.ZERO, remove_duration).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_BACK)
 			remove_tween.tween_property(sprite, "modulate:a", 0.0, remove_duration)
 
-	await remove_tween.finished
+		await remove_tween.finished
 
 	# Supprimer les sprites
 	for cell_key in cells:
@@ -569,30 +620,42 @@ func _animate_gravity(event: Dictionary) -> void:
 	if movements.size() == 0:
 		return
 
+	# Garde-fou (session 25) : ne garder que les movements dont la case de
+	# depart a effectivement un sprite -- sinon les trois Tween ci-dessous
+	# peuvent se retrouver crees sans aucun tween_property ajoute ("Tween
+	# started with no Tweeners", freeze garanti sur l'await). Meme famille
+	# de bug que celui trouve sur le shake de _animate_match.
+	var valid_movements: Array = []
+	for movement in movements:
+		var from_cell: Vector2i = Vector2i(movement["col"] as int, movement["from_row"] as int)
+		if _token_sprites.has(from_cell):
+			valid_movements.append(movement)
+	if valid_movements.is_empty():
+		return
+
 	var gravity_tween: Tween = create_tween().set_parallel(true)
 
-	for movement in movements:
+	for movement in valid_movements:
 		var col: int = movement["col"] as int
 		var from_row: int = movement["from_row"] as int
 		var to_row: int = movement["to_row"] as int
 		var from_cell: Vector2i = Vector2i(col, from_row)
 		var to_cell: Vector2i = Vector2i(col, to_row)
 
-		if _token_sprites.has(from_cell):
-			var sprite: Sprite2D = _token_sprites[from_cell] as Sprite2D
-			var target_pos: Vector2 = _grid_to_pixel(col, to_row)
+		var sprite: Sprite2D = _token_sprites[from_cell] as Sprite2D
+		var target_pos: Vector2 = _grid_to_pixel(col, to_row)
 
-			gravity_tween.tween_property(sprite, "position", target_pos, gravity_duration).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+		gravity_tween.tween_property(sprite, "position", target_pos, gravity_duration).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 
-			# Mettre a jour le dictionnaire
-			_token_sprites.erase(from_cell)
-			_token_sprites[to_cell] = sprite
+		# Mettre a jour le dictionnaire
+		_token_sprites.erase(from_cell)
+		_token_sprites[to_cell] = sprite
 
 	await gravity_tween.finished
 
 	# Petit bounce a l'atterrissage
 	var bounce_tween: Tween = create_tween().set_parallel(true)
-	for movement in movements:
+	for movement in valid_movements:
 		var col: int = movement["col"] as int
 		var to_row: int = movement["to_row"] as int
 		var to_cell: Vector2i = Vector2i(col, to_row)
@@ -603,7 +666,7 @@ func _animate_gravity(event: Dictionary) -> void:
 	await bounce_tween.finished
 
 	var settle_tween: Tween = create_tween().set_parallel(true)
-	for movement in movements:
+	for movement in valid_movements:
 		var col: int = movement["col"] as int
 		var to_row: int = movement["to_row"] as int
 		var to_cell: Vector2i = Vector2i(col, to_row)
@@ -655,6 +718,11 @@ func _create_sprite(cell: Vector2i, token: TokenData) -> Sprite2D:
 			sprite.scale = Vector2(target_scale, target_scale)
 			if token.kind == TokenData.Kind.BASE:
 				_add_value_label(sprite, token.value, tex.get_size())
+			elif token.kind == TokenData.Kind.SPECIAL and token.countdown >= 0 and _EXPLOSIVE_COUNTDOWN_TYPES.has(token.special_type):
+				# Bombe/Armageddon (session 25) : meme famille que Petard mais
+				# pas encore de texture rouge/noir dediee -- chiffre affiche
+				# quand meme (telegraphing du danger), juste sans clignotement.
+				_add_countdown_label(sprite, token.countdown, tex.get_size())
 
 	add_child(sprite)
 	_token_sprites[cell] = sprite
@@ -701,36 +769,38 @@ func _setup_countdown_sprite(sprite: Sprite2D, token: TokenData, red_path: Strin
 	sprite.texture = tex
 	var tex_size: float = maxf(tex.get_width(), tex.get_height())
 	sprite.scale = Vector2(cell_size / tex_size, cell_size / tex_size)
+	_add_countdown_label(sprite, token.countdown, tex.get_size())
 
+	if red_tex == null or black_tex == null:
+		return
+	# Tween cree sur `sprite` lui-meme (pas `self`/GridVisual) : Godot le tue
+	# automatiquement des que le sprite est libere (explosion, retrait de la
+	# grille...), sans quoi le lambda continue de capturer une reference
+	# devenue invalide et l'engine loggue une erreur a chaque tick manque.
+	var blink: Tween = sprite.create_tween().set_loops()
+	blink.tween_callback(func() -> void: sprite.texture = black_tex).set_delay(entity_blink_interval)
+	blink.tween_callback(func() -> void: sprite.texture = red_tex).set_delay(entity_blink_interval)
+
+
+## Chiffre de countdown superpose a un sprite -- extrait de
+## _setup_countdown_sprite (session 25) pour etre reutilisable par la
+## famille Bombe/Armageddon, qui n'ont pas encore de texture rouge/noir
+## dediee (voir _create_sprite) : meme lisibilite du danger/de l'imminence,
+## juste sans le clignotement tant que l'asset n'existe pas.
+func _add_countdown_label(sprite: Sprite2D, count: int, tex_size: Vector2) -> void:
 	var label: Label = Label.new()
-	label.text = str(token.countdown)
+	label.text = str(count)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.size = tex.get_size()
-	label.pivot_offset = label.size / 2.0
+	label.size = tex_size
+	label.pivot_offset = tex_size / 2.0
 	label.position = -label.pivot_offset
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_color_override("font_color", Color.WHITE)
 	if _popup_font != null:
 		label.add_theme_font_override("font", _popup_font)
-	label.add_theme_font_size_override("font_size", int(tex.get_size().y * 0.4))
+	label.add_theme_font_size_override("font_size", int(tex_size.y * 0.4))
 	sprite.add_child(label)
-
-	if red_tex == null or black_tex == null:
-		return
-	var blink: Tween = create_tween().set_loops()
-	blink.tween_callback(func() -> void:
-		if is_instance_valid(sprite):
-			sprite.texture = black_tex
-		else:
-			blink.kill()
-	).set_delay(entity_blink_interval)
-	blink.tween_callback(func() -> void:
-		if is_instance_valid(sprite):
-			sprite.texture = red_tex
-		else:
-			blink.kill()
-	).set_delay(entity_blink_interval)
 
 
 func _grid_to_pixel(col: int, row: int) -> Vector2:

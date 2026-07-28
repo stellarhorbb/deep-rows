@@ -28,6 +28,7 @@ const SPECIAL_SPRITES: Dictionary = {
 	TokenData.SpecialType.CROW: "res://assets/special-tokens/crow.png",
 	TokenData.SpecialType.UNDERGROUND: "res://assets/special-tokens/underground.png",
 	TokenData.SpecialType.HYPERCUBE: "res://assets/special-tokens/hypercube.png",
+	TokenData.SpecialType.ARMAGEDDON: "res://assets/special-tokens/arma.png",
 }
 
 ## Cache de textures chargees

@@ -6,7 +6,10 @@ enum Kind { BASE, ROCK, RESIDUE, SPECIAL, ENTITY }
 ## remplace CORAL/SHELL/RUST/INK. Ordre d'enum inchange pour ne pas perturber
 ## les entiers stockes (ex: target_family dans les .tres de Des a coudre).
 enum Family { BATONS, COUPES, EPEES, DENIERS }
-enum SpecialType { NONE, FANTOME, BOMBE, MAREE, ENCLUME, PETARD_A_MECHE, CAVALIER, FROG, LIANE, CROW, UNDERGROUND, HYPERCUBE }
+## ARMAGEDDON (session 25) ajoute a la fin — jamais inserer un SpecialType au
+## milieu, les .tres de la famille explosifs/Des a coudre referencent ces
+## index par entier brut (special_type = N), un decalage romprait tout.
+enum SpecialType { NONE, FANTOME, BOMBE, MAREE, ENCLUME, PETARD_A_MECHE, CAVALIER, FROG, LIANE, CROW, UNDERGROUND, HYPERCUBE, ARMAGEDDON }
 
 var kind: Kind = Kind.BASE
 var family: Family = Family.BATONS
@@ -102,4 +105,5 @@ static func special_type_label(t: SpecialType) -> String:
 		SpecialType.CROW:           return "CROW"
 		SpecialType.UNDERGROUND:    return "UNDERGROUND"
 		SpecialType.HYPERCUBE:      return "HYPERCUBE"
+		SpecialType.ARMAGEDDON:     return "ARMAGEDDON"
 		_:                          return "?"

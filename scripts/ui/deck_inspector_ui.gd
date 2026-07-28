@@ -39,8 +39,10 @@ func _refresh() -> void:
 		return
 	var base_counts: Dictionary = {}
 	var rock_count: int = 0
-	var special_counts: Dictionary = {}
 
+	# Les speciaux ne sont plus dans le deck depuis la session 25 (voir
+	# RunManager._special_inventory) -- inventaire possede affiche a part,
+	# voir SpecialInventoryUI.
 	for token in tokens:
 		match token.kind:
 			TokenData.Kind.BASE:
@@ -48,9 +50,6 @@ func _refresh() -> void:
 				base_counts[key] = (base_counts.get(key, 0) as int) + 1
 			TokenData.Kind.ROCK:
 				rock_count += 1
-			TokenData.Kind.SPECIAL:
-				var label: String = TokenData.special_type_label(token.special_type)
-				special_counts[label] = (special_counts.get(label, 0) as int) + 1
 
 	var lines: Array[String] = [header, ""]
 
@@ -66,14 +65,6 @@ func _refresh() -> void:
 
 	lines.append("")
 	lines.append("ROCKS RESTANTS : %d" % rock_count)
-
-	if not special_counts.is_empty():
-		lines.append("")
-		lines.append("SPÉCIAUX RESTANTS :")
-		var special_keys: Array = special_counts.keys()
-		special_keys.sort()
-		for label in special_keys:
-			lines.append("  %s  x%d" % [label, special_counts[label]])
 
 	content_label.text = "\n".join(lines)
 

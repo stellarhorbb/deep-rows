@@ -6,6 +6,7 @@ extends Node2D
 @export var turn_controller: TurnController
 @export var deck_manager: DeckManager
 @export var grid_manager: GridManager
+@export var special_inventory_ui: SpecialInventoryUI
 
 
 
@@ -37,7 +38,9 @@ func _handle_hover(global_pos: Vector2) -> void:
 		grid_visual.clear_hover()
 		return
 
-	var token: TokenData = deck_manager.get_current()
+	var token: TokenData = special_inventory_ui.get_selected_token()
+	if token == null:
+		token = deck_manager.get_current()
 	if token == null:
 		grid_visual.clear_hover()
 		return
@@ -61,6 +64,13 @@ func _handle_click(global_pos: Vector2) -> void:
 		turn_controller.request_hold(hold_slot)
 		return
 
+	# Check clic sur un slot de l'inventaire de speciaux (session 25)
+	var inventory_local: Vector2 = special_inventory_ui.get_global_transform().affine_inverse() * global_pos
+	var inventory_slot: int = special_inventory_ui.slot_at(inventory_local)
+	if inventory_slot >= 0:
+		special_inventory_ui.try_select(inventory_slot)
+		return
+
 	# Check clic sur grille
 	var grid_local: Vector2 = grid_visual.get_global_transform().affine_inverse() * global_pos
 	var grid_size: Vector2 = grid_visual.get_grid_pixel_size()
@@ -71,4 +81,9 @@ func _handle_click(global_pos: Vector2) -> void:
 		return
 
 	var cell: Vector2i = grid_visual.pixel_to_grid(grid_local)
-	turn_controller.play_current_to(cell.x, cell.y)
+	var selected_special: int = special_inventory_ui.get_selected_index()
+	if selected_special >= 0:
+		turn_controller.play_special_from_inventory(selected_special, cell.x)
+		special_inventory_ui.clear_selection()
+	else:
+		turn_controller.play_current_to(cell.x, cell.y)

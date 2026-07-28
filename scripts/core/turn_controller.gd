@@ -21,10 +21,10 @@ signal last_breath_started()
 signal second_wave_started()
 signal round_won(score: int, target: int)
 signal round_lost(score: int, target: int)
-## Emis quand un Pétard à mèche detone et rapporte des points, en dehors de
-## la banniere de resolution normale (voir tick_special_countdowns) — le
-## visuel doit reveler ce score explicitement, meme principe que la Bombe
-## (GameScene._on_special_executed), qui detone au drop plutot qu'au tick.
+## Emis quand un explosif de la famille Petard/Bombe/Armageddon (session 25)
+## detone et rapporte des points, en dehors de la banniere de resolution
+## normale (voir GridManager.tick_special_countdowns) — le visuel doit
+## reveler ce score explicitement (voir GameScene._on_petard_scored).
 signal petard_scored(amount: int)
 ## Emis quand un special "mangeur/scoreur" (Cavalier, Frog, Liane) mange un
 ## jeton en se deplacant/grandissant — meme raison que petard_scored, en
@@ -61,6 +61,13 @@ var _second_wave_triggered: bool = false
 var _pre_pass: bool = false
 var _pre_pass_timeline: Array[Dictionary] = []
 
+## Vrai pour un tour normal (jeton tire du stream), faux pour un tour venu de
+## l'inventaire de speciaux (session 25, voir play_special_from_inventory) --
+## lu par _on_resolution_complete pour sauter l'avancee du deck/stream
+## (advance_stream, verif d'epuisement, coup legal) quand aucun jeton n'a
+## reellement ete tire. Remis a true par defaut a la fin de chaque tour.
+var _current_turn_from_stream: bool = true
+
 @export var grid_manager: GridManager
 @export var deck_manager: DeckManager
 @export var score_manager: ScoreManager
@@ -70,7 +77,6 @@ var _pre_pass_timeline: Array[Dictionary] = []
 
 
 func _ready() -> void:
-	grid_manager.special_executed.connect(_on_special_executed)
 	grid_manager.resolution_complete.connect(_on_resolution_complete)
 	grid_manager.mystery_cell_triggered.connect(_on_mystery_cell_triggered)
 
@@ -125,7 +131,7 @@ func start_round(round_number: int) -> void:
 	deck_manager.hold_capacity = 0 if context.hold_locked else GameRules.BASE_HOLD_SLOTS + context.hold_slot_bonus
 	deck_manager.preview_bonus = context.preview_size_bonus
 	deck_manager.rock_count_bonus = context.rock_count_bonus
-	deck_manager.build_deck(run_manager.get_deck_composition(), run_manager.get_button_pool())
+	deck_manager.build_deck(run_manager.get_button_pool())
 	deck_manager.advance_stream()
 	_state = State.AWAITING_INPUT
 	turn_started.emit()
@@ -142,6 +148,7 @@ func play_current_to(col: int, row: int) -> void:
 	if not grid_manager.can_play_token(token, col, row):
 		return
 
+	_current_turn_from_stream = true
 	_state = State.DROPPING
 	deck_manager.consume_current()
 	await _drop_token(token, col)
@@ -149,7 +156,10 @@ func play_current_to(col: int, row: int) -> void:
 	# Malus de boss BOURRASQUE (voir BossMalusManager) : le jeton suivant du
 	# stream tombe automatiquement dans la meme colonne, juste au-dessus,
 	# avant toute resolution. S'il n'y a plus de place, il reste simplement
-	# current pour le prochain tour (pas de perte de jeton).
+	# current pour le prochain tour (pas de perte de jeton). Special au sens
+	# stream uniquement -- n'a pas de sens pour un tour venu de l'inventaire
+	# (voir play_special_from_inventory), donc reste ici plutot que dans le
+	# pipeline commun _resolve_turn.
 	if boss_malus_manager.active_malus == BossMalusManager.Type.BOURRASQUE:
 		deck_manager.advance_stream()
 		var bonus_token: TokenData = deck_manager.get_current()
@@ -157,6 +167,39 @@ func play_current_to(col: int, row: int) -> void:
 			deck_manager.consume_current()
 			await _drop_token(bonus_token, col)
 
+	await _resolve_turn()
+
+
+## Joue un special depuis l'inventaire possede du joueur (session 25, voir
+## RunManager.get_special_inventory/remove_special_from_inventory) a la place
+## du coup normal -- meme pipeline de resolution que play_current_to (pre-
+## passe, countdowns/mobiles, cascade, voir _resolve_turn), mais ne touche
+## jamais au deck/stream puisque ce jeton n'en vient pas (_current_turn_
+## from_stream = false, lu par _on_resolution_complete pour sauter l'avancee
+## du stream/la verif de coup legal cote deck).
+func play_special_from_inventory(inventory_index: int, col: int) -> void:
+	if _state != State.AWAITING_INPUT:
+		return
+	var inventory: Array[TokenData.SpecialType] = run_manager.get_special_inventory()
+	if inventory_index < 0 or inventory_index >= inventory.size():
+		return
+	var token: TokenData = TokenData.make_special(inventory[inventory_index])
+	if not grid_manager.can_play_token(token, col, 0):
+		return
+
+	_current_turn_from_stream = false
+	_state = State.DROPPING
+	run_manager.remove_special_from_inventory(inventory_index)
+	await _drop_token(token, col)
+	await _resolve_turn()
+
+
+## Pipeline de resolution commun a play_current_to et play_special_from_
+## inventory : 1ere passe (voir _pre_pass), countdowns entity/petard,
+## speciaux mobiles, puis la cascade complete. La fin de tour (avancee du
+## deck/stream) est geree separement dans _on_resolution_complete, selon
+## _current_turn_from_stream.
+func _resolve_turn() -> void:
 	# 1ere passe de resolution (session 23) : score un pattern deja complet
 	# suite au drop AVANT que MÈCHE COURTE/petards/mobiles n'aient la moindre
 	# chance de le perturber. Voir _pre_pass.
@@ -205,39 +248,12 @@ func _drop_token(token: TokenData, col: int) -> void:
 	await drop_animated
 
 	# Pour les specials : executer l'effet apres la chute, attendre l'animation
-	# d'impact. Consomme le special de l'inventaire persistant a cet instant
-	# precis (pas avant) — tant qu'il n'est pas reellement joue, il reste dans
-	# le deck manche apres manche (voir RunManager.consume_special).
-	if token.kind == TokenData.Kind.SPECIAL:
-		run_manager.consume_special(token.special_type)
-		grid_manager.execute_special(token, col)
-		await special_effect_done
-
-
-## Meme pipeline anime que _drop_token (placement -> attendre la chute ->
-## effet special -> attendre son animation), pour un jeton "cadeau" hors
-## deck/pioche (ex: Frog de la roulette, session 25, voir RouletteManager).
-## Deux differences deliberees avec _drop_token : ne consomme jamais
-## l'inventaire de Speciaux du joueur (ce jeton n'a jamais ete achete) et
-## n'emet pas token_dropped (sinon le cadeau rechargerait sa propre jauge
-## de declenchement).
-##
-## A appeler uniquement quand _state == AWAITING_INPUT (voir
-## RouletteManager, branche sur le signal awaiting_input plutot que
-## turn_resolved pour cette raison precise) : passe l'etat a DROPPING le
-## temps de l'animation pour bloquer un nouveau coup du joueur en plein
-## milieu (bug session 25 -- collision avec le pipeline d'animation), puis
-## restaure AWAITING_INPUT a la fin.
-func drop_bonus_token(token: TokenData, col: int) -> void:
-	if _state != State.AWAITING_INPUT:
-		return
-	_state = State.DROPPING
-	grid_manager.place_token(token, col, 0)
-	await drop_animated
+	# d'impact. Retire de l'inventaire AVANT cet appel desormais (voir
+	# play_special_from_inventory) -- ce jeton ne vient plus jamais du deck/
+	# stream (session 25).
 	if token.kind == TokenData.Kind.SPECIAL:
 		grid_manager.execute_special(token, col)
 		await special_effect_done
-	_state = State.AWAITING_INPUT
 
 
 func notify_drop_complete() -> void:
@@ -273,13 +289,6 @@ func get_state() -> State:
 	return _state
 
 
-func _on_special_executed(special_type: TokenData.SpecialType, _col: int, _row: int, result: Dictionary) -> void:
-	if special_type == TokenData.SpecialType.BOMBE:
-		var bombe_score: int = result.get("score", 0) as int
-		if bombe_score > 0:
-			score_manager.add_score(bombe_score)
-
-
 ## Applique l'effet reel d'une case mystere revelee (voir GridManager.
 ## mystery_cell_triggered/MysteryCellEffects) — score/mouches/trous/famille/
 ## teleport/multi. Rejoue le meme calcul "% du score actuel" que decrit au
@@ -297,11 +306,11 @@ func _on_mystery_cell_triggered(col: int, row: int, effect: MysteryCellEffects.T
 		MysteryCellEffects.Type.FLIES_UP_SMALL:
 			run_manager.add_flies(GameRules.MYSTERY_FLIES_SMALL)
 		MysteryCellEffects.Type.FLIES_UP_BIG:
-			run_manager.add_flies(GameRules.MYSTERY_FLIES_BIG)
+			run_manager.add_flies(GameRules.MYSTERY_FLIES_BIG_GAIN)
 		MysteryCellEffects.Type.FLIES_DOWN_SMALL:
 			run_manager.spend_flies(mini(GameRules.MYSTERY_FLIES_SMALL, run_manager.get_flies()))
 		MysteryCellEffects.Type.FLIES_DOWN_BIG:
-			run_manager.spend_flies(mini(GameRules.MYSTERY_FLIES_BIG, run_manager.get_flies()))
+			run_manager.spend_flies(mini(GameRules.MYSTERY_FLIES_BIG_LOSS, run_manager.get_flies()))
 		MysteryCellEffects.Type.HOLE_ADD:
 			grid_manager.add_random_hole()
 		MysteryCellEffects.Type.HOLE_REMOVE:
@@ -416,6 +425,19 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 		round_lost.emit(score_manager.get_score(), score_manager.get_target())
 		return
 
+	# Tour venu de l'inventaire de speciaux (voir play_special_from_inventory) :
+	# rien n'a ete tire du deck/stream, donc rien a avancer -- juste revalider
+	# qu'un coup reste possible (la grille a change, le stream non) avant de
+	# rendre la main.
+	if not _current_turn_from_stream:
+		_current_turn_from_stream = true
+		if not _has_legal_move():
+			_trigger_last_breath()
+			return
+		_state = State.AWAITING_INPUT
+		awaiting_input.emit()
+		return
+
 	deck_manager.advance_stream()
 
 	if deck_manager.is_exhausted():
@@ -486,10 +508,10 @@ func _trigger_last_breath() -> void:
 	last_breath_started.emit()
 	grid_manager.explode_residues()
 	grid_manager.clear_remaining_mobile_specials()
-	# Les Pétards à mèche encore actifs explosent aussi (decision verrouillee :
-	# "les jetons speciaux poses explosent" au Dernier Souffle), meme s'ils
-	# n'ont pas fini leur countdown.
-	var petard_score: int = grid_manager.detonate_remaining_petards()
+	# Toute la famille Petard/Bombe/Armageddon encore active explose aussi
+	# (decision verrouillee : "les jetons speciaux poses explosent" au
+	# Dernier Souffle), meme si son countdown n'est pas termine.
+	var petard_score: int = grid_manager.detonate_remaining_explosives()
 	if petard_score > 0:
 		score_manager.add_score(petard_score)
 		petard_scored.emit(petard_score)

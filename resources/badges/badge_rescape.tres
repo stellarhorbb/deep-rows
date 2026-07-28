@@ -7,7 +7,7 @@
 script = ExtResource("1_data")
 id = &"rescape"
 label = "RESCAPÉ"
-description = "Chaque manche boss survécue cumule +2.0 au multi global"
+description = "Chaque manche boss survécue ajoute +1.0 au multiplicateur total, qui démarre à ×1 (donc ×2 après le premier boss)"
 trigger = &"on_round_end"
 price = 8
 rarity = 3

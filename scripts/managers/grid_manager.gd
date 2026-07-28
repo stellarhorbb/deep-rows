@@ -28,11 +28,14 @@ signal mystery_cell_triggered(col: int, row: int, effect: MysteryCellEffects.Typ
 ## seulement) ne suffit pas a reconcilier "cette case a maintenant un autre
 ## contenu" — voir GameScene._on_mobile_specials_ticked.
 signal mobile_specials_ticked()
-## Emis quand un Petard a meche detone (voir tick_special_countdowns /
-## detonate_remaining_petards) — meme raison que mobile_specials_ticked :
-## _detonate_petard vide directement la case dans _grid, sans passer par un
-## event de CascadeResolver, donc rien ne previent le visuel qu'il doit
-## retirer le sprite. Voir GameScene._on_petard_detonated.
+## Emis quand un explosif de la famille Petard/Bombe/Armageddon detone (voir
+## tick_special_countdowns / detonate_remaining_explosives, session 25) —
+## meme raison que mobile_specials_ticked : _detonate_explosive vide
+## directement les cases touchees dans _grid, sans passer par un event de
+## CascadeResolver, donc rien ne previent le visuel qu'il doit retirer les
+## sprites. Voir GameScene._on_petard_detonated. Nom du signal garde tel quel
+## (herite de l'epoque ou seul Petard existait) pour eviter de re-cabler
+## tous les points d'ecoute pour un renommage cosmetique.
 signal petard_detonated()
 ## Legendaire "Souffle Obscur" (session 23) : emis quand la deuxieme vague du
 ## Dernier Souffle vide les entity-skulls (voir clear_entity_skulls) — meme
@@ -126,19 +129,24 @@ func execute_special(token: TokenData, col: int) -> void:
 	match token.special_type:
 		TokenData.SpecialType.FANTOME:
 			SpecialEffects.execute_fantome(_grid, col, _rows, _holes)
-		TokenData.SpecialType.BOMBE:
-			result = SpecialEffects.execute_bombe(_grid, col, _cols, _rows, _holes)
 		TokenData.SpecialType.MAREE:
 			var landing_row: int = column_height(col)
 			SpecialEffects.execute_maree(_grid, col, landing_row, _cols, _holes)
 		TokenData.SpecialType.ENCLUME:
 			SpecialEffects.execute_enclume(_grid, col, _rows, _holes)
 		# A partir d'ici : speciaux qui PERSISTENT sur la grille (contrairement
-		# a Fantome/Bombe/Maree/Enclume qui rearrangent puis disparaissent) —
+		# a Fantome/Maree/Enclume qui rearrangent puis disparaissent) —
 		# se placent eux-memes au sommet de la colonne plutot que d'executer un
 		# effet immediat. Voir tick_special_countdowns/tick_mobile_specials.
+		# Famille des explosifs a retardement (Petard/Bombe/Armageddon,
+		# session 25 — Bombe etait instantanee avant, voir _explosive_offsets) :
+		# countdown croissant avec la taille de la zone d'impact.
 		TokenData.SpecialType.PETARD_A_MECHE:
 			_place_persistent_special(token, col, GameRules.PETARD_A_MECHE_START_COUNTDOWN)
+		TokenData.SpecialType.BOMBE:
+			_place_persistent_special(token, col, GameRules.BOMBE_START_COUNTDOWN)
+		TokenData.SpecialType.ARMAGEDDON:
+			_place_persistent_special(token, col, GameRules.ARMAGEDDON_START_COUNTDOWN)
 		TokenData.SpecialType.CAVALIER:
 			_place_persistent_special(token, col, GameRules.CAVALIER_MOVES)
 		TokenData.SpecialType.FROG:
@@ -352,8 +360,42 @@ func _detonate_entity_skull(cell: Vector2i) -> void:
 		_grid[cc][cell.y] = null
 
 
-## Special "Pétard à mèche" : decompte le countdown de chaque exemplaire pose
-## sur la grille, detone ceux qui atteignent 0 (voir _detonate_petard).
+## Membres de la famille des explosifs a retardement (session 25) — voir
+## _explosive_offsets pour la forme de chacun.
+const _EXPLOSIVE_TYPES: Array[TokenData.SpecialType] = [
+	TokenData.SpecialType.PETARD_A_MECHE, TokenData.SpecialType.BOMBE, TokenData.SpecialType.ARMAGEDDON,
+]
+
+
+## Offsets relatifs a la case d'impact pour un membre de la famille des
+## explosifs. Petard = 2 cases (gauche/droite) + sa propre case (effacee mais
+## jamais scorable, c'est un Special) ; Bombe = croix de 4 (haut/bas/gauche/
+## droite) ; Armageddon = carre 3x3 complet (8 voisins), l'ancienne forme de
+## Bombe avant qu'elle ne soit nerfee. Fonction plutot qu'un const Dictionary
+## de Array[Vector2i] : un Array stocke comme valeur de Dictionary perd son
+## typage element-par-element, et le caster ensuite via `as Array[Vector2i]`
+## plante au runtime des qu'on le passe a une fonction qui exige ce type
+## strict (voir _detonate_explosive) -- un retour direct depuis une fonction
+## typee, lui, coerce correctement le literal.
+func _explosive_offsets(special_type: TokenData.SpecialType) -> Array[Vector2i]:
+	match special_type:
+		TokenData.SpecialType.PETARD_A_MECHE:
+			return [Vector2i(-1, 0), Vector2i(0, 0), Vector2i(1, 0)]
+		TokenData.SpecialType.BOMBE:
+			return [Vector2i(0, 0), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1), Vector2i(0, 1)]
+		TokenData.SpecialType.ARMAGEDDON:
+			return [
+				Vector2i(-1, -1), Vector2i(0, -1), Vector2i(1, -1),
+				Vector2i(-1, 0), Vector2i(0, 0), Vector2i(1, 0),
+				Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1),
+			]
+		_:
+			return []
+
+
+## Famille des explosifs a retardement (Petard à mèche/Bombe/Armageddon,
+## session 25) : decompte le countdown de chaque exemplaire pose sur la
+## grille, detone ceux qui atteignent 0 (voir _detonate_explosive).
 ## Contrairement a tick_entity_countdowns (gate par le malus de boss MÈCHE
 ## COURTE), appele inconditionnellement a chaque tour — voir
 ## TurnController.play_current_to. Retourne le score total gagne.
@@ -364,7 +406,7 @@ func tick_special_countdowns() -> int:
 			var token: TokenData = _grid[c][r]
 			if token == null or token.kind != TokenData.Kind.SPECIAL:
 				continue
-			if token.special_type != TokenData.SpecialType.PETARD_A_MECHE or token.countdown < 0:
+			if not _EXPLOSIVE_TYPES.has(token.special_type) or token.countdown < 0:
 				continue
 			if token.just_placed:
 				token.just_placed = false
@@ -374,7 +416,8 @@ func tick_special_countdowns() -> int:
 				to_detonate.append(Vector2i(c, r))
 	var total_score: int = 0
 	for cell in to_detonate:
-		total_score += _detonate_petard(cell)
+		var special_type: TokenData.SpecialType = (_grid[cell.x][cell.y] as TokenData).special_type
+		total_score += _detonate_explosive(cell, _explosive_offsets(special_type))
 	if to_detonate.size() > 0:
 		petard_detonated.emit()
 	return total_score
@@ -421,18 +464,32 @@ func tick_mobile_specials() -> int:
 				if dest != cell:
 					total_score += result["score"] as int
 					if not never_expire:
-						token.countdown -= 1
-						if token.countdown <= 0:
+						# Disparait des la premiere bouchee (session 25, retour
+						# playtest) plutot que d'attendre la fin du countdown --
+						# rester imprevisible sur la grille plusieurs tours de
+						# plus apres avoir deja mange rendait le special trop
+						# long a lire. Le countdown reste le filet de securite
+						# si aucune bouchee n'a lieu (voir SpecialEffects.
+						# move_cavalier).
+						if result["ate"] as bool:
 							_grid[dest.x][dest.y] = null
+						else:
+							token.countdown -= 1
+							if token.countdown <= 0:
+								_grid[dest.x][dest.y] = null
 			TokenData.SpecialType.FROG:
 				var result: Dictionary = SpecialEffects.move_frog(_grid, cell.x, cell.y, _cols, _rows, _holes)
 				var dest: Vector2i = result["dest"] as Vector2i
 				if dest != cell:
 					total_score += result["score"] as int
 					if not never_expire:
-						token.countdown -= 1
-						if token.countdown <= 0:
+						# Meme retune que Cavalier ci-dessus.
+						if result["ate"] as bool:
 							_grid[dest.x][dest.y] = null
+						else:
+							token.countdown -= 1
+							if token.countdown <= 0:
+								_grid[dest.x][dest.y] = null
 			TokenData.SpecialType.LIANE:
 				if token.countdown < 0:
 					continue  # segment de corps, pas la tete : rien a piloter ici
@@ -445,7 +502,7 @@ func tick_mobile_specials() -> int:
 				if token.countdown > 0:
 					token.countdown -= 1
 				else:
-					SpecialEffects.steal_row_token(_grid, cell.x, cell.y, _cols, _rows, _holes)
+					SpecialEffects.steal_row_token(_grid, cell.x, cell.y, _rows, _holes)
 					_grid[cell.x][cell.y] = null
 			TokenData.SpecialType.UNDERGROUND:
 				SpecialEffects.dig_underground(_grid, cell.x, cell.y, _rows, _holes, never_expire)
@@ -456,19 +513,21 @@ func tick_mobile_specials() -> int:
 
 
 ## Dernier Souffle : les jetons speciaux poses explosent (decision verrouillee,
-## voir CLAUDE.md) — un Pétard à mèche encore actif detone immediatement,
-## countdown ou pas, en miroir de explode_residues pour les Rocks/Residus
-## (voir TurnController._trigger_last_breath). Retourne le score gagne.
-func detonate_remaining_petards() -> int:
+## voir CLAUDE.md) — toute la famille Petard/Bombe/Armageddon encore active
+## detone immediatement, countdown ou pas, en miroir de explode_residues pour
+## les Rocks/Residus (voir TurnController._trigger_last_breath). Retourne le
+## score gagne.
+func detonate_remaining_explosives() -> int:
 	var to_detonate: Array[Vector2i] = []
 	for c in range(_cols):
 		for r in range(_rows):
 			var token: TokenData = _grid[c][r]
-			if token != null and token.kind == TokenData.Kind.SPECIAL and token.special_type == TokenData.SpecialType.PETARD_A_MECHE:
+			if token != null and token.kind == TokenData.Kind.SPECIAL and _EXPLOSIVE_TYPES.has(token.special_type):
 				to_detonate.append(Vector2i(c, r))
 	var total_score: int = 0
 	for cell in to_detonate:
-		total_score += _detonate_petard(cell)
+		var special_type: TokenData.SpecialType = (_grid[cell.x][cell.y] as TokenData).special_type
+		total_score += _detonate_explosive(cell, _explosive_offsets(special_type))
 	if to_detonate.size() > 0:
 		petard_detonated.emit()
 	return total_score
@@ -476,9 +535,9 @@ func detonate_remaining_petards() -> int:
 
 ## Dernier Souffle : les speciaux mobiles/reactifs encore actifs (Cavalier,
 ## Frog, Liane, Crow, Underground, Hypercube) disparaissent silencieusement —
-## pas de scoring, contrairement au Pétard à mèche qui explose (voir
-## detonate_remaining_petards). Traite a part d'explode_residues pour ne pas
-## les confondre avec les Rocks/Residus.
+## pas de scoring, contrairement a la famille Petard/Bombe/Armageddon qui
+## explose (voir detonate_remaining_explosives). Traite a part
+## d'explode_residues pour ne pas les confondre avec les Rocks/Residus.
 func clear_remaining_mobile_specials() -> void:
 	var types: Array = [
 		TokenData.SpecialType.CAVALIER, TokenData.SpecialType.FROG,
@@ -492,22 +551,23 @@ func clear_remaining_mobile_specials() -> void:
 				_grid[c][r] = null
 
 
-## Detone un Pétard à mèche : lui + ses 2 voisins directs sur la meme rangee
-## disparaissent, les voisins SCORABLES sont scores (leur valeur brute, sans
-## multiplicateur — meme logique que la Bombe, un special reste hors de la
-## chaine de multiplicateurs des Partitions). Contrairement a
+## Detone un explosif de la famille Petard/Bombe/Armageddon (session 25) :
+## toutes les cases couvertes par `offsets` (voir _explosive_offsets)
+## disparaissent, celles qui sont SCORABLES sont scorees (leur valeur brute,
+## sans multiplicateur — un special reste hors de la chaine de multiplicateurs
+## des Partitions, y compris sa propre case). Contrairement a
 ## _detonate_entity_skull (MÈCHE COURTE), qui ne score jamais ses voisins.
-func _detonate_petard(cell: Vector2i) -> int:
+func _detonate_explosive(cell: Vector2i, offsets: Array[Vector2i]) -> int:
 	var score: int = 0
-	for dc in range(-1, 2):
-		var cc: int = cell.x + dc
-		if cc < 0 or cc >= _cols:
+	for offset in offsets:
+		var cc: int = cell.x + offset.x
+		var rr: int = cell.y + offset.y
+		if cc < 0 or cc >= _cols or rr < 0 or rr >= _rows:
 			continue
-		if dc != 0:
-			var neighbor: TokenData = _grid[cc][cell.y]
-			if neighbor != null and neighbor.is_scorable():
-				score += neighbor.value
-		_grid[cc][cell.y] = null
+		var token: TokenData = _grid[cc][rr]
+		if token != null and token.is_scorable():
+			score += token.value
+		_grid[cc][rr] = null
 	return score
 
 
@@ -522,6 +582,29 @@ func get_cell(col: int, row: int) -> TokenData:
 	if col < 0 or col >= _cols or row < 0 or row >= _rows:
 		return null
 	return _grid[col][row] as TokenData
+
+
+## Choisit un jeton de BASE au hasard sur la grille et augmente sa valeur de
+## `amount`, plafonnee a GameRules.MAX_BUTTON_VALUE -- jamais retire/deplace,
+## zero risque pour un pattern en cours de construction (voir RouletteManager,
+## remplace Frog session 25). Exclut les jetons deja a MAX_BUTTON_VALUE (10)
+## ou au-dela (Figures, Valet+) -- retune session 25 : un Boost qui tombe sur
+## un jeton deja plafonne ne fait rien de visible, gaspillage frustrant pour
+## le joueur. Retourne la cellule touchee, ou Vector2i(-1,-1) si aucun jeton
+## de base boostable n'est present sur la grille.
+func boost_random_token(amount: int) -> Vector2i:
+	var candidates: Array[Vector2i] = []
+	for c in range(_cols):
+		for r in range(_rows):
+			var token: TokenData = _grid[c][r]
+			if token != null and token.kind == TokenData.Kind.BASE and token.value < GameRules.MAX_BUTTON_VALUE:
+				candidates.append(Vector2i(c, r))
+	if candidates.is_empty():
+		return Vector2i(-1, -1)
+	var cell: Vector2i = candidates.pick_random()
+	var token: TokenData = _grid[cell.x][cell.y]
+	token.value = mini(token.value + amount, GameRules.MAX_BUTTON_VALUE)
+	return cell
 
 
 ## Dernier Souffle : supprime les residus ET les rocks, laisse les jetons de base en place.
