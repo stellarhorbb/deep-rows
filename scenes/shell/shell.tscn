@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dpielxromhgls" path="res://scripts/core/shell.gd" id="1_shell"]
 [ext_resource type="Script" uid="uid://dml5e5e5qgsdp" path="res://scripts/ui/sheets_ui.gd" id="2_sheets"]
-[ext_resource type="Script" uid="uid://d2v6eujd02dg1" path="res://scripts/ui/badges_ui.gd" id="3_badges"]
+[ext_resource type="Script" uid="uid://d2v6eujd02dg1" path="res://scripts/ui/spells_ui.gd" id="3_spells"]
 [ext_resource type="Script" uid="uid://8wuxu3ia4mw3" path="res://scripts/ui/deck_inspector_ui.gd" id="4_deck_inspector"]
 [ext_resource type="Script" path="res://scripts/ui/special_inventory_ui.gd" id="5_special_inventory"]
 
@@ -29,14 +29,14 @@ offset_bottom = 440.0
 mouse_filter = 1
 script = ExtResource("2_sheets")
 
-[node name="BadgesUI" type="Control" parent="." unique_id=1248195380]
+[node name="SpellsUI" type="Control" parent="." unique_id=1248195380]
 anchors_preset = 0
 offset_left = 30.0
 offset_top = 900.0
 offset_right = 1890.0
 offset_bottom = 1060.0
 mouse_filter = 1
-script = ExtResource("3_badges")
+script = ExtResource("3_spells")
 
 [node name="SpecialInventoryUI" type="Control" parent="." unique_id=1000000430]
 anchors_preset = 0
