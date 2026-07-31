@@ -81,7 +81,7 @@ const BASE_HOLD_SLOTS: int = 1
 ## possede pour toute la run (pas remis a zero au round_start, contrairement
 ## au deck), joue a la demande a la place du coup normal (voir TurnController.
 ## play_special_from_inventory). Fixe pour l'instant, pas encore upgradable
-## par Badge comme le Hold (BASE_HOLD_SLOTS) -- a etendre si le besoin se
+## par Sortilège comme le Hold (BASE_HOLD_SLOTS) -- a etendre si le besoin se
 ## confirme au playtest.
 const SPECIAL_INVENTORY_SLOTS: int = 3
 
@@ -131,18 +131,18 @@ const BIOME_BACKGROUND_COLORS: Array[Color] = [
 # Sheets
 const MAX_SHEET_SLOTS: int = 4
 
-# Vente de Partitions/Badges — pourcentage du prix d'achat rembourse
+# Vente de Partitions/Sortilèges — pourcentage du prix d'achat rembourse
 const SELL_REFUND_RATIO: float = 0.5
 
-# Badges
-const MAX_BADGE_SLOTS: int = 5
+# Sortilèges
+const MAX_SPELL_SLOTS: int = 5
 
-## Bonus de slots de Badge le plus genereux qu'un pack de demarrage puisse
+## Bonus de slots de Sortilège le plus genereux qu'un pack de demarrage puisse
 ## accorder (Le Collectionneur, +1, voir resources/starter_packs/) — sert
-## uniquement a dimensionner a l'avance les slots UI de BadgesUI, crees avant
-## qu'un pack ne soit choisi (voir BadgesUI._create_sell_buttons). A remonter
+## uniquement a dimensionner a l'avance les slots UI de SpellsUI, crees avant
+## qu'un pack ne soit choisi (voir SpellsUI._create_sell_buttons). A remonter
 ## si un futur pack accorde plus.
-const STARTER_PACK_MAX_BADGE_SLOT_BONUS: int = 1
+const STARTER_PACK_MAX_SPELL_SLOT_BONUS: int = 1
 
 # Recompense par manche gagnee (fixe pour l'instant)
 const FLIES_PER_ROUND_WON: int = 8
@@ -175,7 +175,7 @@ const MODIFIER_DOUBLE_MULT: float = 2.0
 const MODIFIER_TRIPLE_MULT: float = 3.0
 
 # Modifiers exclusifs aux cases mystere (effet MULTI, voir MysteryCellEffects) —
-# jamais poses par un Badge, paliers au-dessus de MODIFIER_TRIPLE pour garder
+# jamais poses par un Sortilège, paliers au-dessus de MODIFIER_TRIPLE pour garder
 # un vrai "wow" propre a la surprise.
 const MODIFIER_MYSTERY_X2: StringName = &"mystery_x2"
 const MODIFIER_MYSTERY_X5: StringName = &"mystery_x5"
@@ -184,9 +184,9 @@ const MODIFIER_MYSTERY_X2_MULT: float = 2.0
 const MODIFIER_MYSTERY_X5_MULT: float = 5.0
 const MODIFIER_MYSTERY_X10_MULT: float = 10.0
 
-# Modifier exclusif au Badge "Bord a Bord" (session 25, retune equilibrage) --
+# Modifier exclusif au Sortilège "Bord a Bord" (session 25, retune equilibrage) --
 # MODIFIER_BOOST est partage avec Ecume/Colonne Chanceuse/Trench (voir
-# scripts/badges/effect_*.gd) : le retoucher directement aurait aussi nerf
+# scripts/spells/effect_*.gd) : le retoucher directement aurait aussi nerf
 # ces trois-la sans que ce soit demande. Valeur dediee pour ne changer que
 # Bord a Bord.
 const MODIFIER_BORD_A_BORD: StringName = &"bord_a_bord"
@@ -204,7 +204,7 @@ const ROUND_START_MYSTERY_MIN: int = 2
 const ROUND_START_MYSTERY_MAX: int = 4
 
 ## Taux fixe par palier (Commun/Rare/Jackpot), meme principe que
-## BADGE_RARITY_RATES : le taux se fixe par palier, pas par item — avoir plus
+## SPELL_RARITY_RATES : le taux se fixe par palier, pas par item — avoir plus
 ## d'items en Rare rend juste ce palier plus varie, pas plus frequent.
 const MYSTERY_RARITY_RATES: Array[float] = [0.55, 0.40, 0.05]
 
@@ -347,29 +347,29 @@ const LAST_TRICK_TRIGGER_CHANCE: float = 0.25
 ## Poids de tirage par rarete au shop (unitaires + packs), par item — plus il
 ## y a d'items dans un palier, plus ce palier occupe de place au total. Utilise
 ## par DeckToolData et SpecialItem (rarete ajoutee en session 23) via
-## ShopManager._weighted_pick. Les Badges n'utilisent PLUS ce systeme depuis la
-## session 23 (voir BADGE_RARITY_RATES ci-dessous) — Boutons et Partitions
+## ShopManager._weighted_pick. Les Sortilèges n'utilisent PLUS ce systeme depuis la
+## session 23 (voir SPELL_RARITY_RATES ci-dessous) — Boutons et Partitions
 ## n'ont toujours pas de champ rarity, tires uniformement (Partitions retirees
 ## du systeme en session 19, voir Decisions tranchees : gater par rarete la
 ## mecanique de resolution elle-meme allait a l'encontre du principe "pas de
-## RNG punitif", contrairement aux Badges/Speciaux/Des a coudre qui restent un
+## RNG punitif", contrairement aux Sortilèges/Speciaux/Des a coudre qui restent un
 ## bonus optionnel).
 const RARITY_WEIGHTS: Array[float] = [10.0, 5.0, 2.0, 1.0, 0.1]
 
-## Taux de tirage FIXE par palier pour les Badges (session 23, inspire de
+## Taux de tirage FIXE par palier pour les Sortilèges (session 23, inspire de
 ## Balatro) — contrairement a RARITY_WEIGHTS ci-dessus, ce n'est PAS un poids
 ## par item : chaque palier a une probabilite constante, peu importe combien
-## de Badges y vivent. Ajouter un Badge Epic ne rend donc pas le palier Epic
+## de Sortilèges y vivent. Ajouter un Sortilège Epic ne rend donc pas le palier Epic
 ## plus frequent, juste chaque Epic individuel un peu plus rare a l'interieur
 ## d'un palier dont la frequence globale ne bouge pas. Somme = 1.0. Si un
-## palier n'a aucun Badge disponible (tous equipes, ou vide), il est retire du
+## palier n'a aucun Sortilège disponible (tous equipes, ou vide), il est retire du
 ## tirage et les autres se renormalisent automatiquement (voir ShopManager.
-## _draw_badge_queued) — meme principe que le "resample" de Balatro.
-## Legendary a 1% assume un seul Badge dedans pour l'instant (Poker Face) —
-## a se sentir plus "chasse variee" une fois d'autres Badges Legendary ajoutes.
-const BADGE_RARITY_RATES: Array[float] = [0.50, 0.30, 0.13, 0.06, 0.01]
+## _draw_spell_queued) — meme principe que le "resample" de Balatro.
+## Legendary a 1% assume un seul Sortilège dedans pour l'instant (Poker Face) —
+## a se sentir plus "chasse variee" une fois d'autres Sortilèges Legendary ajoutes.
+const SPELL_RARITY_RATES: Array[float] = [0.50, 0.30, 0.13, 0.06, 0.01]
 
-## Couleurs et noms par rarete, pour le badge colore affiche dans les tooltips
+## Couleurs et noms par rarete, pour le sortilège colore affiche dans les tooltips
 ## (voir RarityTooltip). Meme indexation que RARITY_WEIGHTS.
 const RARITY_COLORS: Array[Color] = [
 	Color("9a9a9a"), # COMMON
@@ -454,7 +454,7 @@ const SHOP_UNITAIRE_SLOT_COUNT: int = 2
 # Meme mecanisme que RARITY_WEIGHTS mais applique aux categories de slot.
 const CATEGORY_WEIGHTS: Dictionary = {
 	"sheet": 0.5,
-	"badge": 1.0,
+	"spell": 1.0,
 	"special": 2.0,
 	"button": 0.5,
 	"des_a_coudre": 1.0,
@@ -462,14 +462,14 @@ const CATEGORY_WEIGHTS: Dictionary = {
 
 # Taille des packs a l'ouverture (candidats reveles, le joueur en garde 1).
 # Exception boutons (5) deja actee dans le GDD : plus nombreux, individuellement
-# moins determinants qu'une Partition ou un Badge.
+# moins determinants qu'une Partition ou un Sortilège.
 const PACK_SIZE_DEFAULT: int = 3
 const PACK_SIZE_BUTTON: int = 5
 
 # Prix des packs par categorie — plus cher qu'un unitaire equivalent mais
 # meilleur ratio par item (voir docs/gdd/shop/economie.md). Premiers jets.
 const PACK_PRICE_SHEET: int = 8
-const PACK_PRICE_BADGE: int = 6
+const PACK_PRICE_SPELL: int = 6
 const PACK_PRICE_SPECIAL: int = 4
 const PACK_PRICE_BUTTON: int = 4
 

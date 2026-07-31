@@ -6,12 +6,12 @@ signal stream_updated(current: TokenData, hold: Array[TokenData], preview: Array
 signal shaken()
 
 ## Nombre de slots de hold pour la manche — 1 par defaut, augmentable par
-## Badge (ex: "Benediction", +1 slot). Pose par TurnController.start_round
+## Sortilège (ex: "Benediction", +1 slot). Pose par TurnController.start_round
 ## juste apres build_context, avant build_deck (voir GameRules.BASE_HOLD_SLOTS).
 var hold_capacity: int = GameRules.BASE_HOLD_SLOTS
 
 ## Bonus de taille de preview du stream pour la manche — 0 par defaut,
-## augmentable par Badge (ex: "Visionnaire", +1 jeton visible). Meme timing
+## augmentable par Sortilège (ex: "Visionnaire", +1 jeton visible). Meme timing
 ## que hold_capacity.
 var preview_bonus: int = 0
 

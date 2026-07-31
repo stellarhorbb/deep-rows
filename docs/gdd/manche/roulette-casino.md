@@ -64,11 +64,11 @@ Plusieurs versions intermédiaires ont été conçues puis abandonnées avant d'
 - **Résoudre des jetons "isolés"** — étape intermédiaire avant Boost : faire scorer directement quelques jetons choisis pour leur faible connexion au reste de la grille. Deux définitions tentées, deux échecs différents : (1) isolement par famille seule — angle mort réel, une Partition à base de valeur (Suite/Fibonacci/Minima/Maxima/Prime, confinées à la forme Ligne) peut avoir besoin d'un jeton sans voisin de même famille ; (2) isolement total (zéro voisin dans les 8 cases, toutes familles confondues) — sûr à 100% mais quasi inexistant en fin de manche, pile quand la roulette se déclenche le plus. Abandonné pour Boost, qui ne retire jamais rien donc n'a pas ce problème de définition
 - **Sommer la valeur de N jetons piochés sans les retirer** — étape suivante avant Boost, séduisante (zéro risque, scale avec la progression des valeurs) mais recalculée avec les vrais chiffres : en manche 20 (cible ~3000), même avec des jetons à forte valeur, la somme reste anecdotique (~2,5% de la cible) comparée à son impact en manche 1 (~25%) — les valeurs de jetons plafonnent trop bas (20 max) face à l'explosion du score via les multiplicateurs. Palliatif envisagé (appliquer `ROULETTE_MULTI_VALUES` en multiplicateur sur la somme) rejeté : ça fait empiéter la logique de Multi sur l'autre moitié du pool. Résolu autrement avec Boost — augmenter la valeur d'un jeton en place scale naturellement puisque les valeurs de jetons grossissent tout du long de la run, sans avoir besoin d'un multiplicateur en plus
 
-## Synergies futures (Badges / Boss malus)
+## Synergies futures (Sortilèges / Boss malus)
 
 Pas conçu en détail, mais l'architecture s'y prête directement — `BossMalusManager` a déjà un précédent exact (Pluie de cailloux injecte `BOSS_MALUS_ROCK_COUNT` rocks via une simple constante `GameRules`). Pistes évoquées, à spécifier le jour venu :
 
-- **Badge positif** — meilleures odds de rareté sur la roulette, seuil abaissé, plus de cases mystère au départ
+- **Sortilège positif** — meilleures odds de rareté sur la roulette, seuil abaissé, plus de cases mystère au départ
 - **Malus de boss** — l'inverse (seuil relevé, cases mystère réduites)
 
 ## Statut d'implémentation
@@ -94,7 +94,7 @@ Leçon générale : tout ce qui pose un jeton sur la grille en dehors d'un vrai 
 
 **Indicateur du multiplicateur en attente** — `RouletteMultiLabel` (HUD, sous la jauge) s'affiche et pulse en boucle ("heartbeat", `Tween.set_loops`) tant que le multiplicateur est actif (prêt pour le prochain drop), disparaît dès que ce drop s'est résolu — qu'il ait scoré ou non. Le joueur voit donc explicitement quand le bonus retombe à plat plutôt que de deviner en silence. Câblé via un nouveau signal `RouletteManager.multi_status_changed(active, value)`.
 
-Reste à faire : passe UI/juice (voir [Questions ouvertes](../meta/questions-ouvertes.md)), les synergies Badges/Boss malus, calibrage des chiffres au playtest.
+Reste à faire : passe UI/juice (voir [Questions ouvertes](../meta/questions-ouvertes.md)), les synergies Sortilèges/Boss malus, calibrage des chiffres au playtest.
 
 ## Liens
 

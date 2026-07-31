@@ -7,7 +7,7 @@ enum GameFlow { PLAYING, ROUND_WON, ROUND_LOST, RUN_WON, SHOPPING }
 
 var run_manager: RunManager
 var shop_manager: ShopManager
-var badge_manager: BadgeManager
+var spell_manager: SpellManager
 var boss_malus_manager: BossMalusManager
 var roulette_manager: RouletteManager
 var current_round: int = 1
@@ -30,10 +30,10 @@ func _ready() -> void:
 	shop_manager.name = "ShopManager"
 	add_child(shop_manager)
 
-	badge_manager = BadgeManager.new()
-	badge_manager.name = "BadgeManager"
-	badge_manager.run_manager = run_manager
-	add_child(badge_manager)
+	spell_manager = SpellManager.new()
+	spell_manager.name = "SpellManager"
+	spell_manager.run_manager = run_manager
+	add_child(spell_manager)
 
 	boss_malus_manager = BossMalusManager.new()
 	boss_malus_manager.name = "BossMalusManager"

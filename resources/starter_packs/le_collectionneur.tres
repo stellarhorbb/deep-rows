@@ -9,10 +9,10 @@
 script = ExtResource("1_script")
 pack_name = "Le Collectionneur"
 unlock_id = "pack:le_collectionneur"
-description = "+1 emplacement de Badge, mais +2 rocks dans le deck."
+description = "+1 emplacement de Spell, mais +2 rocks dans le deck."
 fixed_sheet_a = ExtResource("2_sheet_a")
 fixed_sheet_b = ExtResource("3_sheet_b")
-badge_slot_bonus = 1
+spell_slot_bonus = 1
 rock_count_bonus = 2
 locked = true
 unlock_requires_win_of = ExtResource("4_requires")

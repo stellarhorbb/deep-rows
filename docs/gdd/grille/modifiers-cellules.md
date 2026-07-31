@@ -23,16 +23,16 @@ Autres pistes non implémentées : TRAP, VOID.
 
 | Source | Statut |
 |---|---|
-| [Badges](../badges/badges-implementes.md) (`on_round_start`) | **Implémenté** — ex : Cellule Triple, Tranchée |
+| [Sortilèges](../sortileges/sortileges-implementes.md) (`on_round_start`) | **Implémenté** — ex : Cellule Triple, Tranchée |
 | Layouts de zone | Prévu — certaines zones démarrent avec des modifiers pré-placés |
 | Jetons spéciaux | Prévu — un special qui laisse un modifier après résolution |
 | Shop | Prévu — acheter un modifier à placer librement |
 | [Entity](../univers/personnages/entity.md) | Prévu — perturbations hostiles (cases HALF, TRAP...) |
 
-**Actuellement 1 source active (Badges).** Les règles d'override, la lisibilité UI et la coexistence de sources sont tracées dans [HOB-11](https://linear.app/hobbes-game/issue/HOB-11).
+**Actuellement 1 source active (Sortilèges).** Les règles d'override, la lisibilité UI et la coexistence de sources sont tracées dans [HOB-11](https://linear.app/hobbes-game/issue/HOB-11).
 
 ## Liens
 
 - [Scoring](../partitions/scoring.md)
-- [Badges — cartes implémentées](../badges/badges-implementes.md)
+- [Sortilèges — cartes implémentées](../sortileges/sortileges-implementes.md)
 - [Entity — perturbations](../univers/personnages/entity.md)

@@ -6,7 +6,7 @@ extends Resource
 ## ID stable pour la sauvegarde du Shore (MetaProgression), independant du
 ## label/nom affiche qui peut etre renomme (voir session 18 : Encree->Hivernal
 ## etc.). Prefixe "sheet:" pour eviter toute collision avec d'autres
-## categories de contenu debloquable (packs, badges...). Jamais renomme une
+## categories de contenu debloquable (packs, sortilèges...). Jamais renomme une
 ## fois pose, meme si sheet_name ou label changent.
 @export var unlock_id: String = ""
 @export var shape: StringName = &""       # &"line" | &"square" | &"diamond" | &"plus" | &"cross" | &"ring" | &"t" | &"corners"
@@ -26,11 +26,11 @@ extends Resource
 @export var is_legendary: bool = false
 
 ## Shop
-## Pas de champ rarity (session 19) : contrairement aux Badges (bonus optionnel,
+## Pas de champ rarity (session 19) : contrairement aux Sortilèges (bonus optionnel,
 ## rarete = puissance), les Partitions sont la mecanique de resolution elle-meme
 ## — les gater par rarete privait le joueur d'une partie du jeu plutot que d'un
 ## bonus, a l'encontre du principe "pas de RNG punitif". Tirees via une file
-## d'apparition uniforme (sans ponderation, contrairement aux Badges) depuis la
+## d'apparition uniforme (sans ponderation, contrairement aux Sortilèges) depuis la
 ## session 23 — voir ShopManager._draw_sheet_candidate/_next_sheet_in_queue.
 @export var label: String = ""
 @export var price: int = 0
@@ -43,7 +43,7 @@ extends Resource
 @export var locked: bool = false
 
 ## DEBUG : si true, cette Partition est equipee des le debut du run (bypass
-## shop) — meme principe que BadgeData.debug_start_equipped. Pratique pour
+## shop) — meme principe que SpellData.debug_start_equipped. Pratique pour
 ## tester une legendaire sans attendre son tirage. A laisser a false pour un
 ## run normal.
 @export var debug_start_equipped: bool = false

@@ -36,7 +36,7 @@ signal mobile_specials_scored(amount: int)
 ## mobile_specials_scored : en dehors de la banniere de resolution normale).
 signal mystery_cell_resolved(col: int, row: int, effect: MysteryCellEffects.Type, score_delta: int)
 
-## Hooks consommes par BadgeManager (dispatch vers les BadgeEffect equipes).
+## Hooks consommes par SpellManager (dispatch vers les SpellEffect equipes).
 signal round_started()
 signal token_dropped(token: TokenData, col: int, row: int)
 signal cascade_step_resolved(level: int, earned: int)
@@ -99,7 +99,7 @@ func start_round(round_number: int) -> void:
 	run_manager.reset_round_modifiers()
 
 	# 1b. Malus de boss (manche 5, 10, 15, 20) : pose ses verrous/bonus via les
-	# memes hooks qu'un Badge on_round_start, avant que le contexte ne soit construit.
+	# memes hooks qu'un Sortilège on_round_start, avant que le contexte ne soit construit.
 	boss_malus_manager.apply_for_round(round_number, run_manager)
 
 	# 1c. L'ÉTAU / CIEL BAS : trous fixes en plus de la grille cabossee
@@ -119,7 +119,7 @@ func start_round(round_number: int) -> void:
 
 	_reroll_colonne_maudite()
 
-	# 2. Les badges on_round_start peuplent grid_modifiers et rule_multipliers.
+	# 2. Les sortilèges on_round_start peuplent grid_modifiers et rule_multipliers.
 	round_started.emit()
 
 	# 3. Publie le dict final pour l'UI et snapshot le contexte.
@@ -337,7 +337,7 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 	if total_score > 0:
 		score_manager.add_score(total_score)
 
-	# Emet un hook par MATCH event pour les badges on_cascade_step, et
+	# Emet un hook par MATCH event pour les sortilèges on_cascade_step, et
 	# remonte le score de chaque groupe a sa Partition pour le level up.
 	# UPGRADE (ex: Poker Face) : le tirage a deja eu lieu dans CascadeResolver
 	# (avant que le visuel n'anime la montee en valeur) — ici on applique juste
@@ -375,12 +375,12 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 				run_manager.add_button(family, value)
 
 	# turn_resolved ne sort qu'une fois par tour REEL, jamais a la 1ere passe
-	# seule (voir _pre_pass) — sinon les badges on_turn_resolved (Refrain,
+	# seule (voir _pre_pass) — sinon les sortilèges on_turn_resolved (Refrain,
 	# Vertige, Artificier...) et le compteur de drop d'entity-skull (GameScene.
 	# _on_turn_resolved) se declencheraient deux fois pour un seul tour joue.
 	# Exception : si la 1ere passe suffit deja a gagner la manche, on emet
 	# quand meme tout de suite — sinon le tour gagnant ne dispatcherait jamais
-	# ses badges on_turn_resolved (la 2e passe n'a alors jamais lieu). Les
+	# ses sortilèges on_turn_resolved (la 2e passe n'a alors jamais lieu). Les
 	# deux timelines sont fusionnees pour que rien de la 1ere passe ne soit
 	# perdu pour ces consommateurs.
 	var full_timeline: Array[Dictionary] = timeline
@@ -415,7 +415,7 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 	if _state == State.LAST_BREATH:
 		# Legendaire "Souffle Obscur" : une deuxieme vague avant de declarer
 		# la defaite, une seule fois par manche (voir _second_wave_triggered).
-		if run_manager.has_badge(&"souffle_obscur") and not _second_wave_triggered:
+		if run_manager.has_spell(&"souffle_obscur") and not _second_wave_triggered:
 			_second_wave_triggered = true
 			await timeline_done_ack
 			_trigger_second_wave()

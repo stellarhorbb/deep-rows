@@ -5,12 +5,12 @@
 ## Convention unique (session 18, remplace 3 patterns incoherents qui avaient
 ## cohabite au fil des sessions — un seul provoquait un vrai bug de score,
 ## deux autres limitaient juste l'attribution affichee) : CHAQUE canal
-## alimentable par un Badge est un dictionnaire garde par source (id du badge),
+## alimentable par un Sortilège est un dictionnaire garde par source (id du sortilège),
 ## jamais un scalaire ecrase. Deux formes seulement :
-##   - "flat"  : Dictionary[StringName badge_id] -> valeur
-##   - "keyed" : Dictionary[cle] -> Dictionary[StringName badge_id] -> valeur
+##   - "flat"  : Dictionary[StringName spell_id] -> valeur
+##   - "keyed" : Dictionary[cle] -> Dictionary[StringName spell_id] -> valeur
 ##     (cle = rule, valeur de jeton, ou famille selon le canal)
-## Combiner plusieurs badges sur le meme canal ne perd donc plus jamais une
+## Combiner plusieurs sortilèges sur le meme canal ne perd donc plus jamais une
 ## contribution — les methodes get_* ci-dessous font la somme ou le produit
 ## selon la semantique du canal (documente sur chaque champ), et servent aussi
 ## de attribution complete pour la banniere de resolution (CascadeResolver).
@@ -19,11 +19,11 @@ extends Resource
 
 @export var equipped_sheets: Array[SheetData] = []
 
-# Badges equipes, DANS L'ORDRE DES SLOTS (session 17) — permet a la banniere
-# de resolution de faire resoudre les Badges "de gauche a droite" plutot que
+# Sortilèges equipes, DANS L'ORDRE DES SLOTS (session 17) — permet a la banniere
+# de resolution de faire resoudre les Sortilèges "de gauche a droite" plutot que
 # dans un ordre arbitraire de dictionnaire. Snapshot au round_start comme
 # equipped_sheets.
-@export var equipped_badges: Array[BadgeData] = []
+@export var equipped_spells: Array[SpellData] = []
 
 # Cellules modifiees pour la manche en cours : Vector2i -> Array[StringName]
 # (types de modifiers empiles sur cette case, cumulatifs).
@@ -31,26 +31,26 @@ extends Resource
 @export var grid_modifiers: Dictionary = {}
 
 # Multiplicateurs de score par rule de pattern (ex: "family" -> Famille unie
-# -> 2.0), keyed. Combine par PRODUIT : deux badges sur la meme rule
+# -> 2.0), keyed. Combine par PRODUIT : deux sortilèges sur la meme rule
 # multiplient leurs facteurs entre eux plutot que le dernier ecraser l'autre.
-@export var rule_multiplier_contributions: Dictionary = {} # rule -> {badge_id -> float}
+@export var rule_multiplier_contributions: Dictionary = {} # rule -> {spell_id -> float}
 
 # Multiplicateur global (Dernier Carre, Regularite), flat. Contrairement aux
 # autres champs, celui-ci peut etre mute EN COURS de manche (RunManager garde
 # une reference vivante vers le RunContext actif, voir
-# RunManager.set_global_multiplier) car ces badges reagissent a chaque tour.
+# RunManager.set_global_multiplier) car ces sortilèges reagissent a chaque tour.
 # Combine par PRODUIT.
-@export var global_multiplier_contributions: Dictionary = {} # badge_id -> float
+@export var global_multiplier_contributions: Dictionary = {} # spell_id -> float
 
 # Multiplicateur de score par Partition (sheet_name -> float), selon son niveau
-# (score cumule sur le run). Pas Badge-driven, pas de collision possible —
+# (score cumule sur le run). Pas Sortilège-driven, pas de collision possible —
 # une seule source (le niveau du Sheet lui-meme), reste un simple dictionnaire.
 @export var sheet_level_multipliers: Dictionary = {}
 
 # Bonus additif au multiplicateur d'une figure par valeur de jeton presente
 # (ex: 1 -> Petites Mains -> 0.25), keyed. Combine par SOMME : chaque jeton
 # scorable de cette valeur ajoute la somme des contributions au multi.
-@export var value_bonus_multiplier_contributions: Dictionary = {} # value -> {badge_id -> float}
+@export var value_bonus_multiplier_contributions: Dictionary = {} # value -> {spell_id -> float}
 
 # Bonus additif au multiplicateur d'une Partition PRECISE, par sheet_name
 # (ex: "Refrain", +0.1 cumule a chaque fois que CETTE Partition score,
@@ -58,32 +58,32 @@ extends Resource
 # comme value_bonus_multiplier_contributions. Contrairement a
 # scaling_mult_bonus (global, toutes Partitions confondues), ne s'applique
 # qu'a la Partition dont le sheet_name correspond a la cle.
-@export var sheet_multiplier_bonus_contributions: Dictionary = {} # sheet_name -> {badge_id -> float}
+@export var sheet_multiplier_bonus_contributions: Dictionary = {} # sheet_name -> {spell_id -> float}
 
 # Valeurs de jeton qui recomptent leur propre valeur une deuxieme fois dans le
 # value_sum du groupe qui score ("retrigger"), keyed. Existence pure (pas de
-# magnitude a combiner) — deux badges sur la meme valeur ne la font pas
+# magnitude a combiner) — deux sortilèges sur la meme valeur ne la font pas
 # compter trois fois, voir is_retrigger_value.
-@export var retrigger_value_contributions: Dictionary = {} # value -> {badge_id -> true}
+@export var retrigger_value_contributions: Dictionary = {} # value -> {spell_id -> true}
 
 # Bonus flat ajoute au value_sum par jeton scorable de cette famille present
 # dans un groupe qui score, peu importe la rule du pattern (ex: DENIERS ->
 # Tickets Hivernal -> 2 par jeton DENIERS), keyed. Combine par SOMME.
-@export var family_score_bonus_contributions: Dictionary = {} # family -> {badge_id -> int}
+@export var family_score_bonus_contributions: Dictionary = {} # family -> {spell_id -> int}
 
 # Bonus flat ajoute au value_sum quand le groupe qui score contient au moins
 # deux jetons de meme valeur ("paire", ex: "Y'en a pas deux"), flat. Combine
 # par SOMME, applique une seule fois par groupe peu importe le nombre de
 # paires trouvees (verifie par CascadeResolver, pas ici).
-@export var pair_score_bonus_contributions: Dictionary = {} # badge_id -> int
+@export var pair_score_bonus_contributions: Dictionary = {} # spell_id -> int
 
 # Bonus flat ajoute au value_sum de chaque pattern qui score tant qu'un jeton
 # occupe la rangee du haut de la grille (ex: "Sommet"), flat. Combine par SOMME.
-@export var top_row_score_bonus_contributions: Dictionary = {} # badge_id -> int
+@export var top_row_score_bonus_contributions: Dictionary = {} # spell_id -> int
 
-# Contribution actuelle de chaque badge "scaling permanent" au facteur
+# Contribution actuelle de chaque sortilège "scaling permanent" au facteur
 # scaling_mult (ex: Jetons sacres, +0.1 par special joue, cumule sur toute la
-# run) : badge_id -> float. Combine par SOMME (voir scaling_mult_bonus, cache
+# run) : spell_id -> float. Combine par SOMME (voir scaling_mult_bonus, cache
 # pre-somme pour eviter de resommer a chaque groupe score).
 @export var scaling_mult_bonuses: Dictionary = {}
 @export var scaling_mult_bonus: float = 0.0
@@ -96,7 +96,7 @@ extends Resource
 
 # Chance (0.0-1.0) qu'un jeton scorable gagne +1 de valeur dans le deck au
 # moment ou il score (ex: "Poker Face"). Somme des contributions de chaque
-# badge equipe (deja pre-somme par RunManager.build_context).
+# sortilège equipe (deja pre-somme par RunManager.build_context).
 @export var token_upgrade_chance: float = 0.0
 
 # Bonus de slots de hold / taille de preview / nombre de rocks pour la manche
@@ -106,22 +106,22 @@ extends Resource
 @export var preview_size_bonus: int = 0
 @export var rock_count_bonus: int = 0
 
-# Badges qui font qu'un jeton aleatoire parmi ceux d'une Partition scoree
+# Sortilèges qui font qu'un jeton aleatoire parmi ceux d'une Partition scoree
 # laisse place a un rock au lieu de disparaitre (ex: "Recif vivant") :
-# StringName (id du badge) -> true. Non-vide suffit a activer l'effet, peu
-# importe combien de badges le partagent.
+# StringName (id du sortilège) -> true. Non-vide suffit a activer l'effet, peu
+# importe combien de sortilèges le partagent.
 @export var rock_leaving_sources: Dictionary = {}
 
 # Verrous poses par le malus de boss actif de la manche (voir
 # BossMalusManager) : MAIN LIÉE et COUR ENDORMIE. Pas de dictionnaire par
-# source, contrairement aux canaux Badge ci-dessus — un seul emetteur possible.
+# source, contrairement aux canaux Sortilège ci-dessus — un seul emetteur possible.
 @export var hold_locked: bool = false
 @export var figure_promotion_locked: bool = false
 
 # Legendaire "Dresseur Fou" (session 23) : vrai si equipe — les speciaux
 # mobiles (Cavalier/Frog/Liane/Underground) ne disparaissent plus jamais.
-# Simple flag reflete depuis RunManager.has_badge, pas un canal par source
-# (un seul badge peut porter cet effet). Lu par GridManager.tick_mobile_
+# Simple flag reflete depuis RunManager.has_spell, pas un canal par source
+# (un seul sortilège peut porter cet effet). Lu par GridManager.tick_mobile_
 # specials, pas par le pipeline de scoring (CascadeResolver).
 @export var mobiles_never_expire: bool = false
 
@@ -129,11 +129,11 @@ extends Resource
 # deux axes symetriques de la meme formule value_sum * multi :
 # - score_capped_family (TokenData.Family, -1 = aucune) : chaque jeton de
 #   cette famille scort comme s'il valait 1 (voir CascadeResolver.
-#   _effective_token_value) — les multi (sheet + Badges) s'appliquent ensuite
+#   _effective_token_value) — les multi (sheet + Sortilèges) s'appliquent ensuite
 #   normalement sur ce total reduit.
 # - score_capped_sheet_name (sheet_name, "" = aucune) : le multiplicateur
 #   PROPRE a cette Partition (base + niveau, y compris legendaire dynamique)
-#   est neutralise a 1.0 — les tickets des jetons et les multi de Badges
+#   est neutralise a 1.0 — les tickets des jetons et les multi de Sortilèges
 #   restent normaux (voir CascadeResolver._score_group).
 @export var score_capped_family: int = -1
 @export var score_capped_sheet_name: StringName = &""

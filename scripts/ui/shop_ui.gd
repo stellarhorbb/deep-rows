@@ -39,7 +39,7 @@ var _pack_entries: Array[Dictionary] = []
 var _unitaire_entries: Array[Dictionary] = []
 var _reroll_count: int = 0
 
-## Reroll gratuit de cette visite, offert par le badge "Econome" — consomme au
+## Reroll gratuit de cette visite, offert par le sortilège "Econome" — consomme au
 ## premier reroll, peu importe lequel (unitaires). Reinitialise a chaque
 ## nouvelle visite du shop (_ready), le seul endroit qui sait de facon fiable
 ## qu'une visite commence (aucun signal shop_entered/shop_opened aujourd'hui).
@@ -74,10 +74,10 @@ func _ready() -> void:
 	SceneRouter.shell.deck_button.disabled = false
 
 	_reroll_count = 0
-	_free_reroll_available = _run_manager.has_badge(&"econome")
+	_free_reroll_available = _run_manager.has_spell(&"econome")
 	_shop_manager.regenerate_offer(_run_manager)
 	if _shop_manager.has_deck_tool_offer():
-		RunService.badge_manager.dispatch_deck_tool_shown()
+		RunService.spell_manager.dispatch_deck_tool_shown()
 	_refresh_flies()
 	_refresh_zone_label()
 	_rebuild_packs()
@@ -164,7 +164,7 @@ func _make_unitaire_button(entry: Dictionary) -> Button:
 func _category_label(category: String) -> String:
 	match category:
 		"sheet": return "PARTITION"
-		"badge": return "BADGE"
+		"spell": return "SPELL"
 		"special": return "SPÉCIAL"
 		"button": return "BOUTON"
 	return category.to_upper()

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SpellData" format=3 uid="uid://d2l8brdeu1u"]
+
+[ext_resource type="Script" uid="uid://ct80ym651ovo7" path="res://scripts/data/spell_data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://nwx05i1jmj2v" path="res://scripts/spells/effect_collectionneur.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"collectionneur"
+label = "COLLECTIONNEUR"
+description = "Les patterns Rock doublent leur score"
+price = 5
+rarity = 2
+effect_script = ExtResource("2_effect")

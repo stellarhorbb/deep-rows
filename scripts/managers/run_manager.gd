@@ -1,5 +1,5 @@
 ## Porte les donnees qui evoluent au cours d'un run (sheets equipes, deck,
-## mouches, plus tard badges/states/niveaux). Mute uniquement par l'orchestration
+## mouches, plus tard sortilèges/states/niveaux). Mute uniquement par l'orchestration
 ## (TurnController, ShopManager a venir). Les autres lisent via build_context().
 class_name RunManager
 extends Node
@@ -7,7 +7,7 @@ extends Node
 signal flies_changed(amount: int)
 signal shake_charges_changed(amount: int)
 signal sheets_changed(equipped: Array[SheetData])
-signal badges_changed(equipped: Array[BadgeData])
+signal spells_changed(equipped: Array[SpellData])
 signal special_inventory_changed()
 signal grid_modifiers_changed(modifiers: Dictionary)
 signal button_pool_changed()
@@ -31,37 +31,37 @@ const STARTER_PACK_PATHS: Array[String] = [
 var _flies: int = 0
 var _shake_charges: int = GameRules.SHAKE_CHARGES_DEFAULT
 var _equipped_sheets: Array[SheetData] = []
-var _equipped_badges: Array[BadgeData] = []
+var _equipped_spells: Array[SpellData] = []
 var _button_pool: Array[TokenData] = []
 
 ## Inventaire de speciaux possede par le joueur (session 25, remplace l'ancien
 ## systeme "special = jeton du deck") -- achete au shop, joue a la demande a
 ## la place du coup normal (voir TurnController.play_special_from_inventory),
 ## jamais mele au stream. Plafonne a GameRules.SPECIAL_INVENTORY_SLOTS.
-## Premier jet : capacite fixe, pas encore de bonus par Badge (contrairement
+## Premier jet : capacite fixe, pas encore de bonus par Sortilège (contrairement
 ## au Hold, voir _hold_slot_bonuses) -- a etendre si le besoin se confirme.
 var _special_inventory: Array[TokenData.SpecialType] = []
 var _grid_modifiers: Dictionary = {}    # Vector2i -> Array[StringName]
 
-## Canaux alimentables par plusieurs Badges a la fois (session 18) : un seul
-## pattern partout — Dictionary[badge_id] -> valeur pour les canaux "flat",
-## Dictionary[cle] -> Dictionary[badge_id] -> valeur pour les canaux "keyed"
+## Canaux alimentables par plusieurs Sortilèges a la fois (session 18) : un seul
+## pattern partout — Dictionary[spell_id] -> valeur pour les canaux "flat",
+## Dictionary[cle] -> Dictionary[spell_id] -> valeur pour les canaux "keyed"
 ## (cle = rule/valeur/famille selon le canal). Remplace 3 patterns
 ## incoherents (ecrasement pur pour rule/global, source unique pour value_
 ## bonus/family/pair/top_row) — voir RunContext pour la combinaison (produit
 ## ou somme selon le canal) et l'attribution complete pour la banniere de
 ## resolution.
-var _rule_multiplier_contributions: Dictionary = {}          # rule -> {badge_id -> float}
-var _value_bonus_multiplier_contributions: Dictionary = {}   # value -> {badge_id -> float}
-var _retrigger_value_contributions: Dictionary = {}          # value -> {badge_id -> true}
-var _family_score_bonus_contributions: Dictionary = {}       # family -> {badge_id -> int}
-var _global_multiplier_contributions: Dictionary = {}        # badge_id -> float
-var _pair_score_bonus_contributions: Dictionary = {}         # badge_id -> int
-var _top_row_score_bonus_contributions: Dictionary = {}      # badge_id -> int
+var _rule_multiplier_contributions: Dictionary = {}          # rule -> {spell_id -> float}
+var _value_bonus_multiplier_contributions: Dictionary = {}   # value -> {spell_id -> float}
+var _retrigger_value_contributions: Dictionary = {}          # value -> {spell_id -> true}
+var _family_score_bonus_contributions: Dictionary = {}       # family -> {spell_id -> int}
+var _global_multiplier_contributions: Dictionary = {}        # spell_id -> float
+var _pair_score_bonus_contributions: Dictionary = {}         # spell_id -> int
+var _top_row_score_bonus_contributions: Dictionary = {}      # spell_id -> int
 
 ## Bonus de slots de hold / taille de preview pour la manche (session 17) :
-## StringName (id du badge) -> int. Remis a zero chaque manche comme les
-## canaux ci-dessus — repeuples par les badges on_round_start.
+## StringName (id du sortilège) -> int. Remis a zero chaque manche comme les
+## canaux ci-dessus — repeuples par les sortilèges on_round_start.
 var _hold_slot_bonuses: Dictionary = {}
 var _preview_size_bonuses: Dictionary = {}
 var _rock_count_bonuses: Dictionary = {}
@@ -69,17 +69,17 @@ var _rock_leaving_sources: Dictionary = {}  # StringName -> true
 
 ## Verrous poses par le malus de boss actif (voir BossMalusManager). Simples
 ## booleens, pas de dictionnaire par source : seul le malus de boss les pose
-## aujourd'hui, contrairement aux canaux ci-dessus qui combinent plusieurs Badges.
+## aujourd'hui, contrairement aux canaux ci-dessus qui combinent plusieurs Sortilèges.
 var _hold_locked: bool = false
 var _shake_locked: bool = false
 var _figure_promotion_locked: bool = false
 var _score_capped_family: int = -1
 var _score_capped_sheet_name: StringName = &""
 
-## Contribution actuelle de chaque badge "scaling permanent" au facteur
-## scaling_mult / au flat_score_bonus : StringName (id du badge) -> float/int.
+## Contribution actuelle de chaque sortilège "scaling permanent" au facteur
+## scaling_mult / au flat_score_bonus : StringName (id du sortilège) -> float/int.
 ## Jamais remis a zero a chaque manche (contrairement aux dictionnaires
-## ci-dessus) — seul le retrait d'un badge equipe (voir unequip_badge) efface
+## ci-dessus) — seul le retrait d'un sortilège equipe (voir unequip_spell) efface
 ## son entree. Permet au bonus de rester actif d'une manche a l'autre sans
 ## attendre un nouveau round_start pour se re-populer.
 var _scaling_mult_bonuses: Dictionary = {}  # StringName -> float
@@ -87,31 +87,31 @@ var _flat_score_bonuses: Dictionary = {}  # StringName -> int
 var _token_upgrade_chances: Dictionary = {}  # StringName -> float
 
 ## Meme duree de vie que _scaling_mult_bonuses (jamais remis a zero a chaque
-## manche, seul unequip_badge nettoie), mais garde EN PLUS par Partition
+## manche, seul unequip_spell nettoie), mais garde EN PLUS par Partition
 ## ciblee (ex: "Refrain") — voir add_sheet_multiplier_bonus.
-var _sheet_multiplier_bonus_contributions: Dictionary = {}  # sheet_name -> {badge_id -> float}
+var _sheet_multiplier_bonus_contributions: Dictionary = {}  # sheet_name -> {spell_id -> float}
 
-## Etat persistant par badge, JAMAIS remis a zero en cours de run (contrairement
-## a _badge_state, reset chaque manche) — sert aux badges "scaling permanent"
+## Etat persistant par sortilège, JAMAIS remis a zero en cours de run (contrairement
+## a _spell_state, reset chaque manche) — sert aux sortilèges "scaling permanent"
 ## qui grossissent sur toute la run (ex: nombre de speciaux joues, cumulatif
-## pour Jetons sacres). Cle = StringName propre a chaque badge. Reset
+## pour Jetons sacres). Cle = StringName propre a chaque sortilège. Reset
 ## uniquement par init_run (nouvelle run).
-var _run_badge_state: Dictionary = {}
+var _run_spell_state: Dictionary = {}
 var _sheet_progress: Dictionary = {}      # StringName (sheet_name) -> {"cumulative": int, "level": int}
 
 ## Pack de demarrage choisi pour cette run (voir apply_starter_pack). Ses
 ## bonus de slots/mouches sont permanents pour toute la run, contrairement
-## aux memes canaux alimentes par les Badges (remis a zero chaque manche) —
-## voir get_badge_slot_count/get_flies_per_round_bonus et reset_round_modifiers.
+## aux memes canaux alimentes par les Sortilèges (remis a zero chaque manche) —
+## voir get_spell_slot_count/get_flies_per_round_bonus et reset_round_modifiers.
 var _starter_pack: StarterPackData = null
 
-## Etat libre pour badges a compteur (ex: streak de Regularite, familles deja
-## vues de Un Pour Tous). Cle = StringName propre a chaque badge, remis a zero
-## a chaque manche. Voir get_badge_state/set_badge_state.
-var _badge_state: Dictionary = {}
+## Etat libre pour sortilèges a compteur (ex: streak de Regularite, familles deja
+## vues de Un Pour Tous). Cle = StringName propre a chaque sortilège, remis a zero
+## a chaque manche. Voir get_spell_state/set_spell_state.
+var _spell_state: Dictionary = {}
 
 ## Reference vivante vers le RunContext de la manche en cours, pour permettre
-## aux badges de muter le multiplicateur global en cours de manche (voir
+## aux sortilèges de muter le multiplicateur global en cours de manche (voir
 ## set_global_multiplier). Tous les autres champs du contexte restent des
 ## snapshots figes au round_start.
 var _active_context: RunContext = null
@@ -136,13 +136,13 @@ func init_run() -> void:
 		if sheet != null and sheet.debug_start_equipped:
 			equip_sheet(sheet)
 
-	_equipped_badges.clear()
-	# DEBUG : equipe au demarrage les badges dont debug_start_equipped == true.
+	_equipped_spells.clear()
+	# DEBUG : equipe au demarrage les sortilèges dont debug_start_equipped == true.
 	# Flag a activer dans chaque .tres via l'editeur Godot.
-	for path in ShopManager.BADGE_PATHS:
-		var badge: BadgeData = load(path) as BadgeData
-		if badge != null and badge.debug_start_equipped:
-			_equipped_badges.append(badge)
+	for path in ShopManager.SPELL_PATHS:
+		var spell: SpellData = load(path) as SpellData
+		if spell != null and spell.debug_start_equipped:
+			_equipped_spells.append(spell)
 
 	_button_pool = _generate_starter_buttons()
 	_sheet_progress.clear()
@@ -152,12 +152,12 @@ func init_run() -> void:
 	_flat_score_bonuses.clear()
 	_token_upgrade_chances.clear()
 	_sheet_multiplier_bonus_contributions.clear()
-	_run_badge_state.clear()
+	_run_spell_state.clear()
 
 	flies_changed.emit(_flies)
 	shake_charges_changed.emit(_shake_charges)
 	sheets_changed.emit(_equipped_sheets)
-	badges_changed.emit(_equipped_badges)
+	spells_changed.emit(_equipped_spells)
 	special_inventory_changed.emit()
 
 
@@ -199,8 +199,8 @@ func is_pack_locked(pack: StarterPackData) -> bool:
 
 
 ## Applique le pack de demarrage choisi par le joueur : equipe ses Partitions
-## fixes et memorise le pack pour ses bonus permanents (hold/badge/preview/
-## mouches, voir get_badge_slot_count/get_flies_per_round_bonus et
+## fixes et memorise le pack pour ses bonus permanents (hold/spell/preview/
+## mouches, voir get_spell_slot_count/get_flies_per_round_bonus et
 ## reset_round_modifiers, qui repeuple hold/preview a chaque manche).
 func apply_starter_pack(pack: StarterPackData) -> void:
 	_starter_pack = pack
@@ -239,12 +239,12 @@ static func _win_id(pack: StarterPackData) -> String:
 	return "win:" + pack.unlock_id
 
 
-## Slots de Badge disponibles pour cette run (base + bonus permanent du pack
+## Slots de Sortilège disponibles pour cette run (base + bonus permanent du pack
 ## de demarrage, ex: Le Collectionneur +1). Remplace les usages directs de
-## GameRules.MAX_BADGE_SLOTS partout ou le choix de pack doit compter.
-func get_badge_slot_count() -> int:
-	var bonus: int = _starter_pack.badge_slot_bonus if _starter_pack != null else 0
-	return GameRules.MAX_BADGE_SLOTS + bonus
+## GameRules.MAX_SPELL_SLOTS partout ou le choix de pack doit compter.
+func get_spell_slot_count() -> int:
+	var bonus: int = _starter_pack.spell_slot_bonus if _starter_pack != null else 0
+	return GameRules.MAX_SPELL_SLOTS + bonus
 
 
 ## Bonus de mouches par manche gagnee accorde par le pack de demarrage (ex:
@@ -257,7 +257,7 @@ func get_flies_per_round_bonus() -> int:
 func build_context() -> RunContext:
 	var ctx: RunContext = RunContext.new()
 	ctx.equipped_sheets = _equipped_sheets.duplicate()
-	ctx.equipped_badges = _equipped_badges.duplicate()
+	ctx.equipped_spells = _equipped_spells.duplicate()
 	ctx.grid_modifiers = _grid_modifiers.duplicate()
 	ctx.rule_multiplier_contributions = _rule_multiplier_contributions.duplicate(true)
 	ctx.sheet_level_multipliers = _build_sheet_level_multipliers()
@@ -281,7 +281,7 @@ func build_context() -> RunContext:
 	ctx.figure_promotion_locked = _figure_promotion_locked
 	ctx.score_capped_family = _score_capped_family
 	ctx.score_capped_sheet_name = _score_capped_sheet_name
-	ctx.mobiles_never_expire = has_badge(&"dresseur_fou")
+	ctx.mobiles_never_expire = has_spell(&"dresseur_fou")
 	_active_context = ctx
 	return ctx
 
@@ -369,7 +369,7 @@ func get_sheet_cumulative_score(sheet_name: StringName) -> int:
 
 
 ## Reset la couche "modifiers de manche" : grid modifiers + rule multipliers.
-## Appele au start_round avant que les badges on_round_start ne peuplent.
+## Appele au start_round avant que les sortilèges on_round_start ne peuplent.
 func reset_round_modifiers() -> void:
 	_grid_modifiers.clear()
 	_rule_multiplier_contributions.clear()
@@ -388,12 +388,12 @@ func reset_round_modifiers() -> void:
 	_figure_promotion_locked = false
 	_score_capped_family = -1
 	_score_capped_sheet_name = &""
-	_badge_state.clear()
+	_spell_state.clear()
 	_active_context = null
 
 	# Bonus permanents du pack de demarrage (ex: Le Prevoyant +1 hold/-1 preview,
-	# Le Collectionneur +1 badge/+2 rocks) — repeuples ici comme une "source" de
-	# plus dans ces memes dictionnaires, au meme titre qu'un Badge on_round_start,
+	# Le Collectionneur +1 sortilège/+2 rocks) — repeuples ici comme une "source" de
+	# plus dans ces memes dictionnaires, au meme titre qu'un Sortilège on_round_start,
 	# plutot que dans un canal a part.
 	if _starter_pack != null:
 		if _starter_pack.hold_slot_bonus != 0:
@@ -404,16 +404,16 @@ func reset_round_modifiers() -> void:
 			_rock_count_bonuses[&"starter_pack"] = _starter_pack.rock_count_bonus
 
 
-## Ajoute un modifier sur une cellule. Appele par les badges. Les modifiers
+## Ajoute un modifier sur une cellule. Appele par les sortilèges. Les modifiers
 ## s'empilent sur une meme case (ex: Tranchee + Bord a Bord, ou Cellule Triple
-## par-dessus un badge colonne) : chaque type ajoute son propre multiplicateur
+## par-dessus un sortilège colonne) : chaque type ajoute son propre multiplicateur
 ## au lieu d'ecraser les precedents, voir CascadeResolver._grid_modifier_multiplier.
 func add_grid_modifier(cell: Vector2i, type: StringName) -> void:
 	var types: Array = (_grid_modifiers.get(cell, []) as Array).duplicate()
 	types.append(type)
 	_grid_modifiers[cell] = types
 	# Cases mystere (session 24) : peuvent ajouter un modifier EN COURS de
-	# manche, contrairement aux Badges (toujours on_round_start, donc avant le
+	# manche, contrairement aux Sortilèges (toujours on_round_start, donc avant le
 	# snapshot de build_context). _active_context.grid_modifiers est sinon une
 	# copie figee (voir RunContext, "Lu, jamais mute" — sauf les quelques
 	# champs deja mutables en cours de manche comme _scaling_mult_bonuses),
@@ -422,15 +422,15 @@ func add_grid_modifier(cell: Vector2i, type: StringName) -> void:
 		_active_context.grid_modifiers = _grid_modifiers.duplicate()
 
 
-## Emis une fois tous les modifiers de manche peuples (base + badges).
+## Emis une fois tous les modifiers de manche peuples (base + sortilèges).
 func notify_grid_modifiers_ready() -> void:
 	grid_modifiers_changed.emit(_grid_modifiers.duplicate())
 
 
 ## Pose un multiplicateur de score par rule (ex: &"family" -> 2.0). Appele par
-## les badges, qui passent leur propre id (ex: &"famille_unie") pour que la
-## bannière de résolution puisse identifier — et faire tilter — le bon Badge.
-## Deux badges sur la meme rule se multiplient entre eux (voir RunContext.
+## les sortilèges, qui passent leur propre id (ex: &"famille_unie") pour que la
+## bannière de résolution puisse identifier — et faire tilter — le bon Sortilège.
+## Deux sortilèges sur la meme rule se multiplient entre eux (voir RunContext.
 ## get_rule_multiplier) au lieu que le dernier ecrase l'autre.
 func set_rule_multiplier(rule: StringName, mult: float, source: StringName = &"") -> void:
 	var contributions: Dictionary = (_rule_multiplier_contributions.get(rule, {}) as Dictionary).duplicate()
@@ -444,8 +444,8 @@ func get_grid_modifiers() -> Dictionary:
 
 ## Pose un bonus additif au multiplicateur d'une figure par occurrence d'une
 ## valeur de jeton donnee (ex: 1 -> 0.25 pour "Petites Mains"). Appele par les
-## badges au round_start, qui passent leur propre id (attribution pour la
-## bannière de résolution). Cumulatif entre badges ciblant la meme valeur.
+## sortilèges au round_start, qui passent leur propre id (attribution pour la
+## bannière de résolution). Cumulatif entre sortilèges ciblant la meme valeur.
 func add_value_bonus_multiplier(value: int, bonus: float, source: StringName = &"") -> void:
 	var contributions: Dictionary = (_value_bonus_multiplier_contributions.get(value, {}) as Dictionary).duplicate()
 	contributions[source] = bonus
@@ -455,7 +455,7 @@ func add_value_bonus_multiplier(value: int, bonus: float, source: StringName = &
 ## Marque une valeur de jeton comme "retrigger" : un jeton scorable de cette
 ## valeur recompte sa propre valeur une deuxieme fois dans le value_sum du
 ## groupe qui score (ex: un 3 qui score vaut 6 points). Idempotent — deux
-## badges qui ciblent la meme valeur ne la font pas compter trois fois.
+## sortilèges qui ciblent la meme valeur ne la font pas compter trois fois.
 func add_retrigger_value(value: int, source: StringName = &"") -> void:
 	var contributions: Dictionary = (_retrigger_value_contributions.get(value, {}) as Dictionary).duplicate()
 	contributions[source] = true
@@ -464,7 +464,7 @@ func add_retrigger_value(value: int, source: StringName = &"") -> void:
 
 ## Pose un bonus flat ajoute au value_sum par jeton scorable de cette famille
 ## present dans un groupe qui score (ex: "Tickets Hivernal" -> DENIERS).
-## Cumulatif entre badges.
+## Cumulatif entre sortilèges.
 func add_family_score_bonus(family: TokenData.Family, bonus: int, source: StringName = &"") -> void:
 	var contributions: Dictionary = (_family_score_bonus_contributions.get(family, {}) as Dictionary).duplicate()
 	contributions[source] = bonus
@@ -473,20 +473,20 @@ func add_family_score_bonus(family: TokenData.Family, bonus: int, source: String
 
 ## Pose un bonus flat ajoute au value_sum quand le groupe qui score contient
 ## au moins deux jetons de meme valeur ("paire", ex: "Y'en a pas deux").
-## Cumulatif entre badges.
+## Cumulatif entre sortilèges.
 func add_pair_score_bonus(bonus: int, source: StringName = &"") -> void:
 	_pair_score_bonus_contributions[source] = bonus
 
 
 ## Pose un bonus flat ajoute au value_sum de chaque pattern qui score tant
 ## qu'un jeton occupe la rangee du haut de la grille (ex: "Sommet"). Cumulatif
-## entre badges.
+## entre sortilèges.
 func add_top_row_score_bonus(bonus: int, source: StringName = &"") -> void:
 	_top_row_score_bonus_contributions[source] = bonus
 
 
 ## Ajoute un bonus de slots de hold pour la manche (ex: "Bénédiction", +1).
-## Cumulatif entre badges, remis a zero chaque manche (repeuple au round_start).
+## Cumulatif entre sortilèges, remis a zero chaque manche (repeuple au round_start).
 func add_hold_slot_bonus(bonus: int, source: StringName = &"") -> void:
 	_hold_slot_bonuses[source] = bonus
 
@@ -532,13 +532,13 @@ func set_score_capped_sheet(sheet_name: StringName) -> void:
 ## Active, pour cette manche, l'effet "un jeton aleatoire d'une Partition
 ## scoree laisse place a un rock" (ex: "Récif vivant"). Remis a zero chaque
 ## manche, repeuple au round_start.
-func add_rock_leaving_badge(source: StringName) -> void:
+func add_rock_leaving_spell(source: StringName) -> void:
 	_rock_leaving_sources[source] = true
 
 
-## Pose la contribution actuelle d'un badge "scaling permanent" au facteur
+## Pose la contribution actuelle d'un sortilège "scaling permanent" au facteur
 ## scaling_mult (ecrase sa propre entree, pas celles des autres sources —
-## un badge qui rappelle set_scaling_mult_bonus plusieurs fois dans la meme
+## un sortilège qui rappelle set_scaling_mult_bonus plusieurs fois dans la meme
 ## manche, ex a chaque special joue, ne double donc pas son propre bonus).
 ## Effectif immediatement si appele en cours de manche (comme
 ## set_global_multiplier), et reste actif a la manche suivante sans qu'un
@@ -560,7 +560,7 @@ func set_flat_score_bonus(source: StringName, amount: int) -> void:
 
 
 ## Pose la chance (0.0-1.0) qu'un jeton scorable gagne +1 de valeur dans le
-## deck au moment ou il score (ex: "Poker Face"). Cumulatif entre badges,
+## deck au moment ou il score (ex: "Poker Face"). Cumulatif entre sortilèges,
 ## meme principe que set_scaling_mult_bonus.
 func set_token_upgrade_chance(source: StringName, chance: float) -> void:
 	_token_upgrade_chances[source] = chance
@@ -568,9 +568,9 @@ func set_token_upgrade_chance(source: StringName, chance: float) -> void:
 		_active_context.token_upgrade_chance = _sum_dict_values(_token_upgrade_chances)
 
 
-## Pose la contribution actuelle d'un badge au bonus de multiplicateur d'une
+## Pose la contribution actuelle d'un sortilège au bonus de multiplicateur d'une
 ## Partition PRECISE (ex: "Refrain", cumule +0.1 par score sur CETTE
-## Partition). Meme principe que set_scaling_mult_bonus (le badge recalcule
+## Partition). Meme principe que set_scaling_mult_bonus (le sortilège recalcule
 ## et ecrase sa propre entree a chaque appel, pas d'addition en double) mais
 ## garde EN PLUS par sheet_name : deux Partitions differentes accumulent
 ## chacune leur propre compteur, independamment.
@@ -636,29 +636,29 @@ func lock_button(index: int) -> bool:
 	return true
 
 
-## Etat libre par badge, JAMAIS remis a zero en cours de run (voir
-## _run_badge_state) — pour les compteurs "scaling permanent" qui doivent
-## survivre aux transitions de manche (contrairement a get_badge_state/
-## set_badge_state, remis a zero chaque manche).
-func get_run_badge_state(key: StringName, default: Variant = null) -> Variant:
-	return _run_badge_state.get(key, default)
+## Etat libre par sortilège, JAMAIS remis a zero en cours de run (voir
+## _run_spell_state) — pour les compteurs "scaling permanent" qui doivent
+## survivre aux transitions de manche (contrairement a get_spell_state/
+## set_spell_state, remis a zero chaque manche).
+func get_run_spell_state(key: StringName, default: Variant = null) -> Variant:
+	return _run_spell_state.get(key, default)
 
 
-func set_run_badge_state(key: StringName, value: Variant) -> void:
-	_run_badge_state[key] = value
+func set_run_spell_state(key: StringName, value: Variant) -> void:
+	_run_spell_state[key] = value
 
 
 ## Change le multiplicateur global de score, effectif des la prochaine
 ## resolution (mute directement le RunContext actif de la manche en cours).
-## Appele par des badges dynamiques (ex: "Dernier Carre", "Regularite"), qui
+## Appele par des sortilèges dynamiques (ex: "Dernier Carre", "Regularite"), qui
 ## passent leur propre id (attribution pour la bannière de résolution).
 ## NOTE : comme set_rule_multiplier, la derniere ecriture ecrase les
-## precedentes — pas de cumul entre deux badges qui viseraient tous les deux
+## precedentes — pas de cumul entre deux sortilèges qui viseraient tous les deux
 ## le multiplicateur global (meme limitation connue que les rule_multipliers,
 ## voir questions-ouvertes.md).
-## Deux badges sur le global_multiplier se multiplient entre eux (voir
+## Deux sortilèges sur le global_multiplier se multiplient entre eux (voir
 ## RunContext.get_global_multiplier) — chacun n'ecrase que sa PROPRE entree
-## (rappeler set_global_multiplier plusieurs fois pour le meme badge, ex. a
+## (rappeler set_global_multiplier plusieurs fois pour le meme sortilège, ex. a
 ## chaque tour pour Regularite, ne double donc pas son propre facteur).
 func set_global_multiplier(mult: float, source: StringName = &"") -> void:
 	_global_multiplier_contributions[source] = mult
@@ -666,13 +666,13 @@ func set_global_multiplier(mult: float, source: StringName = &"") -> void:
 		_active_context.global_multiplier_contributions = _global_multiplier_contributions.duplicate()
 
 
-## Etat libre par badge, remis a zero a chaque manche (voir _badge_state).
-func get_badge_state(key: StringName, default: Variant = null) -> Variant:
-	return _badge_state.get(key, default)
+## Etat libre par sortilège, remis a zero a chaque manche (voir _spell_state).
+func get_spell_state(key: StringName, default: Variant = null) -> Variant:
+	return _spell_state.get(key, default)
 
 
-func set_badge_state(key: StringName, value: Variant) -> void:
-	_badge_state[key] = value
+func set_spell_state(key: StringName, value: Variant) -> void:
+	_spell_state[key] = value
 
 
 # --- Mouches ---
@@ -760,49 +760,49 @@ func sell_sheet(sheet: SheetData) -> bool:
 	return true
 
 
-# --- Badges ---
+# --- Sortilèges ---
 
-func get_equipped_badges() -> Array[BadgeData]:
-	return _equipped_badges
+func get_equipped_spells() -> Array[SpellData]:
+	return _equipped_spells
 
 
-## Verifie si un badge precis (par id) est equipe — pratique pour du code hors
+## Verifie si un sortilège precis (par id) est equipe — pratique pour du code hors
 ## du pipeline de dispatch habituel (ex: ShopUI qui verifie "Econome" pour un
 ## reroll gratuit, le shop n'a pas de trigger de manche a lui).
-func has_badge(id: StringName) -> bool:
-	for badge in _equipped_badges:
-		if badge.id == id:
+func has_spell(id: StringName) -> bool:
+	for spell in _equipped_spells:
+		if spell.id == id:
 			return true
 	return false
 
 
-func equip_badge(badge: BadgeData) -> bool:
-	if _equipped_badges.size() >= get_badge_slot_count():
+func equip_spell(spell: SpellData) -> bool:
+	if _equipped_spells.size() >= get_spell_slot_count():
 		return false
-	if _equipped_badges.has(badge):
+	if _equipped_spells.has(spell):
 		return false
-	_equipped_badges.append(badge)
-	badges_changed.emit(_equipped_badges)
+	_equipped_spells.append(spell)
+	spells_changed.emit(_equipped_spells)
 	return true
 
 
-## Retire un Badge equipe (vente). Retourne false s'il n'etait pas equipe.
-## Contrairement aux Partitions, prend effet immediatement : BadgeManager lit
+## Retire un Sortilège equipe (vente). Retourne false s'il n'etait pas equipe.
+## Contrairement aux Partitions, prend effet immediatement : SpellManager lit
 ## la liste equipee en direct a chaque dispatch, pas de snapshot de manche.
 ## Nettoie au passage sa contribution "scaling permanent" (voir
-## set_scaling_mult_bonus/set_flat_score_bonus) — sinon un badge revendu
+## set_scaling_mult_bonus/set_flat_score_bonus) — sinon un sortilège revendu
 ## continuerait de contribuer indefiniment, ces dictionnaires n'etant jamais
 ## remis a zero a chaque manche comme le reste des modifiers.
-func unequip_badge(badge: BadgeData) -> bool:
-	if not _equipped_badges.has(badge):
+func unequip_spell(spell: SpellData) -> bool:
+	if not _equipped_spells.has(spell):
 		return false
-	_equipped_badges.erase(badge)
-	_scaling_mult_bonuses.erase(badge.id)
-	_flat_score_bonuses.erase(badge.id)
-	_token_upgrade_chances.erase(badge.id)
+	_equipped_spells.erase(spell)
+	_scaling_mult_bonuses.erase(spell.id)
+	_flat_score_bonuses.erase(spell.id)
+	_token_upgrade_chances.erase(spell.id)
 	for sheet_name in _sheet_multiplier_bonus_contributions.keys():
 		var contributions: Dictionary = (_sheet_multiplier_bonus_contributions[sheet_name] as Dictionary).duplicate()
-		contributions.erase(badge.id)
+		contributions.erase(spell.id)
 		_sheet_multiplier_bonus_contributions[sheet_name] = contributions
 	if _active_context != null:
 		_active_context.scaling_mult_bonus = _sum_dict_values(_scaling_mult_bonuses)
@@ -811,16 +811,16 @@ func unequip_badge(badge: BadgeData) -> bool:
 		_active_context.flat_score_bonuses = _flat_score_bonuses.duplicate()
 		_active_context.token_upgrade_chance = _sum_dict_values(_token_upgrade_chances)
 		_active_context.sheet_multiplier_bonus_contributions = _sheet_multiplier_bonus_contributions.duplicate(true)
-	badges_changed.emit(_equipped_badges)
+	spells_changed.emit(_equipped_spells)
 	return true
 
 
-## Vend un Badge equipe contre GameRules.SELL_REFUND_RATIO de son prix d'achat,
+## Vend un Sortilège equipe contre GameRules.SELL_REFUND_RATIO de son prix d'achat,
 ## en mouches. Aucun plancher.
-func sell_badge(badge: BadgeData) -> bool:
-	if not unequip_badge(badge):
+func sell_spell(spell: SpellData) -> bool:
+	if not unequip_spell(spell):
 		return false
-	add_flies(int(badge.price * GameRules.SELL_REFUND_RATIO))
+	add_flies(int(spell.price * GameRules.SELL_REFUND_RATIO))
 	return true
 
 
@@ -997,7 +997,7 @@ func get_special_inventory_capacity() -> int:
 	return GameRules.SPECIAL_INVENTORY_SLOTS
 
 
-## Ajoute un special a l'inventaire (achat shop ou effet de Badge, ex:
+## Ajoute un special a l'inventaire (achat shop ou effet de Sortilège, ex:
 ## Artificier) -- ne fait rien si l'inventaire est deja plein, retourne false
 ## dans ce cas pour que l'appelant sache que l'ajout a echoue (le shop doit
 ## bloquer l'achat, voir ShopManager).

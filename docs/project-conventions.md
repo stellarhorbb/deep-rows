@@ -26,7 +26,7 @@ var family_coral: StringName = &"coral"
 ### 1.1 Resource-driven design
 Toute valeur susceptible d'etre modifiee (balancing, contenu, comportement) **vit dans un `.tres`**, jamais dans le code.
 
-- Un jeton, un pattern, un Badge, une grille, un pack = un fichier `.tres`
+- Un jeton, un pattern, un Sortilège, une grille, un pack = un fichier `.tres`
 - Le code ne connait que des types (`TokenData`, `PatternData`...), jamais des valeurs en dur
 - Ajouter un nouveau jeton ou un nouveau pattern = creer un `.tres`, zero modification de code
 
@@ -125,7 +125,7 @@ res://
 │   │   ├── reef.tres
 │   │   ├── trench.tres
 │   │   └── ...
-│   ├── badges/
+│   ├── sortileges/
 │   │   ├── coral_x2.tres
 │   │   └── ...
 │   ├── token_states/                  ← recettes d'etats (Explosif, Magnetique...)
@@ -144,7 +144,7 @@ res://
 │   │   ├── score_manager.gd           ← score courant, cible
 │   │   ├── pattern_manager.gd         ← detection, scoring, level up
 │   │   ├── shop_manager.gd            ← generation offre, achats
-│   │   ├── badge_manager.gd           ← passifs actifs, effets
+│   │   ├── spell_manager.gd           ← passifs actifs, effets
 │   │   └── salt_manager.gd            ← economie Salt
 │   ├── systems/                       ← logique pure, pas de noeud
 │   │   ├── pattern_matcher.gd         ← flood fill, detection patterns
@@ -156,7 +156,7 @@ res://
 │   │   ├── pattern_data.gd
 │   │   ├── grid_data.gd
 │   │   ├── pack_data.gd
-│   │   ├── badge_data.gd
+│   │   ├── spell_data.gd
 │   │   └── token_state_data.gd
 │   └── ui/
 │       ├── token_visual.gd
@@ -258,13 +258,13 @@ extends Resource
 @export var icon: Texture2D
 ```
 
-### BadgeData
+### SpellData
 ```gdscript
-# scripts/data/badge_data.gd
-class_name BadgeData
+# scripts/data/spell_data.gd
+class_name SpellData
 extends Resource
 
-@export var badge_name: String
+@export var spell_name: String
 @export var description: String
 @export var trigger: StringName          # &"on_resolve" | &"on_cascade" | &"on_drop" | ...
 @export var effect_id: StringName        # &"mult_family" | &"cascade_bonus" | ...
@@ -361,7 +361,7 @@ Toujours `var x: Type = value`, jamais `:=` sur des retours Variant.
 Nommees par contenu, prefixees par type si ambiguite :
 - `coral_3.tres` (jeton Corail valeur 3)
 - `color_trio.tres` (pattern Trio couleur)
-- `badge_cascade_bonus.tres`
+- `spell_cascade_bonus.tres`
 - `grid_abyss.tres`
 - `pack_versatile.tres`
 - `state_explosive.tres`
@@ -425,7 +425,7 @@ Couleurs, tailles, durees d'animation, espacements — tout ce qui peut varier e
 2. **Un Manager = une responsabilite.** Si un script fait deux choses, c'est deux scripts.
 3. **Les scenes UI n'ont pas de logique de jeu.** Elles affichent ce qu'on leur donne et emettent des inputs utilisateur — c'est tout.
 4. **Toujours creer le `.tres` template avant les instances.** Dupliquer un template > creer de zero.
-5. **Les effets de Badges et d'etats ne sont jamais hardcodes dans la resolution.** Le CascadeResolver emet des signaux, les Resources decrivent les effets.
+5. **Les effets de Sortilèges et d'etats ne sont jamais hardcodes dans la resolution.** Le CascadeResolver emet des signaux, les Resources decrivent les effets.
 6. **Tout element UI est visible dans le scene tree.** Si tu ne peux pas le voir dans l'editeur sans lancer le jeu, c'est mal fait.
 7. **Logique et visuel sont separes.** La logique manipule des donnees et emet des signaux. Le visuel ecoute et anime. Jamais de Tween dans un Manager.
 
@@ -441,7 +441,7 @@ Format des commits : `type: description courte`
 | `feat:` | Nouvelle fonctionnalite de gameplay |
 | `fix:` | Correction de bug |
 | `design:` | Ajout ou modification d'assets, UI, DA |
-| `content:` | Ajout de contenu (nouveaux jetons, badges, patterns en .tres) |
+| `content:` | Ajout de contenu (nouveaux jetons, sortilèges, patterns en .tres) |
 | `docs:` | GDD, conventions, session logs, documentation |
 | `balance:` | Modification de valeurs dans game_rules.gd ou .tres |
 

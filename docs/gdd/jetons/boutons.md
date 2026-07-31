@@ -5,12 +5,12 @@ Les **jetons de base** — l'identité thématique des éléments qu'on drop. Ob
 ## Attributs
 
 Chaque bouton a deux attributs :
-- **Famille** (matière) : **4 familles** en code (`TokenData.Family.BATONS/COUPES/EPEES/DENIERS`, ajoutée en session 12). Renommées en session 18 sur le vocabulaire tarot (arcanes mineurs) — remplace `CORAL/SHELL/RUST/INK` et le projet Bone/Wood/Brass de session 10, jamais appliqué. Chaque famille a une correspondance élémentaire classique (Bâtons/Feu, Coupes/Eau, Épées/Air, Deniers/Terre) qui pourra nourrir la DA et de futurs contenus (Badges, Partitions) sans copier Balatro (qui n'utilise jamais élément/saison/astro).
+- **Famille** (matière) : **4 familles** en code (`TokenData.Family.BATONS/COUPES/EPEES/DENIERS`, ajoutée en session 12). Renommées en session 18 sur le vocabulaire tarot (arcanes mineurs) — remplace `CORAL/SHELL/RUST/INK` et le projet Bone/Wood/Brass de session 10, jamais appliqué. Chaque famille a une correspondance élémentaire classique (Bâtons/Feu, Coupes/Eau, Épées/Air, Deniers/Terre) qui pourra nourrir la DA et de futurs contenus (Sortilèges, Partitions) sans copier Balatro (qui n'utilise jamais élément/saison/astro).
 - **Valeur** (chiffre) : 1 à 5 au tirage initial, **plafonnée à 10** par Fusion/Augmenter (`GameRules.MAX_BUTTON_VALUE`, tranché en session 12) — au-delà, voir [Figures](#figures-arcanes-mineurs) ci-dessous, un chemin séparé qui n'existe que via le score.
 
-**Changement important (session 12)** : la valeur **ne résout plus jamais de pattern**. Seule la famille (et le rock, pour Diamond Rock) détermine si une figure matche une [Partition](../partitions/principe.md) équipée. La valeur est devenue un **pur levier de score** — elle amplifie ce qui a déjà matché, elle ne décide plus quoi matche. Les Partitions et le Badge liés à la valeur (lignes/carré/suite chiffre, Numérologie) restent dans le code mais hors catalogue actif — voir [Catalogue implémenté](../partitions/catalogue-implemente.md).
+**Changement important (session 12)** : la valeur **ne résout plus jamais de pattern**. Seule la famille (et le rock, pour Diamond Rock) détermine si une figure matche une [Partition](../partitions/principe.md) équipée. La valeur est devenue un **pur levier de score** — elle amplifie ce qui a déjà matché, elle ne décide plus quoi matche. Les Partitions et le Sortilège liés à la valeur (lignes/carré/suite chiffre, Numérologie) restent dans le code mais hors catalogue actif — voir [Catalogue implémenté](../partitions/catalogue-implemente.md).
 
-C'est le carburant du deck. Les boutons ne sont pas spectaculaires seuls — ce sont les [Partitions](../partitions/principe.md) et les [Badges](../badges/principe.md) qui les rendent puissants.
+C'est le carburant du deck. Les boutons ne sont pas spectaculaires seuls — ce sont les [Partitions](../partitions/principe.md) et les [Sortilèges](../sortileges/principe.md) qui les rendent puissants.
 
 ## Figures (arcanes mineurs)
 
@@ -45,9 +45,9 @@ Deux leviers, qui tirent le deck dans des sens opposés sur l'axe [slim vs fat](
 
 ### Outils de deck gatés par "Dés à coudre" (session 12, généralisé session 16)
 
-La Fusion seule n'est plus un bouton permanent toujours accessible — avec la valeur devenue un pur levier de score, elle était trop facile à spammer pour faire gonfler les chiffres sans limite. Elle est désormais une des **10 actions possibles** débloquées par l'achat d'un item **Dés à coudre** au shop (catégorie au même titre que Partition/Badge/Spécial/Bouton dans l'offre curatée), généralisée en session 16 façon Tarot de Balatro — voir [Brainstorm — outils de deck](../../brainstorms/brainstorm-outils-deck.md) pour la genèse complète.
+La Fusion seule n'est plus un bouton permanent toujours accessible — avec la valeur devenue un pur levier de score, elle était trop facile à spammer pour faire gonfler les chiffres sans limite. Elle est désormais une des **10 actions possibles** débloquées par l'achat d'un item **Dés à coudre** au shop (catégorie au même titre que Partition/Sortilège/Spécial/Bouton dans l'offre curatée), généralisée en session 16 façon Tarot de Balatro — voir [Brainstorm — outils de deck](../../brainstorms/brainstorm-outils-deck.md) pour la genèse complète.
 
-Un achat de Dés à coudre tire **3 actions distinctes** du pool de 10, pondérées par rareté (`GameRules.RARITY_WEIGHTS`, même échelle que Partitions/Badges), et **8 candidats** (`GameRules.DECK_TOOL_TARGET_DRAW_SIZE`) du pool possédé — les deux affichés en même temps dans le même panneau (revu en session 16 : voir les cibles avant de choisir l'action évite de choisir une action sans cible valide dans le tirage). Sélectionner 1 ou 2 boutons (selon l'action) active/désactive les 3 actions ; cliquer une action activée l'applique immédiatement.
+Un achat de Dés à coudre tire **3 actions distinctes** du pool de 10, pondérées par rareté (`GameRules.RARITY_WEIGHTS`, même échelle que Partitions/Sortilèges), et **8 candidats** (`GameRules.DECK_TOOL_TARGET_DRAW_SIZE`) du pool possédé — les deux affichés en même temps dans le même panneau (revu en session 16 : voir les cibles avant de choisir l'action évite de choisir une action sans cible valide dans le tirage). Sélectionner 1 ou 2 boutons (selon l'action) active/désactive les 3 actions ; cliquer une action activée l'applique immédiatement.
 
 | Rareté | Action | Effet |
 |---|---|---|

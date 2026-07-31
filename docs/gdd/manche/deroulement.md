@@ -15,12 +15,12 @@ Le joueur peut [mettre le jeton courant en hold](stream-hold.md). Le suivant pre
 ### 3. Drop
 Le joueur choisit une colonne. Le jeton tombe par gravité (voir [Gravité et résolution](../grille/gravite-resolution.md)).
 
-Signal `token_dropped(token, col, row)` émis → déclenche les [Badges](../badges/triggers.md) avec trigger `on_token_drop`.
+Signal `token_dropped(token, col, row)` émis → déclenche les [Sortilèges](../sortileges/triggers.md) avec trigger `on_token_drop`.
 
 ### 4. Résolution immédiate
 Check des patterns sur toute la grille. Les figures correspondant à une [Partition équipée](../partitions/principe.md) scorent et disparaissent. La gravité redistribue. Cascades jusqu'à stabilisation.
 
-Signal `cascade_step_resolved(level, earned)` émis pour chaque niveau MATCH → déclenche les Badges avec trigger `on_cascade_step`.
+Signal `cascade_step_resolved(level, earned)` émis pour chaque niveau MATCH → déclenche les Sortilèges avec trigger `on_cascade_step`.
 
 Puis `turn_resolved(timeline)` → déclenche `on_turn_resolved`.
 
@@ -47,5 +47,5 @@ Deux façons de finir :
 - [Score cible](score-cible.md)
 - [Dernier Souffle](dernier-souffle.md)
 - [Scoring](../partitions/scoring.md)
-- [Badges — triggers](../badges/triggers.md)
+- [Sortilèges — triggers](../sortileges/triggers.md)
 - [Grille cabossée (trous)](../grille/trous.md)

@@ -14,9 +14,9 @@ Fusionner 2 boutons possédés (famille libre) en 1 seul, de valeur = somme des 
 
 Les [Partitions](../partitions/principe.md) montent en niveau par le score cumulé. Une Partition **Forte** (lv.3) score beaucoup plus qu'une **Pianissimo** (lv.1), même avec les mêmes boutons. Source principale de scaling organique. Au-delà de Maestro (lv.5), le niveau continue en "dan" sans plafond (session 16) — c'est ce prolongement qui porte le scaling de fin de partie en [mode infini](structure-run.md#mode-infini). Voir [Level up](../partitions/level-up.md).
 
-## 4. Badges accumulées (shop)
+## 4. Sortilèges accumulées (shop)
 
-Les passifs se combinent et créent des **synergies exponentielles**. Un Badge seul est un boost, trois Badges qui synergisent c'est une machine. Voir [Principe](../badges/principe.md).
+Les passifs se combinent et créent des **synergies exponentielles**. Un Sortilège seul est un boost, trois Sortilèges qui synergisent c'est une machine. Voir [Principe](../sortileges/principe.md).
 
 ## 5. Spéciaux (one-shot, shop)
 

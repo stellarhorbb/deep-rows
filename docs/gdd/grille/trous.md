@@ -22,7 +22,7 @@ Diagnostic posé en playtest : la grille se vidait presque à chaque manche, ce 
 
 ## Statut
 
-Premiers jets (5-8 trous, jamais row 0) — intensité à retuner selon le ressenti. Pas encore de source supplémentaire (Badge, zone, Entity) qui ajouterait des trous — pourrait être une piste de contenu future.
+Premiers jets (5-8 trous, jamais row 0) — intensité à retuner selon le ressenti. Pas encore de source supplémentaire (Sortilège, zone, Entity) qui ajouterait des trous — pourrait être une piste de contenu future.
 
 ## Liens
 

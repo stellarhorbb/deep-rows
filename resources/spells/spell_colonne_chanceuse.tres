@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SpellData" format=3 uid="uid://br005xdlmj30o"]
+
+[ext_resource type="Script" uid="uid://ct80ym651ovo7" path="res://scripts/data/spell_data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://dx72lurbxxbmv" path="res://scripts/spells/effect_colonne_chanceuse.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"colonne_chanceuse"
+label = "COLONNE CHANCEUSE"
+description = "Une colonne aléatoire entière passe en BOOST x1.5"
+price = 4
+rarity = 1
+effect_script = ExtResource("2_effect")

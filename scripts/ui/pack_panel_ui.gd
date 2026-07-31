@@ -1,4 +1,4 @@
-## Reveal generique d'un pack achete (Partition/Badge/Special/Bouton — un seul
+## Reveal generique d'un pack achete (Partition/Sortilège/Special/Bouton — un seul
 ## contenant visuel pour toutes les categories, cf. decision "pas de DA avant
 ## validation du fun"). Affiche les candidats deja tires par
 ## ShopManager.open_pack, clic sur 1 = le garde et ferme immediatement.
@@ -22,9 +22,9 @@ func _ready() -> void:
 	visible = false
 
 
-## `candidates` : Array de SheetData/BadgeData/SpecialItem/TokenData deja tires.
+## `candidates` : Array de SheetData/SpellData/SpecialItem/TokenData deja tires.
 ## shop_manager/run_manager servent uniquement a griser les candidats Partition/
-## Badge dont les slots sont deja pleins (le pack est deja paye, le joueur ne
+## Sortilège dont les slots sont deja pleins (le pack est deja paye, le joueur ne
 ## doit pas pouvoir choisir un item qui ne pourra jamais s'equiper).
 func open_with(candidates: Array, title: String, shop_manager: ShopManager, run_manager: RunManager) -> void:
 	title_label.text = title
@@ -32,12 +32,12 @@ func open_with(candidates: Array, title: String, shop_manager: ShopManager, run_
 
 	_shop_manager = shop_manager
 	_run_manager = run_manager
-	# Le grise initial ne suffit pas : si le joueur vend un Partition/Badge
+	# Le grise initial ne suffit pas : si le joueur vend un Partition/Sortilège
 	# equipe pendant que le pack reste ouvert (liberant un slot), il faut
 	# recalculer _disabled_ sur les candidats deja affiches plutot que de
 	# figer l'etat au moment de l'ouverture.
-	if not run_manager.badges_changed.is_connected(_refresh_disabled_states):
-		run_manager.badges_changed.connect(_refresh_disabled_states)
+	if not run_manager.spells_changed.is_connected(_refresh_disabled_states):
+		run_manager.spells_changed.connect(_refresh_disabled_states)
 	if not run_manager.sheets_changed.is_connected(_refresh_disabled_states):
 		run_manager.sheets_changed.connect(_refresh_disabled_states)
 

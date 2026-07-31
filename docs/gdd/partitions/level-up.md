@@ -20,7 +20,7 @@ Affichage typique : `Lv.3 — Forte`.
 
 - Chaque Partition a un **score cumulé** qui monte à chaque résolution déclenchée
 - En atteignant des seuils (400, 1500, 4000, 12000 pts cumulés, retunés session 23 — étaient 150/500/1100/2200 depuis la session 15), la Partition passe au niveau suivant
-- Chaque niveau applique un **multiplicateur séparé** (`tag_level_multipliers`, actuellement `[1.0, 1.25, 1.5, 1.75, 2.0]`), qui se multiplie par-dessus le multiplicateur de base de la Partition — jamais fondu dans ce multiplicateur de base lui-même. Choix voulu : ça permet de tuner la courbe de level up **une seule fois pour tout le catalogue** (au lieu d'une courbe par Partition), et ça laisse la porte ouverte à des Badges qui ciblent spécifiquement l'axe "niveau" (accélérer le level up, lire le niveau d'une Partition comme condition...) sans toucher aux resources `.tres`, qui resteraient sinon un état muté à l'exécution plutôt que des données statiques
+- Chaque niveau applique un **multiplicateur séparé** (`tag_level_multipliers`, actuellement `[1.0, 1.25, 1.5, 1.75, 2.0]`), qui se multiplie par-dessus le multiplicateur de base de la Partition — jamais fondu dans ce multiplicateur de base lui-même. Choix voulu : ça permet de tuner la courbe de level up **une seule fois pour tout le catalogue** (au lieu d'une courbe par Partition), et ça laisse la porte ouverte à des Sortilèges qui ciblent spécifiquement l'axe "niveau" (accélérer le level up, lire le niveau d'une Partition comme condition...) sans toucher aux resources `.tres`, qui resteraient sinon un état muté à l'exécution plutôt que des données statiques
 
 ## Au-delà de Maestro — les "dan" (piste décidée, session 16)
 
@@ -39,7 +39,7 @@ C'est la vraie destination de ce système : dans une run classique, Maestro arri
 - Récompense la **qualité du placement** — un Trio de 5-5-5 fait monter la barre plus vite qu'un Trio de 1-1-2
 - Le build se **spécialise par la performance** — tes Partitions les plus jouées deviennent les plus fortes
 - Source principale de **scaling organique** zone après zone
-- Les [Badges](../badges/principe.md) peuvent booster le level up ("les cascades comptent double pour le level up")
+- Les [Sortilèges](../sortileges/principe.md) peuvent booster le level up ("les cascades comptent double pour le level up")
 
 ## Liens
 

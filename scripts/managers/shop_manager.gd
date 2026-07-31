@@ -63,64 +63,64 @@ const SPECIAL_PATHS: Array[String] = [
 	"res://resources/specials/special_armageddon.tres",
 ]
 
-## Badges achetables (BadgeData).
+## Sortilèges achetables (SpellData).
 ## Numerologie retire du catalogue actif : boost la rule "value", plus aucun
 ## Sheet ne l.utilise (voir SHEET_PATHS ci-dessus).
-const BADGE_PATHS: Array[String] = [
-	"res://resources/badges/badge_flies_cascade.tres",
-	"res://resources/badges/badge_cell_triple.tres",
-	"res://resources/badges/badge_trench.tres",
-	"res://resources/badges/badge_family_unie.tres",
-	"res://resources/badges/badge_cell_double.tres",
-	"res://resources/badges/badge_ecume.tres",
-	"res://resources/badges/badge_pourboire.tres",
-	# "res://resources/badges/badge_numerologie.tres",
-	"res://resources/badges/badge_collectionneur.tres",
-	"res://resources/badges/badge_vertige.tres",
-	"res://resources/badges/badge_colonne_chanceuse.tres",
-	"res://resources/badges/badge_bord_a_bord.tres",
-	"res://resources/badges/badge_un_pour_tous.tres",
-	"res://resources/badges/badge_regularite.tres",
-	"res://resources/badges/badge_dernier_carre.tres",
-	"res://resources/badges/badge_petites_mains.tres",
-	"res://resources/badges/badge_vingt_trois.tres",
-	"res://resources/badges/badge_saint_pair.tres",
-	"res://resources/badges/badge_impair_profane.tres",
-	"res://resources/badges/badge_yen_a_pas_deux.tres",
-	"res://resources/badges/badge_sommet.tres",
-	"res://resources/badges/badge_tickets_hivernal.tres",
-	"res://resources/badges/badge_tickets_automnal.tres",
-	"res://resources/badges/badge_tickets_estival.tres",
-	"res://resources/badges/badge_tickets_printanier.tres",
-	"res://resources/badges/badge_jetons_sacres.tres",
-	"res://resources/badges/badge_quatre_quart.tres",
-	"res://resources/badges/badge_poker_face.tres",
-	"res://resources/badges/badge_mouche_cubique.tres",
-	"res://resources/badges/badge_visionnaire.tres",
-	"res://resources/badges/badge_benediction.tres",
-	"res://resources/badges/badge_recif_vivant.tres",
-	"res://resources/badges/badge_mouche_doree.tres",
-	"res://resources/badges/badge_mouche_melomane.tres",
-	"res://resources/badges/badge_escalade_musicale.tres",
-	"res://resources/badges/badge_amelioration_continue.tres",
-	"res://resources/badges/badge_gourmand.tres",
-	"res://resources/badges/badge_econome.tres",
-	"res://resources/badges/badge_couronne.tres",
-	"res://resources/badges/badge_diademe.tres",
-	"res://resources/badges/badge_regain.tres",
-	"res://resources/badges/badge_sang_froid.tres",
-	"res://resources/badges/badge_nouvelle_donne.tres",
-	"res://resources/badges/badge_brocante.tres",
-	"res://resources/badges/badge_adoubement.tres",
-	"res://resources/badges/badge_rescape.tres",
-	"res://resources/badges/badge_cairn.tres",
-	"res://resources/badges/badge_petit_point.tres",
-	"res://resources/badges/badge_refrain.tres",
-	"res://resources/badges/badge_artificier.tres",
-	"res://resources/badges/badge_sacre.tres",
-	"res://resources/badges/badge_virtuose.tres",
-	"res://resources/badges/badge_dresseur_fou.tres",
-	"res://resources/badges/badge_souffle_obscur.tres",
+const SPELL_PATHS: Array[String] = [
+	"res://resources/spells/spell_flies_cascade.tres",
+	"res://resources/spells/spell_cell_triple.tres",
+	"res://resources/spells/spell_trench.tres",
+	"res://resources/spells/spell_family_unie.tres",
+	"res://resources/spells/spell_cell_double.tres",
+	"res://resources/spells/spell_ecume.tres",
+	"res://resources/spells/spell_pourboire.tres",
+	# "res://resources/spells/spell_numerologie.tres",
+	"res://resources/spells/spell_collectionneur.tres",
+	"res://resources/spells/spell_vertige.tres",
+	"res://resources/spells/spell_colonne_chanceuse.tres",
+	"res://resources/spells/spell_bord_a_bord.tres",
+	"res://resources/spells/spell_un_pour_tous.tres",
+	"res://resources/spells/spell_regularite.tres",
+	"res://resources/spells/spell_dernier_carre.tres",
+	"res://resources/spells/spell_petites_mains.tres",
+	"res://resources/spells/spell_vingt_trois.tres",
+	"res://resources/spells/spell_saint_pair.tres",
+	"res://resources/spells/spell_impair_profane.tres",
+	"res://resources/spells/spell_yen_a_pas_deux.tres",
+	"res://resources/spells/spell_sommet.tres",
+	"res://resources/spells/spell_tickets_hivernal.tres",
+	"res://resources/spells/spell_tickets_automnal.tres",
+	"res://resources/spells/spell_tickets_estival.tres",
+	"res://resources/spells/spell_tickets_printanier.tres",
+	"res://resources/spells/spell_jetons_sacres.tres",
+	"res://resources/spells/spell_quatre_quart.tres",
+	"res://resources/spells/spell_poker_face.tres",
+	"res://resources/spells/spell_mouche_cubique.tres",
+	"res://resources/spells/spell_visionnaire.tres",
+	"res://resources/spells/spell_benediction.tres",
+	"res://resources/spells/spell_recif_vivant.tres",
+	"res://resources/spells/spell_mouche_doree.tres",
+	"res://resources/spells/spell_mouche_melomane.tres",
+	"res://resources/spells/spell_escalade_musicale.tres",
+	"res://resources/spells/spell_amelioration_continue.tres",
+	"res://resources/spells/spell_gourmand.tres",
+	"res://resources/spells/spell_econome.tres",
+	"res://resources/spells/spell_couronne.tres",
+	"res://resources/spells/spell_diademe.tres",
+	"res://resources/spells/spell_regain.tres",
+	"res://resources/spells/spell_sang_froid.tres",
+	"res://resources/spells/spell_nouvelle_donne.tres",
+	"res://resources/spells/spell_brocante.tres",
+	"res://resources/spells/spell_adoubement.tres",
+	"res://resources/spells/spell_rescape.tres",
+	"res://resources/spells/spell_cairn.tres",
+	"res://resources/spells/spell_petit_point.tres",
+	"res://resources/spells/spell_refrain.tres",
+	"res://resources/spells/spell_artificier.tres",
+	"res://resources/spells/spell_sacre.tres",
+	"res://resources/spells/spell_virtuose.tres",
+	"res://resources/spells/spell_dresseur_fou.tres",
+	"res://resources/spells/spell_souffle_obscur.tres",
 ]
 
 ## Outils de deck achetables (DeckToolData) — voir docs/brainstorms/brainstorm-outils-deck.md.
@@ -142,29 +142,29 @@ const DECK_TOOL_PATHS: Array[String] = [
 ## Categories tirables pour un pack (pas de "pack de Des a coudre" — le
 ## Des a coudre a deja son propre tirage-et-choix-1 sur les outils de deck,
 ## voir draw_deck_tool_choices).
-const PACK_CATEGORIES: Array[String] = ["sheet", "badge", "special", "button"]
+const PACK_CATEGORIES: Array[String] = ["sheet", "spell", "special", "button"]
 
 ## Categories tirables pour un slot unitaire (visible directement).
-const UNITAIRE_CATEGORIES: Array[String] = ["sheet", "badge", "special", "button", "des_a_coudre"]
+const UNITAIRE_CATEGORIES: Array[String] = ["sheet", "spell", "special", "button", "des_a_coudre"]
 
 ## Pools complets, charges une fois. L'offre visible est une curation
 ## regeneree a chaque visite (regenerate_offer).
 var _all_sheets: Array[SheetData] = []
 var _all_legendary_sheets: Array[SheetData] = []
 var _all_specials: Array[SpecialItem] = []
-var _all_badges: Array[BadgeData] = []
+var _all_spells: Array[SpellData] = []
 var _all_deck_tools: Array[DeckToolData] = []
 
-## File d'apparition des Badges, une par palier de rarete (session 23,
-## inspire de Balatro — voir docs/gdd/badges/badges-implementes.md). Contrairement
-## a un tirage independant avec remise, un Badge vu-et-refuse ne peut pas
+## File d'apparition des Sortilèges, une par palier de rarete (session 23,
+## inspire de Balatro — voir docs/gdd/sortileges/sortileges-implementes.md). Contrairement
+## a un tirage independant avec remise, un Sortilège vu-et-refuse ne peut pas
 ## repasser avant d'avoir fait le tour complet des autres du meme palier.
-## int (BadgeData.Rarity) -> Array[BadgeData], melangee ; le pointeur associe
+## int (SpellData.Rarity) -> Array[SpellData], melangee ; le pointeur associe
 ## avance a chaque tirage et ne revient jamais en arriere (sauf remelange une
 ## fois la file epuisee). Reconstruite a chaque nouvelle run (voir reset_run,
 ## appele par RunService.start_new_run) — jamais entre deux visites du shop.
-var _badge_queues: Dictionary = {}
-var _badge_queue_pos: Dictionary = {}
+var _spell_queues: Dictionary = {}
+var _spell_queue_pos: Dictionary = {}
 
 ## Meme principe pour les Partitions (session 23) — sans palier de rarete
 ## (les Partitions n'en ont pas, decision session 19), donc une seule cle
@@ -187,13 +187,13 @@ func _ready() -> void:
 	_load_pools()
 
 
-## A appeler par RunService.start_new_run() : repart sur des files de Badges
+## A appeler par RunService.start_new_run() : repart sur des files de Sortilèges
 ## fraiches (melangees, pointeur a 0) pour la nouvelle run. Sans ca, l'ordre
 ## de la run precedente continuerait a avancer d'une run a l'autre (le meme
 ## ShopManager persiste pour toute la session de jeu, voir RunService).
 func reset_run() -> void:
-	_badge_queues.clear()
-	_badge_queue_pos.clear()
+	_spell_queues.clear()
+	_spell_queue_pos.clear()
 	_sheet_queues.clear()
 	_sheet_queue_pos.clear()
 
@@ -217,11 +217,11 @@ func _load_pools() -> void:
 		if item != null:
 			_all_specials.append(item)
 
-	_all_badges.clear()
-	for path in BADGE_PATHS:
-		var badge: BadgeData = load(path) as BadgeData
-		if badge != null:
-			_all_badges.append(badge)
+	_all_spells.clear()
+	for path in SPELL_PATHS:
+		var spell: SpellData = load(path) as SpellData
+		if spell != null:
+			_all_spells.append(spell)
 
 	_all_deck_tools.clear()
 	for path in DECK_TOOL_PATHS:
@@ -284,7 +284,7 @@ func _build_unitaire_slot(category: String, run_manager: RunManager) -> Dictiona
 func _pack_price(category: String) -> int:
 	match category:
 		"sheet": return GameRules.PACK_PRICE_SHEET
-		"badge": return GameRules.PACK_PRICE_BADGE
+		"spell": return GameRules.PACK_PRICE_SPELL
 		"special": return GameRules.PACK_PRICE_SPECIAL
 		"button": return GameRules.PACK_PRICE_BUTTON
 	return 0
@@ -294,8 +294,8 @@ func _draw_unitaire(category: String, run_manager: RunManager) -> Variant:
 	match category:
 		"sheet":
 			return _draw_sheet_candidate(run_manager)
-		"badge":
-			return _draw_badge_queued(run_manager)
+		"spell":
+			return _draw_spell_queued(run_manager)
 		"special":
 			return _weighted_pick(_all_specials)
 		"button":
@@ -307,8 +307,8 @@ func _draw_unitaire(category: String, run_manager: RunManager) -> Variant:
 ## remise — un item vu-et-refuse peut ressortir au tirage suivant. Utilise
 ## pour DeckToolData et SpecialItem, choix delibere (session 23) : on aime
 ## parfois retomber sur le meme Special/Dé à coudre selon le besoin du moment,
-## contrairement aux Badges qui ont une vraie file d'apparition (voir
-## _draw_badge_queued). Boutons et Partitions n'ont pas de rarete du tout, ils
+## contrairement aux Sortilèges qui ont une vraie file d'apparition (voir
+## _draw_spell_queued). Boutons et Partitions n'ont pas de rarete du tout, ils
 ## restent tires uniformement ailleurs (session 19 pour les Partitions, voir
 ## SheetData).
 static func _weighted_pick(pool: Array) -> Variant:
@@ -403,7 +403,7 @@ func _draw_sheet_candidate(run_manager: RunManager) -> SheetData:
 	return _next_sheet_in_queue(&"generic", _all_sheets, pool)
 
 
-## Meme principe que _next_badge_in_queue, generalise a une cle StringName
+## Meme principe que _next_spell_in_queue, generalise a une cle StringName
 ## (&"generic"/&"legendary") plutot qu'un palier de rarete — les Partitions
 ## n'ont qu'un seul pool chacune, pas de ponderation a faire en amont.
 func _next_sheet_in_queue(key: StringName, full_pool: Array[SheetData], available: Array[SheetData]) -> SheetData:
@@ -437,32 +437,32 @@ func _reshuffle_sheet_queue(key: StringName, full_pool: Array[SheetData]) -> voi
 	_sheet_queue_pos[key] = 0
 
 
-## Tirage par file d'apparition (session 23, voir _badge_queues) : choisit
-## d'abord un palier de rarete a TAUX FIXE (GameRules.BADGE_RARITY_RATES,
-## independant du nombre de Badges dans le palier — contrairement a
+## Tirage par file d'apparition (session 23, voir _spell_queues) : choisit
+## d'abord un palier de rarete a TAUX FIXE (GameRules.SPELL_RARITY_RATES,
+## independant du nombre de Sortilèges dans le palier — contrairement a
 ## _weighted_pick/RARITY_WEIGHTS utilise par Speciaux/Des a coudre), puis
-## prend le prochain Badge de la file de ce palier plutot qu'un tirage
-## independant. Un palier sans aucun Badge disponible (tous equipes/exclus)
+## prend le prochain Sortilège de la file de ce palier plutot qu'un tirage
+## independant. Un palier sans aucun Sortilège disponible (tous equipes/exclus)
 ## est absent de `tier_weights` et donc jamais tire — les autres se
 ## renormalisent automatiquement via `total` (meme principe que le "resample"
 ## de Balatro, sans code dedie). `exclude` sert au tirage multiple d'un pack
-## (voir open_pack) pour ne jamais montrer deux fois le meme Badge dans les
+## (voir open_pack) pour ne jamais montrer deux fois le meme Sortilège dans les
 ## candidats d'un seul pack.
-func _draw_badge_queued(run_manager: RunManager, exclude: Array[BadgeData] = []) -> BadgeData:
-	var available_by_rarity: Dictionary = {}  # int -> Array[BadgeData]
-	var equipped: Array[BadgeData] = run_manager.get_equipped_badges()
-	for badge in _all_badges:
-		if equipped.has(badge) or exclude.has(badge):
+func _draw_spell_queued(run_manager: RunManager, exclude: Array[SpellData] = []) -> SpellData:
+	var available_by_rarity: Dictionary = {}  # int -> Array[SpellData]
+	var equipped: Array[SpellData] = run_manager.get_equipped_spells()
+	for spell in _all_spells:
+		if equipped.has(spell) or exclude.has(spell):
 			continue
-		var r: int = int(badge.rarity)
+		var r: int = int(spell.rarity)
 		if not available_by_rarity.has(r):
-			available_by_rarity[r] = [] as Array[BadgeData]
-		(available_by_rarity[r] as Array[BadgeData]).append(badge)
+			available_by_rarity[r] = [] as Array[SpellData]
+		(available_by_rarity[r] as Array[SpellData]).append(spell)
 
 	var tier_weights: Dictionary = {}  # int -> float
 	var total: float = 0.0
 	for r in available_by_rarity:
-		var w: float = GameRules.BADGE_RARITY_RATES[r]
+		var w: float = GameRules.SPELL_RARITY_RATES[r]
 		tier_weights[r] = w
 		total += w
 	if total <= 0.0:
@@ -479,44 +479,44 @@ func _draw_badge_queued(run_manager: RunManager, exclude: Array[BadgeData] = [])
 	if chosen_rarity == -1:
 		chosen_rarity = (tier_weights.keys() as Array)[tier_weights.size() - 1]
 
-	return _next_badge_in_queue(chosen_rarity, available_by_rarity[chosen_rarity] as Array[BadgeData])
+	return _next_spell_in_queue(chosen_rarity, available_by_rarity[chosen_rarity] as Array[SpellData])
 
 
-## Avance dans la file du palier `rarity`, en sautant les Badges absents de
+## Avance dans la file du palier `rarity`, en sautant les Sortilèges absents de
 ## `available` (deja equipes ou deja pioches plus tot dans le meme pack) —
 ## remelange la file quand elle est epuisee. `available` garantit toujours
 ## au moins un candidat valide (le palier n'est choisi que s'il en a un, voir
-## _draw_badge_queued), donc la boucle finit toujours par en trouver un.
-func _next_badge_in_queue(rarity: int, available: Array[BadgeData]) -> BadgeData:
-	if not _badge_queues.has(rarity) or (_badge_queues[rarity] as Array).is_empty():
-		_reshuffle_badge_queue(rarity)
+## _draw_spell_queued), donc la boucle finit toujours par en trouver un.
+func _next_spell_in_queue(rarity: int, available: Array[SpellData]) -> SpellData:
+	if not _spell_queues.has(rarity) or (_spell_queues[rarity] as Array).is_empty():
+		_reshuffle_spell_queue(rarity)
 
-	var queue: Array = _badge_queues[rarity] as Array
-	var pos: int = _badge_queue_pos.get(rarity, 0) as int
+	var queue: Array = _spell_queues[rarity] as Array
+	var pos: int = _spell_queue_pos.get(rarity, 0) as int
 	var scanned: int = 0
 	while scanned < queue.size() * 2:  # x2 : au pire un remelange en cours de route
 		if pos >= queue.size():
-			_reshuffle_badge_queue(rarity)
-			queue = _badge_queues[rarity] as Array
+			_reshuffle_spell_queue(rarity)
+			queue = _spell_queues[rarity] as Array
 			pos = 0
-		var candidate: BadgeData = queue[pos] as BadgeData
+		var candidate: SpellData = queue[pos] as SpellData
 		pos += 1
 		scanned += 1
 		if available.has(candidate):
-			_badge_queue_pos[rarity] = pos
+			_spell_queue_pos[rarity] = pos
 			return candidate
 
 	return available[0] if not available.is_empty() else null
 
 
-func _reshuffle_badge_queue(rarity: int) -> void:
-	var pool: Array[BadgeData] = []
-	for badge in _all_badges:
-		if int(badge.rarity) == rarity:
-			pool.append(badge)
+func _reshuffle_spell_queue(rarity: int) -> void:
+	var pool: Array[SpellData] = []
+	for spell in _all_spells:
+		if int(spell.rarity) == rarity:
+			pool.append(spell)
 	pool.shuffle()
-	_badge_queues[rarity] = pool
-	_badge_queue_pos[rarity] = 0
+	_spell_queues[rarity] = pool
+	_spell_queue_pos[rarity] = 0
 
 
 func _random_button() -> TokenData:
@@ -565,7 +565,7 @@ func get_unitaire_slots() -> Array[Dictionary]:
 
 
 ## Vrai si un slot "Des a coudre" est visible dans l'offre actuelle des
-## unitaires — utilise par ShopUI pour declencher le badge trigger
+## unitaires — utilise par ShopUI pour declencher le sortilège trigger
 ## on_deck_tool_shown (ex: "Petit Point") une seule fois par visite, pas a
 ## chaque reroll (voir ShopUI._ready).
 func has_deck_tool_offer() -> bool:
@@ -575,14 +575,14 @@ func has_deck_tool_offer() -> bool:
 	return false
 
 
-## Retourne le label d'un item (SheetData, SpecialItem, BadgeData ou TokenData).
+## Retourne le label d'un item (SheetData, SpecialItem, SpellData ou TokenData).
 static func get_label(item: Variant) -> String:
 	if item is SheetData:
 		return (item as SheetData).label
 	if item is SpecialItem:
 		return (item as SpecialItem).label
-	if item is BadgeData:
-		return (item as BadgeData).label
+	if item is SpellData:
+		return (item as SpellData).label
 	if item is DeckToolData:
 		return (item as DeckToolData).label
 	if item is TokenData:
@@ -597,8 +597,8 @@ static func get_description(item: Variant) -> String:
 		return (item as SheetData).describe()
 	if item is SpecialItem:
 		return (item as SpecialItem).description
-	if item is BadgeData:
-		return (item as BadgeData).description
+	if item is SpellData:
+		return (item as SpellData).description
 	if item is DeckToolData:
 		return (item as DeckToolData).description
 	return ""
@@ -608,18 +608,18 @@ static func get_description(item: Variant) -> String:
 ## RarityButton retombe alors sur le tooltip texte simple. Les Partitions
 ## normales restent aussi a -1 (tirage uniforme, session 19 : pas de gating
 ## par rarete) — seules les legendaires (SheetData.is_legendary) remontent en
-## LEGENDARY, pour le badge colore/dopamine a la reveal (pack et shop),
+## LEGENDARY, pour le sortilège colore/dopamine a la reveal (pack et shop),
 ## sans toucher au tirage lui-meme (LEGENDARY_SHEET_CHANCE inchange).
 ## Speciaux : rarete reelle depuis la session 23 (SpecialItem.rarity).
 static func get_rarity(item: Variant) -> int:
-	if item is BadgeData:
-		return (item as BadgeData).rarity
+	if item is SpellData:
+		return (item as SpellData).rarity
 	if item is DeckToolData:
 		return (item as DeckToolData).rarity
 	if item is SpecialItem:
 		return (item as SpecialItem).rarity
 	if item is SheetData and (item as SheetData).is_legendary:
-		return BadgeData.Rarity.LEGENDARY
+		return SpellData.Rarity.LEGENDARY
 	return -1
 
 
@@ -629,8 +629,8 @@ static func get_price(item: Variant) -> int:
 		return (item as SheetData).price
 	if item is SpecialItem:
 		return (item as SpecialItem).price
-	if item is BadgeData:
-		return (item as BadgeData).price
+	if item is SpellData:
+		return (item as SpellData).price
 	if item is TokenData:
 		return GameRules.BUTTON_UNIT_PRICE
 	return 0
@@ -644,7 +644,7 @@ func can_purchase(item: Variant, run_manager: RunManager) -> bool:
 
 
 ## Retourne true si l'item a encore un slot dispo pour etre equipe (Partition/
-## Badge). Ne verifie pas le prix — utilise par can_purchase (achat unitaire)
+## Sortilège). Ne verifie pas le prix — utilise par can_purchase (achat unitaire)
 ## et par choose_from_pack (deja paye, slots seulement).
 func can_equip_slot(item: Variant, run_manager: RunManager) -> bool:
 	if item is SheetData:
@@ -653,15 +653,15 @@ func can_equip_slot(item: Variant, run_manager: RunManager) -> bool:
 			return false
 		if equipped_sheets.has(item):
 			return false
-	elif item is BadgeData:
-		var equipped_badges: Array[BadgeData] = run_manager.get_equipped_badges()
-		if equipped_badges.size() >= run_manager.get_badge_slot_count():
+	elif item is SpellData:
+		var equipped_spells: Array[SpellData] = run_manager.get_equipped_spells()
+		if equipped_spells.size() >= run_manager.get_spell_slot_count():
 			return false
-		if equipped_badges.has(item):
+		if equipped_spells.has(item):
 			return false
 	elif item is SpecialItem:
 		# Inventaire de speciaux (session 25) : meme logique de slot limite
-		# que Sheets/Badges, avant de debiter les mouches.
+		# que Sheets/Sortilèges, avant de debiter les mouches.
 		if run_manager.get_special_inventory().size() >= run_manager.get_special_inventory_capacity():
 			return false
 	return true
@@ -690,8 +690,8 @@ func _apply_item(item: Variant, run_manager: RunManager) -> void:
 		run_manager.equip_sheet(item as SheetData)
 	elif item is SpecialItem:
 		run_manager.add_special((item as SpecialItem).special_type)
-	elif item is BadgeData:
-		run_manager.equip_badge(item as BadgeData)
+	elif item is SpellData:
+		run_manager.equip_spell(item as SpellData)
 	elif item is TokenData:
 		var token: TokenData = item as TokenData
 		run_manager.add_button(token.family, token.value)
@@ -732,13 +732,13 @@ func open_pack(slot: Dictionary, run_manager: RunManager) -> Array:
 				seen[candidate] = true
 				candidates.append(candidate)
 			return candidates
-		"badge":
-			var picked: Array[BadgeData] = []
+		"spell":
+			var picked: Array[SpellData] = []
 			for i in range(size):
-				var badge: BadgeData = _draw_badge_queued(run_manager, picked)
-				if badge == null:
+				var spell: SpellData = _draw_spell_queued(run_manager, picked)
+				if spell == null:
 					break
-				picked.append(badge)
+				picked.append(spell)
 			return picked
 		"special":
 			var pool: Array[SpecialItem] = _all_specials.duplicate()

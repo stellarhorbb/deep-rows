@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SpellData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/spell_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/spells/effect_vingt_trois.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"vingt_trois"
+label = "VINGT-TROIS"
+description = "Les jetons de valeur 2 et 3 qui scorent recomptent leur valeur une deuxième fois"
+trigger = &"on_round_start"
+price = 4
+rarity = 0
+effect_script = ExtResource("2_effect")

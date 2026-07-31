@@ -1,13 +1,13 @@
 ## Inventaire de speciaux possede par le joueur (session 25, remplace l'ancien
 ## systeme "special = jeton du deck", voir RunManager._special_inventory).
-## Vit dans Shell (persistant, cable une seule fois comme SheetsUI/BadgesUI)
+## Vit dans Shell (persistant, cable une seule fois comme SheetsUI/SpellsUI)
 ## pour rester visible/vendable sur tous les ecrans, pas seulement en manche.
 ## Meme squelette de dessin que StreamUI (Control + _draw(), TokenVisual pour
 ## les textures) mais empile verticalement plutot qu'horizontalement.
 ## Cliquer un slot occupe le selectionne (voir InputHandler) ; cliquer une
 ## colonne de la grille ensuite joue le special a la place du coup normal
 ## (TurnController.play_special_from_inventory). Bouton VENDRE par slot,
-## meme pattern que BadgesUI.
+## meme pattern que SpellsUI.
 class_name SpecialInventoryUI
 extends Control
 
@@ -38,7 +38,7 @@ func setup() -> void:
 
 
 ## Un bouton par slot, cree une seule fois pour la capacite max — meme raison
-## que BadgesUI._create_sell_buttons (evite de recreer/detruire des boutons a
+## que SpellsUI._create_sell_buttons (evite de recreer/detruire des boutons a
 ## chaque changement d'inventaire).
 func _create_sell_buttons() -> void:
 	for i in range(GameRules.SPECIAL_INVENTORY_SLOTS):

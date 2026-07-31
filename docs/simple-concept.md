@@ -17,12 +17,12 @@ tu as un stream de jetons + 1 slot de hold, pas de défausse, un seul passage da
 spéciaux = outils one-shot (bombe, fantôme, marée), achat persistant tant qu'ils sont pas joués
 t'en achètes 2-3 pour une manche chaude
 
-badges = passifs permanents (5 slots max)
+sortilèges = passifs permanents (5 slots max)
 exemples : +3 mouches par cascade, cellule x3 random chaque manche, colonnes centrales x1.5 / bords x0.5, patterns famille x2
-chaque badge a son script, synergies émergentes
+chaque sortilège a son script, synergies émergentes
 
 cellules modifiées : half x0.5, boost x1.5, double x2, triple x3
-posées par badges / layouts de zones / spéciaux / entity
+posées par sortilèges / layouts de zones / spéciaux / entity
 
 deck vide → dernier souffle : rocks explosent, cascade surprise, verdict
 score cible pas atteint = game over, fin de run

@@ -18,7 +18,7 @@ Catégories possibles pour un slot :
 | [Boutons](../jetons/boutons.md) | +1 drop permanent pour la run | Contenu : 5 candidats, tu en gardes 1 (exception à la règle des 3, voir [Packs](packs.md)) |
 | [Partitions](../partitions/principe.md) | Équipe un slot (max 4) | Contenu : 3 candidats, tu en gardes 1 |
 | [Spéciaux](../jetons/specials.md) | One-shot ajouté au deck | Contenu : 3 candidats, tu en gardes 1 |
-| [Badges](../badges/principe.md) | Équipe un slot (max 5) | Contenu : 3 candidats, tu en gardes 1 |
+| [Sortilèges](../sortileges/principe.md) | Équipe un slot (max 5) | Contenu : 3 candidats, tu en gardes 1 |
 | **Dés à coudre** | Tire 3 [actions de deck](../jetons/boutons.md#outils-de-deck-gatés-par-dés-à-coudre-session-12-généralisé-session-16) (Augmenter, Fusionner, Fixer...) parmi 10, applique celle choisie | — (pas de version pack) |
 
 Dés à coudre n'apparaît que côté unitaire — ce n'est pas un tirage-et-choix-1 comme les autres, juste un déblocage d'action.
@@ -27,7 +27,7 @@ Dés à coudre n'apparaît que côté unitaire — ce n'est pas un tirage-et-cho
 
 Le budget [Mouches](../progression/monnaies.md) est limité :
 
-- Renforcer le build (partition, badge) ou se préparer au court terme (spéciaux) ?
+- Renforcer le build (partition, sortilège) ou se préparer au court terme (spéciaux) ?
 - Payer un unitaire visible ou parier sur un pack (ratio meilleur mais random) ?
 - [Reroll](reroll.md) pour chercher mieux côté vitrine, ou accepter et garder des mouches ?
 

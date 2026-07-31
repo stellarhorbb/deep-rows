@@ -33,7 +33,7 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 		if candidates.size() == 0:
 			break
 
-		# Capture la famille avant suppression des cellules (utile aux badges
+		# Capture la famille avant suppression des cellules (utile aux sortilèges
 		# qui lisent la timeline apres coup, ex: "Un Pour Tous").
 		for group in candidates:
 			if group.get("match_rule") == &"family":
@@ -126,7 +126,7 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 		for group in groups:
 			# Diamond Rock "recolte" uniquement son centre : les 4 Rocks du
 			# losange ne sont jamais retires. Ils servent d'outil reutilisable
-			# (relief de grille, terrain de Badges) tant qu'ils sont sur le
+			# (relief de grille, terrain de Sortilèges) tant qu'ils sont sur le
 			# plateau, et doivent rester disponibles pour exploser au Dernier
 			# Souffle en fin de manche — les detruire a chaque recolte les
 			# priverait de ce role. Toutes les autres formes (dont diamond
@@ -322,8 +322,8 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 ## Calcule le score d'un groupe.
 ## Toutes les formes (lignes comprises) : multiplicateur fixe defini sur le sheet.
 ## Cellules modifiees : chaque cellule concernee multiplie le total par son coef (HALF/BOOST/DOUBLE/TRIPLE).
-## rule_mult : multiplicateur applique selon la rule du pattern (ex: "family" x2 via badge),
-## voir RunContext.get_rule_multiplier — combine par produit si plusieurs badges.
+## rule_mult : multiplicateur applique selon la rule du pattern (ex: "family" x2 via sortilège),
+## voir RunContext.get_rule_multiplier — combine par produit si plusieurs sortilèges.
 ## sheet_level_multipliers : multiplicateur selon le niveau de la Partition qui a matche (level up).
 func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: RunContext) -> int:
 	var grid_modifiers: Dictionary = context.grid_modifiers
@@ -335,7 +335,7 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	var level_mult: float = sheet_level_multipliers.get(sheet_name, 1.0) as float
 	var global_mult: float = context.get_global_multiplier()
 	# Bonus de multiplicateur specifique a CETTE Partition (ex: "Refrain",
-	# voir RunContext.get_sheet_multiplier_bonus_sum) — un badge, pas une
+	# voir RunContext.get_sheet_multiplier_bonus_sum) — un sortilège, pas une
 	# stat propre au sheet, donc jamais neutralise par PARTITION TERNIE
 	# (contrairement a shape_mult/level_mult ci-dessous), meme logique que
 	# rule_mult/global_mult/scaling_mult qui restent normaux face a ce malus.
@@ -346,7 +346,7 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	# on neutralise ici le multiplicateur PROPRE a la Partition ciblee (son
 	# score_multiplier de base, y compris legendaire dynamique, + son niveau)
 	# plutot que le total du groupe — les tickets des jetons et les multi de
-	# Badges (rule/global/scaling/etc.) restent normaux.
+	# Sortilèges (rule/global/scaling/etc.) restent normaux.
 	var partition_targeted: bool = context.score_capped_sheet_name != &"" and sheet_name == context.score_capped_sheet_name
 	if partition_targeted:
 		level_mult = 1.0
@@ -466,7 +466,7 @@ func _bottom_row_value_sum(grid: Array) -> int:
 ## Partition entierement posee dans une colonne boostee empilait le meme
 ## coefficient une fois par cellule, ex. x1.5^5 sur une Line 5). Une meme
 ## case peut en revanche porter plusieurs types DIFFERENTS empiles (ex:
-## Tranchee + Bord a Bord, ou Cellule Triple par-dessus un badge colonne) :
+## Tranchee + Bord a Bord, ou Cellule Triple par-dessus un sortilège colonne) :
 ## ceux-la restent cumulatifs entre eux.
 func _grid_modifier_multiplier(cells: Array, grid_modifiers: Dictionary) -> float:
 	if grid_modifiers.is_empty():
@@ -486,7 +486,7 @@ func _grid_modifier_multiplier(cells: Array, grid_modifiers: Dictionary) -> floa
 ## Chaque jeton scorable de la figure dont la valeur a un bonus enregistre
 ## ajoute ce bonus au multiplicateur (additif, pas multiplicatif entre jetons :
 ## 2 jetons a +0.5 donnent x2.0, pas x2.25). Voir RunContext.
-## get_value_bonus_multiplier_sum — combine par somme si plusieurs badges
+## get_value_bonus_multiplier_sum — combine par somme si plusieurs sortilèges
 ## ciblent la meme valeur.
 func _value_bonus_multiplier(cells: Array, grid: Array, context: RunContext) -> float:
 	var mult: float = 1.0
@@ -515,7 +515,7 @@ func _value_bonus_multiplier(cells: Array, grid: Array, context: RunContext) -> 
 ##   (ex: "Sommet").
 func _value_sum_bonus(_group: Dictionary, cells: Array, grid: Array, context: RunContext) -> Dictionary:
 	var amount: int = 0
-	var contributions: Dictionary = {}  # StringName source -> int (montant individuel du badge)
+	var contributions: Dictionary = {}  # StringName source -> int (montant individuel du spell)
 
 	var value_counts: Dictionary = {}  # int (value) -> int (count), pour la paire
 	for cell in cells:
@@ -637,7 +637,7 @@ func _roll_face_promotions(cells: Array, grid: Array, context: RunContext) -> Ar
 ## Capture famille/valeur des jetons scores AVANT leur suppression de la
 ## grille (le groupe ne garde que des positions Vector2i dans "cells", les
 ## jetons eux-memes disparaissent apres resolution — voir decision
-## verrouillee). Attache sur group["scored_tokens"], lu par les badges
+## verrouillee). Attache sur group["scored_tokens"], lu par les sortilèges
 ## dispatches apres coup sur la timeline (ex: "Mouche cubique" a
 ## on_turn_resolved, qui ne peut plus relire la grille a ce moment-la).
 func _snapshot_scored_tokens(cells: Array, grid: Array) -> Array:
@@ -661,12 +661,12 @@ func _top_row_occupied(grid: Array) -> bool:
 	return false
 
 
-## Construit la contribution multiplicative de CHAQUE badge individuellement
-## (StringName id -> facteur), plutot qu'un seul "badge_mult" fondu — necessaire
-## pour que la banniere de resolution puisse faire resoudre les Badges un par
+## Construit la contribution multiplicative de CHAQUE sortilège individuellement
+## (StringName id -> facteur), plutot qu'un seul "spell_mult" fondu — necessaire
+## pour que la banniere de resolution puisse faire resoudre les Sortilèges un par
 ## un, de gauche a droite (retour de playtest session 17 : impossible de voir
-## qui a declenche quoi quand plusieurs Badges contribuent a la meme resolution).
-## Couvre les 4 canaux multiplicatifs actionnables par Badge : rule_multipliers,
+## qui a declenche quoi quand plusieurs Sortilèges contribuent a la meme resolution).
+## Couvre les 4 canaux multiplicatifs actionnables par Sortilège : rule_multipliers,
 ## global_multiplier, value_bonus_multipliers (par valeur de jeton, peut avoir
 ## des sources differentes selon la valeur presente dans CE groupe),
 ## scaling_mult_bonuses (session 17) et sheet_multiplier_bonus_contributions
@@ -675,9 +675,9 @@ func _top_row_occupied(grid: Array) -> bool:
 ## pas sur une resolution, et ont deja leur propre feedback visuel (bordures
 ## colorees), pas dans la banniere.
 func _mult_contributions(cells: Array, grid: Array, context: RunContext, rule: StringName, sheet_name: StringName) -> Dictionary:
-	var contributions: Dictionary = {}  # StringName source -> float (facteur du badge)
+	var contributions: Dictionary = {}  # StringName source -> float (facteur du spell)
 
-	# Chaque canal "keyed"/"flat" est deja garde par badge_id sur le RunContext
+	# Chaque canal "keyed"/"flat" est deja garde par spell_id sur le RunContext
 	# (session 18) — plus besoin de reconstituer l'attribution via un champ
 	# _source separe, le dictionnaire EST l'attribution.
 	var rule_sources: Dictionary = context.rule_multiplier_contributions.get(rule, {}) as Dictionary
@@ -728,20 +728,20 @@ func _mult_contributions(cells: Array, grid: Array, context: RunContext, rule: S
 ## Attache au groupe la decomposition du score pour la banniere de resolution
 ## (GridVisual.ResolutionBanner) — n'influence jamais le score reellement
 ## calcule, qui reste le int() de la formule complete. raw_value = somme des
-## valeurs des jetons SEULE (avant tout bonus de Badge) ; base_value = apres
+## valeurs des jetons SEULE (avant tout bonus de Sortilège) ; base_value = apres
 ## les bonus flat (retrigger/famille/paire/rangee du haut/scaling), c'est cette
-## derniere qui entre dans la formule multipliee. badge_steps ordonne les
-## contributions par ordre d'equipement (context.equipped_badges) plutot que
+## derniere qui entre dans la formule multipliee. spell_steps ordonne les
+## contributions par ordre d'equipement (context.equipped_spells) plutot que
 ## de les fondre — chaque entree {label, kind: "flat"|"mult", amount} est
 ## jouee individuellement par la banniere, dans l'ordre des slots.
 func _attach_breakdown(group: Dictionary, context: RunContext, raw_value: int, base_value: int, base_mult: float, cell_mult: float, flat_contributions: Dictionary, mult_contributions: Dictionary) -> void:
-	var badge_steps: Array = []
-	for badge in context.equipped_badges:
-		var id: StringName = badge.id
+	var spell_steps: Array = []
+	for spell in context.equipped_spells:
+		var id: StringName = spell.id
 		if flat_contributions.has(id):
-			badge_steps.append({"source": id, "label": badge.label, "kind": "flat", "amount": flat_contributions[id]})
+			spell_steps.append({"source": id, "label": spell.label, "kind": "flat", "amount": flat_contributions[id]})
 		if mult_contributions.has(id):
-			badge_steps.append({"source": id, "label": badge.label, "kind": "mult", "amount": mult_contributions[id]})
+			spell_steps.append({"source": id, "label": spell.label, "kind": "mult", "amount": mult_contributions[id]})
 
 	group["score_breakdown"] = {
 		"label": _sheet_label(group.get("sheet_name", &"") as StringName, context),
@@ -749,7 +749,7 @@ func _attach_breakdown(group: Dictionary, context: RunContext, raw_value: int, b
 		"base_value": base_value,
 		"base_mult": base_mult,
 		"cell_mult": cell_mult,
-		"badge_steps": badge_steps,
+		"spell_steps": spell_steps,
 	}
 
 

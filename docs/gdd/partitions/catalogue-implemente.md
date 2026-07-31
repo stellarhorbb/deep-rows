@@ -76,7 +76,7 @@ Détection dans `PatternMatcher` :
 - **Fibonacci** — fonction dédiée `find_fibonacci`, teste toutes les fenêtres de `GameRules.FIBONACCI_WINDOW_SIZE` (4) valeurs consécutives dans `GameRules.FIBONACCI_SEQUENCE` (1,1,2,3,5,8 — étendu session 19, initialement limité à la seule fenêtre 1,1,2,3), dans un sens ou l'autre le long de l'axe.
 - **Prime** (session 19) — même mécanique que Fibonacci, factorisée dans un helper commun (`PatternMatcher._sequence_windows`/`_find_sequence_matches`) : fenêtre **minimale** `GameRules.PRIME_MIN_WINDOW` (3) plutôt que fixe, dans `GameRules.PRIME_SEQUENCE` (2,3,5,7,11 depuis la session 22 — un Valet est premier) — matche 2,3,5 / 3,5,7 / 5,7,11 / 2,3,5,7 / etc. La fenêtre avec 11 reste une extension haute rare (un Valet suppose d'avoir déjà poussé un jeton à MAX_BUTTON_VALUE puis de l'avoir fait promouvoir), le plancher de difficulté (2,3,5) ne change pas.
 - **Minima/Maxima** (session 19) — deux nouvelles rules dans `find_lines` (`&"minima"`, `&"maxima"`), même mécanique d'extension que Suite/Family mais sur un seuil individuel par jeton (`value <= GameRules.MINIMA_MAX_VALUE` (2) / `value >= GameRules.MAXIMA_MIN_VALUE` (8) — seuils stricts "< 3"/"> 7" côté Sheet, encodés en constantes inclusives) plutôt qu'une comparaison entre jetons voisins.
-- Le Badge Numérologie (`rule == "value"` ×2) reste hors catalogue actif mais boosterait déjà Brelan/Carré sans changement — non réactivé pour l'instant, à décider séparément.
+- Le Sortilège Numérologie (`rule == "value"` ×2) reste hors catalogue actif mais boosterait déjà Brelan/Carré sans changement — non réactivé pour l'instant, à décider séparément.
 
 ## Chevauchement de figures — Double Partition (session 13, révisé session 15)
 

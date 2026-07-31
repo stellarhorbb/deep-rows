@@ -3,7 +3,7 @@
 ## tirage a deux temps (voir RouletteRewards) : palier, puis 50/50
 ## Multiplicateur/Boost. Vit dans RunService (persistant entre manches), se
 ## branche sur TurnController a chaque manche via bind_round() -- meme
-## pattern que BadgeManager. Voir docs/gdd/manche/roulette-casino.md pour le
+## pattern que SpellManager. Voir docs/gdd/manche/roulette-casino.md pour le
 ## design complet (et l'historique : Planter/cases mystere ont ete retires de
 ## la roulette pour garder les deux systemes casino totalement independants ;
 ## Frog a ete remplace par Boost, trop souvent destructeur des Partitions en

@@ -46,7 +46,7 @@ La plupart des perturbations passeront par les [modifiers de cellules](../../gri
 - Le joueur doit sentir que c'est **sa faute** quand il perd — les perturbations sont annoncées, l'adaptation est possible
 - Pas de RNG punitif (pas de "l'Entity cible ton meilleur jeton")
 - Forcer la **flexibilité** — un build trop spécialisé peut être mis en difficulté par la bonne perturbation
-- Les [Badges](../../badges/principe.md) peuvent contrer certaines perturbations
+- Les [Sortilèges](../../sortileges/principe.md) peuvent contrer certaines perturbations
 
 ## Lecture profonde (privée, session 24)
 

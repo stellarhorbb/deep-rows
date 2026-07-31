@@ -1,6 +1,6 @@
-## Bouton qui affiche un badge de rarete colore dans son tooltip (voir
+## Bouton qui affiche un sortilège de rarete colore dans son tooltip (voir
 ## RarityTooltip) quand `rarity` est assigne. Utilise partout ou le shop
-## affiche un BadgeData/DeckToolData au clic/survol (unitaires, packs).
+## affiche un SpellData/DeckToolData au clic/survol (unitaires, packs).
 class_name RarityButton
 extends Button
 

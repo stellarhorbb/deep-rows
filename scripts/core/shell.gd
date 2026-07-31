@@ -1,5 +1,5 @@
 ## Scene racine et persistante du jeu (scene principale du projet). Contient
-## le HUD fixe — Partitions, Badges, Deck, et plus tard Settings/Menu — jamais
+## le HUD fixe — Partitions, Sortilèges, Deck, et plus tard Settings/Menu — jamais
 ## detruit entre les ecrans, a des positions toujours identiques. SceneRouter
 ## instancie l'ecran actif (Game/Shop/PartitionSelect/EndScreen) dans
 ## content_container au lieu d'un change_scene_to_file complet, qui aurait
@@ -9,7 +9,7 @@ extends Control
 
 @onready var content_container: Control = $ContentContainer
 @onready var sheets_ui: SheetsUI = $SheetsUI
-@onready var badges_ui: BadgesUI = $BadgesUI
+@onready var spells_ui: SpellsUI = $SpellsUI
 @onready var deck_button: Button = $DeckButton
 @onready var deck_inspector_ui: DeckInspectorUI = $DeckInspectorUI
 @onready var special_inventory_ui: SpecialInventoryUI = $SpecialInventoryUI
@@ -22,15 +22,15 @@ func _ready() -> void:
 
 	sheets_ui.run_manager = RunService.run_manager
 	sheets_ui.setup()
-	badges_ui.run_manager = RunService.run_manager
-	badges_ui.setup()
+	spells_ui.run_manager = RunService.run_manager
+	spells_ui.setup()
 	special_inventory_ui.run_manager = RunService.run_manager
 	special_inventory_ui.setup()
-	# Tilt sur le slot d'un Badge des qu'il ajoute des mouches (Vertige,
-	# Pourboire, Un Pour Tous, Mouches en Cascade...) — ces Badges ne passent
-	# jamais par la banniere de resolution (qui tilte deja les Badges de score),
+	# Tilt sur le slot d'un Sortilège des qu'il ajoute des mouches (Vertige,
+	# Pourboire, Un Pour Tous, Mouches en Cascade...) — ces Sortilèges ne passent
+	# jamais par la banniere de resolution (qui tilte deja les Sortilèges de score),
 	# ils n'avaient donc aucun feedback visuel avant (session 17).
-	RunService.badge_manager.badge_triggered.connect(badges_ui.tilt_badge)
+	RunService.spell_manager.spell_triggered.connect(spells_ui.tilt_spell)
 
 	deck_button.pressed.connect(deck_inspector_ui.toggle)
 	deck_inspector_ui.run_manager = RunService.run_manager

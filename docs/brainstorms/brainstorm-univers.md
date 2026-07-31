@@ -85,8 +85,8 @@ Les pattern tags sont des partitions de musique. Vendues par les grenouilles. Le
 
 Affiché : **Lv.3 — Forte**. Le chiffre pour la lisibilité, le mot pour le caractère.
 
-### Badges → Cartes
-Les badges sont un système de cartes. Objet physique qu'on accumule et garde. Un poids différent d'un passif abstrait.
+### Sortilèges → Cartes
+Les sortilèges sont un système de cartes. Objet physique qu'on accumule et garde. Un poids différent d'un passif abstrait.
 
 ### Shop — bocaux
 Les boutons sont vendus dans des bocaux. Lumineux, vivants peut-être. Le joueur choisit un bocal.

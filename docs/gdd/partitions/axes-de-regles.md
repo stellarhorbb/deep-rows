@@ -6,7 +6,7 @@ Les Partitions se construisent sur des axes de règles. Un même axe peut se dé
 
 ## Par famille (matière) — actif
 
-Même famille alignée (ligne, carré, losange, plus, cross, ring, T — voir [Formes](formes.md)). Pousse vers des packs mono-famille et des [Badges](../badges/principe.md) de boost famille (Famille Unie).
+Même famille alignée (ligne, carré, losange, plus, cross, ring, T — voir [Formes](formes.md)). Pousse vers des packs mono-famille et des [Sortilèges](../sortileges/principe.md) de boost famille (Famille Unie).
 
 **Rainbow (session 14)** : variante retenue — N familles **toutes différentes** au lieu de toutes identiques. Comme il n'y a que 4 familles (`TokenData.Family`), "toutes différentes" plafonne mathématiquement à des formes de **taille exactement 4** : Square Rainbow, Diamond Rainbow, Line 4 Rainbow. Au-delà (Plus/Cross à 5, Ring à 8), impossible d'avoir 4 familles sans répétition — pas de Rainbow sur ces formes.
 
@@ -14,7 +14,7 @@ Même famille alignée (ligne, carré, losange, plus, cross, ring, T — voir [F
 
 ## Par rock — actif
 
-4 rocks en losange autour d'un centre scorable. Boosté par le Badge Collectionneur. Voir [Rocks](../jetons/rocks.md).
+4 rocks en losange autour d'un centre scorable. Boosté par le Sortilège Collectionneur. Voir [Rocks](../jetons/rocks.md).
 
 ## Par chiffre — axe casino (session 14, à activer)
 
@@ -50,7 +50,7 @@ Pièces précieuses justement parce qu'elles sont figées, pas génériques — 
 
 ## Par position sur la grille / Par contexte
 
-Ces deux axes (rangée du bas/haut, bord, coin, adjacent à un rock ; incluant le jeton du hold, pendant une cascade, dernier jeton droppé) sont **recadrés côté Badges, pas Partitions** (session 14) — une Partition porte une condition sur la composition des jetons (quoi est posé), pas sur le contexte spatial/temporel (où/quand). Les Badges gèrent déjà ce registre (Dernier Carré réagit au deck, Régularité compte des occurrences). Gardés ici pour mémoire d'idée, à instancier comme Badges le cas échéant.
+Ces deux axes (rangée du bas/haut, bord, coin, adjacent à un rock ; incluant le jeton du hold, pendant une cascade, dernier jeton droppé) sont **recadrés côté Sortilèges, pas Partitions** (session 14) — une Partition porte une condition sur la composition des jetons (quoi est posé), pas sur le contexte spatial/temporel (où/quand). Les Sortilèges gèrent déjà ce registre (Dernier Carré réagit au deck, Régularité compte des occurrences). Gardés ici pour mémoire d'idée, à instancier comme Sortilèges le cas échéant.
 
 ## Catalogue complet
 

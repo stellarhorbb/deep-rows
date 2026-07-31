@@ -2,25 +2,25 @@
 
 **Statut : implémenté** (session 16) — `scripts/data/deck_tool_data.gd`, 9 `.tres` dans `resources/deck_tools/`, `RunManager`/`ShopManager`/`ShopUI` étendus. Voir [Boutons](../gdd/jetons/boutons.md) pour la doc GDD à jour.
 
-Généralisation de la Fusion (voir [Boutons](../gdd/jetons/boutons.md)) en une vraie rubrique de manipulation du deck, façon Tarot de Balatro adapté aux boutons de Deep Rows. Parti d'un constat en remplissant la Google Sheet des Badges : trois rubriques existent déjà (économie/grille/multi), mais rien ne touche directement au deck/aux jetons — ni côté Badges, ni côté shop au-delà de la seule Fusion.
+Généralisation de la Fusion (voir [Boutons](../gdd/jetons/boutons.md)) en une vraie rubrique de manipulation du deck, façon Tarot de Balatro adapté aux boutons de Deep Rows. Parti d'un constat en remplissant la Google Sheet des Sortilèges : trois rubriques existent déjà (économie/grille/multi), mais rien ne touche directement au deck/aux jetons — ni côté Sortilèges, ni côté shop au-delà de la seule Fusion.
 
-## Pourquoi maintenant, malgré peu de Badges deck-aware
+## Pourquoi maintenant, malgré peu de Sortilèges deck-aware
 
-Le système a un intérêt dès aujourd'hui via les **Partitions**, pas besoin d'attendre des Badges qui lisent la composition du deck :
+Le système a un intérêt dès aujourd'hui via les **Partitions**, pas besoin d'attendre des Sortilèges qui lisent la composition du deck :
 - Changer la famille d'un jeton pour compléter une Family Line/Square/Diamond/Plus/Cross/Ring/T
 - Réduire/Augmenter une valeur pour viser un Fibonacci ou une Suite exacte
 - Supprimer un jeton pour épurer le deck — impact démultiplié par le **sans reshuffle, un seul passage** (chaque retrait améliore mécaniquement les probas de tirage de tout ce qui reste)
 
 Ça renforce aussi un levier déjà identifié dans [Sources de scaling](../gdd/progression/sources-scaling.md) (la Fusion y est déjà le levier "slim", opposé à l'achat de boutons) plutôt que d'introduire un axe spéculatif.
 
-Le vrai plafond de profondeur arrivera plus tard, avec les futurs Badges deck-aware (le trou "scaling"/manipulation identifié dans `brainstorm-badges.md`) — mais ce n'est pas une condition pour que le système vaille le coup maintenant.
+Le vrai plafond de profondeur arrivera plus tard, avec les futurs Sortilèges deck-aware (le trou "scaling"/manipulation identifié dans `brainstorm-sortileges.md`) — mais ce n'est pas une condition pour que le système vaille le coup maintenant.
 
 ## Mécanique (revue en cours d'implémentation, session 16)
 
 Premier jet : un écran en 2 temps (choisir l'action, puis voir les cibles). Changé après un 1er test en jeu — le user a fait remarquer que voir cibles et actions **en même temps** guide le choix et évite de choisir une action qui n'aurait finalement aucune cible valide dans le tirage. Version finale, un seul panneau :
 
-1. Achat d'un **Dés à coudre** (nom provisoire, catégorie shop existante) au même titre que Partition/Badge/Spécial/Bouton
-2. Tire **3 actions distinctes** (pas de doublon) parmi le pool ci-dessous, pondérées par rareté — réutilise l'échelle Common/Uncommon/Rare/Epic (poids 10/5/2/1) déjà en place pour Partitions/Badges — **et** tire **8 candidats** (`GameRules.DECK_TOOL_TARGET_DRAW_SIZE`) du pool possédé, affichés dans le même panneau, en même temps
+1. Achat d'un **Dés à coudre** (nom provisoire, catégorie shop existante) au même titre que Partition/Sortilège/Spécial/Bouton
+2. Tire **3 actions distinctes** (pas de doublon) parmi le pool ci-dessous, pondérées par rareté — réutilise l'échelle Common/Uncommon/Rare/Epic (poids 10/5/2/1) déjà en place pour Partitions/Sortilèges — **et** tire **8 candidats** (`GameRules.DECK_TOOL_TARGET_DRAW_SIZE`) du pool possédé, affichés dans le même panneau, en même temps
 3. Le joueur sélectionne librement 1 ou 2 boutons (jusqu'au max requis par Fusionner) — aucune contrainte à la sélection elle-même
 4. Les 3 actions s'activent/désactivent en fonction de ce qui est sélectionné (bon nombre de cibles + contrainte respectée : parité pour Scinder, plafond/plancher pour Augmenter/Réduire, famille différente pour Changer, somme ≤10 pour Fusionner)
 5. Cliquer une action activée l'applique **immédiatement** — pas de confirmation séparée, le clic sur l'action est la confirmation
@@ -68,5 +68,5 @@ Le tier Epic reste vide exprès plutôt que vidé de sens — pas besoin de reta
 - [Boutons](../gdd/jetons/boutons.md) — Fusion existante, à généraliser
 - [Sources de scaling](../gdd/progression/sources-scaling.md) — levier "slim" déjà identifié
 - [Décisions tranchées](../gdd/meta/decisions-tranchees.md) — sélection de fusion, pas de défausse
-- [Brainstorm Badges](brainstorm-badges.md) — trou "scaling"/deck-manipulation, futur plafond de profondeur
+- [Brainstorm Sortilèges](brainstorm-sortileges.md) — trou "scaling"/deck-manipulation, futur plafond de profondeur
 - [Questions ouvertes](../gdd/meta/questions-ouvertes.md)

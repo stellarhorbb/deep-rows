@@ -60,12 +60,12 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
 - [Dernier Souffle](manche/dernier-souffle.md) — explosion rocks, cascade surprise
 - [Axe casino — roulette et cases mystère](manche/roulette-casino.md) — jauge, seuil fixe 21, spéciaux réactifs (session 25 ; jauge + seuil + Planter codés, reste à faire : UI dédiée, Récolter, les autres prix, les spéciaux réactifs)
 
-### [Badges](badges/)
-- [Principe](badges/principe.md) — 5 slots, passifs permanents
-- [Triggers](badges/triggers.md) — les 12 triggers et leurs events
-- [Badges implémentés](badges/badges-implementes.md) — 49 actifs, 1 dormant
-- [Rareté](badges/rarete.md) — common → legendary
-- [Feedback visuel](badges/feedback-visuel.md) — à faire (HOB-12)
+### [Sortilèges](sortileges/)
+- [Principe](sortileges/principe.md) — 5 slots, passifs permanents
+- [Triggers](sortileges/triggers.md) — les 12 triggers et leurs events
+- [Sortilèges implémentés](sortileges/sortileges-implementes.md) — 49 actifs, 1 dormant
+- [Rareté](sortileges/rarete.md) — common → legendary
+- [Feedback visuel](sortileges/feedback-visuel.md) — à faire (HOB-12)
 
 ### [Shop](shop/)
 - [Offre mixte](shop/offre-mixte.md) — 2 packs fixes + 2 unitaires rerollables (implémenté session 12)
@@ -96,9 +96,9 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
 - **Brainstorms** (bacs à sable, dans `docs/brainstorms/`)
   - `brainstorm-univers.md` — source de vérité sur l'univers et le ton
   - `brainstorm-pattern-tags.md` — pool de partitions à piocher
-  - `brainstorm-badges.md` — triggers × effets pour le catalogue
+  - `brainstorm-sortileges.md` — triggers × effets pour le catalogue
   - `brainstorm-outils-deck.md` — généralisation de la Fusion en rubrique "Dés à coudre" (session 16)
   - `brainstorm-starter-packs.md` — packs de démarrage déterministes, roster candidat (session 19)
-- **Base de contenu** — [Google Sheet](https://docs.google.com/spreadsheets/d/1JMEQf2W6H8fMZ24D63-jRQrJKz5424kR7Exyo4xvM_0/edit) (onglets partitions/badges/boss/deck-control/specials/progression), source de vérité pour les données catalogue depuis le 2026-07-10 — le `.tres` doit suivre en cas de divergence
+- **Base de contenu** — [Google Sheet](https://docs.google.com/spreadsheets/d/1JMEQf2W6H8fMZ24D63-jRQrJKz5424kR7Exyo4xvM_0/edit) (onglets partitions/sortileges/boss/deck-control/specials/progression), source de vérité pour les données catalogue depuis le 2026-07-10 — le `.tres` doit suivre en cas de divergence
 - **Pitch Discord** — `docs/simple-concept.md` (baromètre de complexité)
 - **Logs de sessions** — `docs/logs/`

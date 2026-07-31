@@ -2,8 +2,8 @@
 ## GridManager.generate_random_mystery_cells/mystery_cell_triggered et
 ## TurnController._on_mystery_cell_triggered pour la pose/le declenchement.
 ## Meme esprit que BossMalusManager : un enum + un pool + un taux fixe par
-## palier (GameRules.MYSTERY_RARITY_RATES), pas par item (voir _draw_badge_
-## queued dans ShopManager pour le meme principe applique aux Badges).
+## palier (GameRules.MYSTERY_RARITY_RATES), pas par item (voir _draw_spell_
+## queued dans ShopManager pour le meme principe applique aux Sortilèges).
 ##
 ## "Fixe le jeton (ignore gravite)" volontairement absent du premier jet —
 ## seul effet qui toucherait GravitySystem, laisse de cote le temps de voir
@@ -76,7 +76,7 @@ const TIERS: Array[Array] = [
 
 ## Tire un effet : palier a taux fixe (GameRules.MYSTERY_RARITY_RATES), puis
 ## effet uniforme a l'interieur du palier — meme principe a deux temps que
-## ShopManager._draw_badge_queued (BADGE_RARITY_RATES), sans la notion de
+## ShopManager._draw_spell_queued (SPELL_RARITY_RATES), sans la notion de
 ## file puisqu'il n'y a pas d'enjeu de "deja tire" a eviter ici.
 static func pick_random() -> Type:
 	var rates: Array[float] = GameRules.MYSTERY_RARITY_RATES

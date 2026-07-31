@@ -14,7 +14,7 @@ Conclusion : le vrai choix structurant de la run doit être un **pack de démarr
 Un pack = jusqu'à trois ingrédients, tous fixes et connus avant de s'engager :
 
 1. **Deck retouché (optionnel)** — jamais une uniformité totale famille/valeur (voir "Pourquoi pas mono-famille/mono-valeur" ci-dessous). Leviers sains : taille du deck (slim/fat), nombre de rocks, quelques jetons pré-fusionnés à haute valeur.
-2. **Modificateur de règle/économie** — un curseur sur un système déjà existant : slots de hold, taille de la grille, mouches de départ, prix du reroll, spéciaux garantis en début de deck, slots de Badge, taille de la preview...
+2. **Modificateur de règle/économie** — un curseur sur un système déjà existant : slots de hold, taille de la grille, mouches de départ, prix du reroll, spéciaux garantis en début de deck, slots de Sortilège, taille de la preview...
 3. **1-2 Partitions fixes** — pas besoin d'être thématiquement "liées" au modificateur, juste former un ensemble qui se sent cohérent comme un build.
 
 Remplace entièrement l'écran actuel de draft de Partitions.
@@ -33,7 +33,7 @@ Règle retenue : un pack peut jouer sur la **taille** du deck, son **contenu sp�
 Objectif : donner envie de TOUT essayer (complétionniste), pas juste de trouver "son" axe préféré. Ça implique :
 
 - **Majorité de bonus francs**, quelques trade-offs équilibrés (bonus + malus pairés, façon Black Deck de Balatro), très peu de contraintes pures — et même celles-là ne doivent jamais se sentir comme une punition, juste comme une saveur différente.
-- Interaction propre avec les Badges déjà en place : un modificateur de pack pose une **base**, un Badge ajoute son bonus **par-dessus** (même addition simple que le système actuel). Exemple concret : le pack "Somnambule" (base hold = 0) + Badge Bénédiction (+1) = 1 slot, soit le niveau normal de tout le monde — Bénédiction ne devient pas un bonus, elle ramène juste à la normale. Aucun code spécial à écrire, l'addition existante suffit.
+- Interaction propre avec les Sortilèges déjà en place : un modificateur de pack pose une **base**, un Sortilège ajoute son bonus **par-dessus** (même addition simple que le système actuel). Exemple concret : le pack "Somnambule" (base hold = 0) + Sortilège Bénédiction (+1) = 1 slot, soit le niveau normal de tout le monde — Bénédiction ne devient pas un bonus, elle ramène juste à la normale. Aucun code spécial à écrire, l'addition existante suffit.
 
 ## V1 — premier jet, trop orienté malus (à ne pas reprendre tel quel)
 
@@ -56,11 +56,11 @@ Verdict après relecture : 6 malus pour 2 bonus francs, trop orienté hard-mode.
 |---|---|---|---|---|
 | Le Généreux | Bonus | +10 mouches de départ | Diamond Family + Fibonacci | Longueur d'avance au 1er shop |
 | Le Prévoyant | Bonus | +1 slot de hold (2 total) | Line 4 + Suite | Plus de flexibilité pour composer |
-| Le Collectionneur | Bonus | +1 slot de Badge (6 total) | Square Family + Brelan | Build plus large dès le départ |
+| Le Collectionneur | Bonus | +1 slot de Sortilège (6 total) | Square Family + Brelan | Build plus large dès le départ |
 | Le Clairvoyant | Bonus | Preview à 4 au lieu de 3 | Line 5 + Carré | Anticipe plus loin |
 | Le Dégagé | Bonus | -2 rocks (2 au lieu de 4) | Line 4 Rainbow + Plus | Grille plus propre |
 | Le Marchand | Bonus | 1er reroll gratuit à chaque visite | Square Rainbow + Minima | Shop plus souple |
-| Le Risque-Tout | Trade-off | +1 slot de Badge, mais 0 slot de hold | Brelan + Ring | Build large, aucun filet |
+| Le Risque-Tout | Trade-off | +1 slot de Sortilège, mais 0 slot de hold | Brelan + Ring | Build large, aucun filet |
 | Le Fortifié | Trade-off | Grille -1 colonne, mais 2 spéciaux garantis | Cross + Diamond Rock | Espace restreint, compensé par des outils |
 | L'Ermite | Quirk | Aucun rock dans le deck | T Family + Maxima | Grille "propre" mais jamais de Diamond Rock |
 
@@ -81,11 +81,11 @@ Un ajustement final : Le Collectionneur utilisait Brelan comme Le Simplet (nouve
 | Le Simplet        | **Day-one**                                    | Aucun (deck/règles par défaut)                 | Line 4 + Diamond Rainbow |
 | Le Généreux       | **Day-one**                                    | +2 mouches par manche gagnée                   | Small T + Fibonacci     |
 | Le Prévoyant      | **Day-one**                                    | +1 slot de hold, preview -1 (2 au lieu de 3)   | Suite + Diamond         |
-| Le Collectionneur | **Day-one**                                    | +1 emplacement de Badge, +2 rocks dans le deck | Square + Prime          |
+| Le Collectionneur | **Day-one**                                    | +1 emplacement de Sortilège, +2 rocks dans le deck | Square + Prime          |
 | Le Clairvoyant    | À débloquer                                    | Preview à 4                                    | Line 5 + Carré          |
 | Le Marchand       | À débloquer                                    | 1er reroll gratuit                             | Square Rainbow + Minima |
 | Le Dégagé         | À débloquer — vecteur **Plus**                 | -2 rocks                                       | Line 4 Rainbow + Plus   |
-| Le Risque-Tout    | À débloquer — vecteur **Ring**                 | +1 slot de Badge, 0 slot de hold               | Brelan + Ring           |
+| Le Risque-Tout    | À débloquer — vecteur **Ring**                 | +1 slot de Sortilège, 0 slot de hold               | Brelan + Ring           |
 | Le Fortifié       | À débloquer — vecteur **Cross + Diamond Rock** | Grille -1 colonne, 2 spéciaux garantis         | Cross + Diamond Rock    |
 | L'Ermite          | À débloquer — vecteur **Maxima**               | Aucun rock dans le deck                        | T Family + Maxima       |
 

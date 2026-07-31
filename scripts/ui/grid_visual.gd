@@ -35,7 +35,7 @@ signal group_score_revealed(amount: int)
 @export var rockify_pause: float = 0.15
 
 @export var grid_manager: GridManager
-@export var badges_ui: BadgesUI
+@export var spells_ui: SpellsUI
 @export var resolution_banner: ResolutionBanner
 
 ## Bombe/Armageddon (session 25) : meme famille "explosif a retardement" que
@@ -164,7 +164,7 @@ func sync_sprites() -> void:
 				_create_sprite(cell, token)
 
 
-## Remplace le sprite d'une cellule par celui du nouveau jeton (ex: Badge
+## Remplace le sprite d'une cellule par celui du nouveau jeton (ex: Sortilège
 ## "Récif vivant" qui transforme un jeton en rock). _create_sprite supprime
 ## deja l'ancien sprite avant d'en creer un nouveau.
 func replace_sprite(cell: Vector2i, token: TokenData) -> void:
@@ -468,7 +468,7 @@ func _animate_match(event: Dictionary) -> void:
 			# breakdown.roll/roll_min/roll_max, la plage varie selon le sheet).
 			if breakdown.has("roll"):
 				await resolution_banner.play_roll_announcement(breakdown["roll"] as int, breakdown["roll_min"] as int, breakdown["roll_max"] as int)
-			await resolution_banner.play_breakdown(breakdown, group_score, badges_ui)
+			await resolution_banner.play_breakdown(breakdown, group_score, spells_ui)
 			group_score_revealed.emit(group_score)
 
 		# "Double Partition" : deux figures distinctes ont matche dans la meme

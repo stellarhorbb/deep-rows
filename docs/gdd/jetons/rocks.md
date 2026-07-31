@@ -7,7 +7,7 @@ Le **scaffold** — jetons sans famille ni valeur qui ne participent à aucun pa
 - **Du relief sur la grille** — un rock posé au milieu d'une colonne force des diagonales et des constructions au-dessus
 - **Un puzzle de placement** — "où est-ce que je le cale pour qu'il me serve plus tard plutôt que de me gêner ?"
 - **De la texture au deck** — piocher un rock change le rythme, oblige à improviser
-- **Un terrain pour les Badges** — les rocks sont une dimension dédiée à exploiter (ex : "Récif vivant", session 17 — quand une Partition score, un jeton aléatoire *parmi ceux qui viennent de scorer* échappe à la suppression et devient un rock à la place)
+- **Un terrain pour les Sortilèges** — les rocks sont une dimension dédiée à exploiter (ex : "Récif vivant", session 17 — quand une Partition score, un jeton aléatoire *parmi ceux qui viennent de scorer* échappe à la suppression et devient un rock à la place)
 
 ## Comportement
 
@@ -17,7 +17,7 @@ Le **scaffold** — jetons sans famille ni valeur qui ne participent à aucun pa
 
 ## Exception : Diamond Rock
 
-Les rocks participent à **une seule Partition** : le [Losange Rock](../partitions/catalogue-implemente.md) — 4 rocks disposés autour d'un jeton central (haut/bas/gauche/droite). **Seul le centre est récolté et retiré de la grille — les 4 rocks ne disparaissent jamais.** Ils restent en jeu comme des rocks ordinaires pour le reste de la manche (relief, terrain de Badges, et surtout toujours présents pour exploser au [Dernier Souffle](../manche/dernier-souffle.md) — les détruire à chaque récolte les priverait de ce rôle).
+Les rocks participent à **une seule Partition** : le [Losange Rock](../partitions/catalogue-implemente.md) — 4 rocks disposés autour d'un jeton central (haut/bas/gauche/droite). **Seul le centre est récolté et retiré de la grille — les 4 rocks ne disparaissent jamais.** Ils restent en jeu comme des rocks ordinaires pour le reste de la manche (relief, terrain de Sortilèges, et surtout toujours présents pour exploser au [Dernier Souffle](../manche/dernier-souffle.md) — les détruire à chaque récolte les priverait de ce rôle).
 
 `DECK_ROCK_COUNT` (4) rocks sont régénérés à **chaque manche** (pas une seule fois pour toute la run) — Diamond Rock est donc une occasion par manche, pas par run. En revanche, une fois une récolte faite, la reformer sur les 4 mêmes rocks est quasi impossible dans l'immédiat : le centre se remplit automatiquement à la gravité qui suit (le jeton juste au-dessus retombe dedans), le joueur ne peut pas y redéposer volontairement un nouveau jeton de valeur.
 

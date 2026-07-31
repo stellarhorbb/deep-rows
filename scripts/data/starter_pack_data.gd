@@ -31,10 +31,10 @@ func get_fixed_sheets() -> Array[SheetData]:
 
 ## Modificateurs de regle/economie — un curseur sur un systeme existant.
 ## Tous a 0 = pack "neutre" (Le Simplet). Permanents pour toute la run,
-## contrairement aux bonus de Badge equivalents qui se reinitialisent chaque
+## contrairement aux bonus de Sortilège equivalents qui se reinitialisent chaque
 ## manche (voir RunManager.reset_round_modifiers/apply_starter_pack).
 @export var hold_slot_bonus: int = 0
-@export var badge_slot_bonus: int = 0
+@export var spell_slot_bonus: int = 0
 @export var preview_size_bonus: int = 0
 @export var flies_per_round_bonus: int = 0
 @export var rock_count_bonus: int = 0

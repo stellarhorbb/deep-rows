@@ -1,8 +1,8 @@
 ## Banniere centrale de decomposition du score, un groupe resolu a la fois :
-## nom de la Partition -> valeur brute -> Badges "points" un par un (ordre des
-## slots) -> multi intrinseque -> Badges "multi" un par un (ordre des slots)
-## -> resultat final en plus gros (session 17 : les Badges points collent aux
-## jetons bruts, avant tout multi, plutot que d'etre melanges avec les Badges
+## nom de la Partition -> valeur brute -> Sortilèges "points" un par un (ordre des
+## slots) -> multi intrinseque -> Sortilèges "multi" un par un (ordre des slots)
+## -> resultat final en plus gros (session 17 : les Sortilèges points collent aux
+## jetons bruts, avant tout multi, plutot que d'etre melanges avec les Sortilèges
 ## multi dans un seul passage). Remplace les anciens popups "+X" et labels de
 ## pattern par groupe (GridVisual._animate_match), qui etaient trop
 ## discrets/rapides pour suivre le calcul. Zero style pour l'instant —
@@ -15,7 +15,7 @@ extends Label
 @export var result_font_size_boost: int = 20
 @export var value_color: Color = Color("e2b714")
 @export var mult_color: Color = Color("4ecdc4")
-@export var badge_color: Color = Color("ff6b6b")
+@export var spell_color: Color = Color("ff6b6b")
 @export var result_color: Color = Color("f0e6c8")
 
 @export var cascade_color: Color = Color("ff3d3d")
@@ -76,20 +76,20 @@ func _ready() -> void:
 ## Joue la sequence pour un groupe resolu sur le duo Tickets/Multi, dans
 ## l'ordre du calcul reel (session 25) : jetons + multi intrinseque de la
 ## Partition affiches ensemble des le depart (forme x level up deja fondus,
-## pas de ligne "level up" separee) -> Badges un par un dans l'ordre des slots
-## (chacun modifie soit les tickets soit le multi, tilte le Badge concerne) ->
+## pas de ligne "level up" separee) -> Sortilèges un par un dans l'ordre des slots
+## (chacun modifie soit les tickets soit le multi, tilte le Sortilège concerne) ->
 ## bascule sur un chiffre unique (deja le resultat final si rien ne suit) ->
 ## multiplicateur externe (cellules de grille), qui devient le dernier temps
-## fort si present. badges_ui peut etre null (pas de tilt dans ce cas). Rien
+## fort si present. spells_ui peut etre null (pas de tilt dans ce cas). Rien
 ## ne bloque le score reel, deja calcule en amont — cette fonction ne fait
 ## qu'afficher sa decomposition. Le multi de cascade reste hors de ce calcul,
 ## affiche a part par play_cascade_announcement (voir GridVisual).
-func play_breakdown(breakdown: Dictionary, final_score: int, badges_ui: BadgesUI) -> void:
+func play_breakdown(breakdown: Dictionary, final_score: int, spells_ui: SpellsUI) -> void:
 	var label: String = breakdown.get("label", "") as String
 	var raw_value: int = breakdown.get("raw_value", 0) as int
 	var base_mult: float = breakdown.get("base_mult", 1.0) as float
 	var cell_mult: float = breakdown.get("cell_mult", 1.0) as float
-	var badge_steps: Array = breakdown.get("badge_steps", []) as Array
+	var spell_steps: Array = breakdown.get("spell_steps", []) as Array
 
 	visible = true
 	text = ""
@@ -113,13 +113,13 @@ func play_breakdown(breakdown: Dictionary, final_score: int, badges_ui: BadgesUI
 	_animate_multi_to(multi)
 	await get_tree().create_timer(step_duration).timeout
 
-	# 2. Badges, un par un, dans l'ordre des slots — chacun modifie soit les
-	# tickets soit le multi, en tiltant le Badge concerne au meme moment.
-	for step in badge_steps:
+	# 2. Sortilèges, un par un, dans l'ordre des slots — chacun modifie soit les
+	# tickets soit le multi, en tiltant le Sortilège concerne au meme moment.
+	for step in spell_steps:
 		var data: Dictionary = step as Dictionary
 		var source: StringName = data.get("source", &"") as StringName
-		if badges_ui != null and source != &"":
-			badges_ui.tilt_badge(source)
+		if spells_ui != null and source != &"":
+			spells_ui.tilt_spell(source)
 		var step_label: String = data.get("label", "") as String
 		if (data.get("kind", "flat") as String) == "mult":
 			multi *= data.get("amount", 1.0) as float
@@ -127,7 +127,7 @@ func play_breakdown(breakdown: Dictionary, final_score: int, badges_ui: BadgesUI
 		else:
 			tickets += data.get("amount", 0) as int
 			_animate_tickets_to(tickets)
-		_set_title("+ %s" % step_label, badge_color)
+		_set_title("+ %s" % step_label, spell_color)
 		await get_tree().create_timer(step_duration).timeout
 
 	# 3. Total intermediaire : bascule du duo vers un chiffre unique. Sans
@@ -143,7 +143,7 @@ func play_breakdown(breakdown: Dictionary, final_score: int, badges_ui: BadgesUI
 	await get_tree().create_timer(result_pause_duration if is_last_step else step_duration).timeout
 
 	# 4. Multiplicateur externe (cellules de grille, ex: Cellule Triple,
-	# Mystere MULTI) — dernier facteur avant le resultat, hors Badges/jetons.
+	# Mystere MULTI) — dernier facteur avant le resultat, hors Sortilèges/jetons.
 	# Devient le dernier temps fort de la sequence quand il est present.
 	if cell_mult > 1.0:
 		add_theme_font_size_override("font_size", _base_font_size + result_font_size_boost)

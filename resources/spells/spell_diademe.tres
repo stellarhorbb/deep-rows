@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SpellData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/spell_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/spells/effect_diademe.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"diademe"
+label = "DIADÈME"
+description = "Chaque Dame qui score ajoute +3.0 au multi de sa figure"
+trigger = &"on_round_start"
+price = 7
+rarity = 3
+effect_script = ExtResource("2_effect")

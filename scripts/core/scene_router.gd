@@ -2,7 +2,7 @@
 ## SceneRouter.go_to_xxx() au lieu de manipuler le Shell directement.
 ##
 ## Depuis le Shell persistant (session 13), ce n'est plus un change_scene_to_file
-## complet — le Shell (HUD fixe : Partitions/Badges/Deck) reste en vie, seul
+## complet — le Shell (HUD fixe : Partitions/Sortilèges/Deck) reste en vie, seul
 ## le contenu dans son ContentContainer est remplace. Voir scripts/core/shell.gd.
 extends Node
 

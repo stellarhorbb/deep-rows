@@ -34,7 +34,7 @@ var _pending_roulette_announcement: Dictionary = {}
 
 # --- UI persistante, portee par le Shell (voir scripts/core/shell.gd) ---
 var sheets_ui: SheetsUI
-var badges_ui: BadgesUI
+var spells_ui: SpellsUI
 var deck_button: Button
 var deck_inspector_ui: DeckInspectorUI
 var special_inventory_ui: SpecialInventoryUI
@@ -54,7 +54,7 @@ var _score_tween: Tween = null
 func _ready() -> void:
 	RunService.ensure_run_started()
 	sheets_ui = SceneRouter.shell.sheets_ui
-	badges_ui = SceneRouter.shell.badges_ui
+	spells_ui = SceneRouter.shell.spells_ui
 	deck_button = SceneRouter.shell.deck_button
 	deck_inspector_ui = SceneRouter.shell.deck_inspector_ui
 	special_inventory_ui = SceneRouter.shell.special_inventory_ui
@@ -95,8 +95,8 @@ func _create_managers() -> void:
 	entity_manager.name = "EntityManager"
 	add_child(entity_manager)
 
-	# Branche les badges sur les hooks de la manche.
-	RunService.badge_manager.bind_round(turn_controller)
+	# Branche les sortilèges sur les hooks de la manche.
+	RunService.spell_manager.bind_round(turn_controller)
 	RunService.roulette_manager.bind_round(turn_controller)
 	RunService.roulette_manager.roulette_triggered.connect(_on_roulette_triggered)
 	RunService.roulette_manager.gauge_changed.connect(_on_roulette_gauge_changed)
@@ -106,13 +106,13 @@ func _create_managers() -> void:
 
 func _wire_references() -> void:
 	grid_visual.grid_manager = grid_manager
-	grid_visual.badges_ui = badges_ui
+	grid_visual.spells_ui = spells_ui
 	grid_visual.resolution_banner = resolution_banner
 	grid_visual.setup()
 	grid_hover.grid_manager = grid_manager
 	stream_ui.deck_manager = deck_manager
 	stream_ui.setup()
-	# sheets_ui / badges_ui / special_inventory_ui sont cables au run_manager
+	# sheets_ui / spells_ui / special_inventory_ui sont cables au run_manager
 	# (global) une seule fois par le Shell — rien a refaire ici a chaque manche.
 	input_handler.grid_visual = grid_visual
 	input_handler.stream_ui = stream_ui
@@ -296,7 +296,7 @@ func _on_round_won(final_score: int, target: int) -> void:
 		return
 
 	# Manche gagnee (hors derniere) : recompense detaillee (base + bonus pack
-	# de demarrage + bonus jetons restants + bonus badges on_round_end) puis
+	# de demarrage + bonus jetons restants + bonus sortilèges on_round_end) puis
 	# transition vers le shop apres
 	# que le joueur ait clique "ENCAISSER" sur YouWinUI. Le compteur mouches
 	# (flies_label) ne doit visuellement bouger qu'a ce clic, pas avant — on
@@ -309,11 +309,11 @@ func _on_round_won(final_score: int, target: int) -> void:
 
 	RunService.run_manager.flies_changed.disconnect(_on_flies_changed)
 	RunService.run_manager.add_flies(base_flies + starter_bonus + token_bonus)
-	var badge_breakdown: Dictionary = RunService.badge_manager.dispatch_round_end()
+	var spell_breakdown: Dictionary = RunService.spell_manager.dispatch_round_end()
 
 	RunService.game_flow = RunService.GameFlow.SHOPPING
 	var starter_pack_name: String = starter_pack.pack_name if starter_pack != null else ""
-	await you_win_ui.show_reward(base_flies, starter_pack_name, starter_bonus, token_bonus, badge_breakdown)
+	await you_win_ui.show_reward(base_flies, starter_pack_name, starter_bonus, token_bonus, spell_breakdown)
 
 	RunService.run_manager.flies_changed.connect(_on_flies_changed)
 	_on_flies_changed(RunService.run_manager.get_flies())

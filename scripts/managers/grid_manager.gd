@@ -453,7 +453,7 @@ func tick_mobile_specials() -> int:
 
 		# Legendaire "Dresseur Fou" (session 23) : Cavalier/Frog/Liane/Underground
 		# ne disparaissent plus jamais — countdown gele plutot qu'infini pour ne
-		# pas toucher SpecialEffects (Crow exclu, voir badge_dresseur_fou.tres :
+		# pas toucher SpecialEffects (Crow exclu, voir spell_dresseur_fou.tres :
 		# il s'autodetruit apres une action unique, pas de countdown a geler).
 		var never_expire: bool = _run_context != null and _run_context.mobiles_never_expire
 
@@ -643,7 +643,7 @@ func get_grid() -> Array:
 	return _grid
 
 
-## Compte les Rocks actuellement sur la grille (ex: badge "Cairn", qui lit ce
+## Compte les Rocks actuellement sur la grille (ex: sortilège "Cairn", qui lit ce
 ## total en fin de manche boss avant que le Dernier Souffle ne les fasse
 ## disparaitre — voir explode_residues).
 func count_rocks() -> int:

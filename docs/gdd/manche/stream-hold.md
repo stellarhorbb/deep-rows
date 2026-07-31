@@ -13,7 +13,7 @@ Raison : une main filtrerait, tout part sur la grille de toute façon. Le stream
 À tout moment, le joueur peut **mettre le jeton courant en hold** dans un slot dédié. Le jeton suivant prend sa place. Si le slot est déjà occupé, les deux s'échangent (le hold devient le jeton courant).
 
 - **Un seul slot par défaut** (`GameRules.BASE_HOLD_SLOTS`)
-- **Slot upgradable via [Badge](../badges/principe.md)** — implémenté session 17 ("Bénédiction", +1 slot). `DeckManager` porte les slots dans un tableau (`hold_capacity`), pas une seule variable — la touche clavier vise le premier slot vide (sinon le slot 0, simple swap), un clic sur un slot précis dans `StreamUI` vise CE slot directement.
+- **Slot upgradable via [Sortilège](../sortileges/principe.md)** — implémenté session 17 ("Bénédiction", +1 slot). `DeckManager` porte les slots dans un tableau (`hold_capacity`), pas une seule variable — la touche clavier vise le premier slot vide (sinon le slot 0, simple swap), un clic sur un slot précis dans `StreamUI` vise CE slot directement.
 - Fonctionne pour **n'importe quel jeton** ([bouton](../jetons/boutons.md) ou [special](../jetons/specials.md))
 
 ## Design intent
@@ -30,4 +30,4 @@ Tempo nerveux — pas de micro-gestion, pas de menus. La planification se fait s
 - [Deck](deck.md)
 - [Inspecteur de deck](inspecteur-deck.md)
 - [Déroulement](deroulement.md)
-- [Badges — principe](../badges/principe.md)
+- [Sortilèges — principe](../sortileges/principe.md)

@@ -21,7 +21,7 @@ Raisons :
 - **Pas de reshuffle** → sinon le joueur ne peut jamais perdre
 - **Pas de défausse** → serait spammée pour chercher les spéciaux, les boutons deviendraient du bruit
 
-Une [Badge](../badges/principe.md) rare pourrait débloquer la défausse pour un nombre limité de skips par manche.
+Une [Sortilège](../sortileges/principe.md) rare pourrait débloquer la défausse pour un nombre limité de skips par manche.
 
 ## Deck slim vs deck fat
 

@@ -1,6 +1,6 @@
 # Shop — packs
 
-**Un seul contenant générique**, réutilisé pour toutes les catégories (Partitions, Badges, Spéciaux, Boutons) — décision prise en session 12, revient sur l'idée initiale d'un contenant thématique différent par catégorie.
+**Un seul contenant générique**, réutilisé pour toutes les catégories (Partitions, Sortilèges, Spéciaux, Boutons) — décision prise en session 12, revient sur l'idée initiale d'un contenant thématique différent par catégorie.
 
 ## Pourquoi le changement
 
@@ -10,7 +10,7 @@ Le plan initial prévoyait 4 objets et 4 gestes d'ouverture distincts (voir "His
 
 **1 seule taille** : 3 candidats révélés à l'ouverture, le joueur en garde 1 et ferme.
 
-**Exception : les packs de boutons proposent 5 candidats** plutôt que 3 (`GameRules.PACK_SIZE_BUTTON`). Les boutons sont plus nombreux et individuellement moins déterminants qu'une Partition ou un Badge — plus de choix n'y nuit pas à la lisibilité de la même façon.
+**Exception : les packs de boutons proposent 5 candidats** plutôt que 3 (`GameRules.PACK_SIZE_BUTTON`). Les boutons sont plus nombreux et individuellement moins déterminants qu'une Partition ou un Sortilège — plus de choix n'y nuit pas à la lisibilité de la même façon.
 
 ## Double couche de RNG
 
@@ -30,7 +30,7 @@ Les packs coûtent plus cher qu'un unitaire équivalent, mais avec un **meilleur
 | Boutons | Bocal | Casser |
 | Partitions | Rouleau (recueil/livret) | Feuilleter + arracher |
 | Spéciaux | Malle de music-hall | Ouvrir le couvercle |
-| Badges | Bulbe des grenouilles | — |
+| Sortilèges | Bulbe des grenouilles | — |
 
 Piste à ressortir une fois la boucle validée, si le budget DA le permet.
 

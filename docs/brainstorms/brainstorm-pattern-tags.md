@@ -2,7 +2,7 @@
 
 **Statut** : bac a sable. Rien ici n'est tranche. C'est un dump d'idees pour ne pas les perdre, a piocher quand on construira le catalogue officiel de Pattern Tags (`03-patterns.md`).
 
-**Session 14** : direction retenue pour etendre le pool (Rainbow sur l'axe famille, axe chiffre "casino" confine a la Ligne, tiroir rare/signature) — voir [Axes de regles](../gdd/partitions/axes-de-regles.md). Les pistes ci-dessous qui recoupent position/contexte ont ete recadrees cote Badges, pas Partitions. Ce fichier reste la reserve pour tout le reste (formes etendues type pyramide/3x3, autres regles non retenues).
+**Session 14** : direction retenue pour etendre le pool (Rainbow sur l'axe famille, axe chiffre "casino" confine a la Ligne, tiroir rare/signature) — voir [Axes de regles](../gdd/partitions/axes-de-regles.md). Les pistes ci-dessous qui recoupent position/contexte ont ete recadrees cote Sortilèges, pas Partitions. Ce fichier reste la reserve pour tout le reste (formes etendues type pyramide/3x3, autres regles non retenues).
 
 Format libre. On ajoute, on rature, on regroupe au fil des sessions.
 
@@ -114,7 +114,7 @@ Exemple concret : "Couronne" = 8 jetons meme famille en anneau 3x3. Si le centre
 
 ### Reprises du catalogue officiel (pour reference)
 
-Deja dans `03-patterns.md` : Trio couleur, Quatuor couleur, Maree haute, Recif (2x2 couleur), Badge numerique, Suite 3, Escalier 4, Parfait, Arc-en-ciel, Fibonacci.
+Deja dans `03-patterns.md` : Trio couleur, Quatuor couleur, Maree haute, Recif (2x2 couleur), Sortilège numerique, Suite 3, Escalier 4, Parfait, Arc-en-ciel, Fibonacci.
 
 ### Nouvelles propositions — lignes
 
@@ -191,7 +191,7 @@ A trancher avant de coder : quelle forme exacte (ligne de 3 ? diamant comme Rock
 - **Les formes creuses (3x3 anneau, Plus, Diamant) demandent un centre occupe par un jeton non-matchant.** Tranche : n'importe quel jeton qui ne participe pas a la regle du Tag fait l'affaire — rock (garanti) ou jeton d'une autre famille/valeur. Le centre n'est pas consomme par la resolution. Les rocks restent interessants parce qu'ils sont la version "sans risque" (permanents, toujours disponibles).
 - **Combien de Tags par axe de regle ?** Si on decline chaque regle sur chaque forme (et sur chaque taille de ligne), le pool explose artificiellement et chaque Tag se ressent moins unique. Il faut probablement se limiter a 2-3 declinaisons par regle max.
 - **Double matching** : un meme alignement peut-il trigger plusieurs Tags equipes simultanement ? Deja pose dans `03-patterns.md`, a tester au proto.
-- **Tags "meta" qui modifient d'autres Tags** ? Ex : "Amplificateur — doubler le mult du prochain Tag declenche ce tour". Frontiere floue avec les Badges, probablement a garder cote Badges.
+- **Tags "meta" qui modifient d'autres Tags** ? Ex : "Amplificateur — doubler le mult du prochain Tag declenche ce tour". Frontiere floue avec les Sortilèges, probablement a garder cote Sortilèges.
 - **Taille minimum d'un pool jouable** : quel est le seuil en dessous duquel la rejouabilite devient plate ? 15 ? 20 ? Impossible a trancher sans playtest, mais utile a avoir en tete comme cible.
 
 ---

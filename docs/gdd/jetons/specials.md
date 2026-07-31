@@ -4,7 +4,7 @@ Les **outils** — coups d'éclat qu'on achète au shop et qu'on joue au bon mom
 
 **Usage unique à l'utilisation, achat persistant tant qu'il n'est pas joué** (session 15). Un spécial acheté reste possédé manche après manche jusqu'à être réellement posé sur la grille — il n'est jamais reperdu "gratuitement" à la fin d'une manche où le joueur ne l'a pas utilisé. La seule façon d'en obtenir un autre est d'en racheter au shop. Le joueur peut en acheter 2-3 pour une manche qu'il sent chaude — ils sont volontairement peu chers et jetables.
 
-**Inventaire possédé, joué à la demande (révisé session 25)** — un spécial acheté n'est plus mélangé au deck/stream : il rejoint un **inventaire dédié de 3 slots** (`GameRules.SPECIAL_INVENTORY_SLOTS`, UI verticale à droite de l'écran), et se joue à la place du coup normal (clic sur le slot pour le sélectionner, puis clic sur une colonne — il tombe physiquement comme n'importe quel jeton, `TurnController.play_special_from_inventory`). Revient sur une décision précédente ("jetons du deck, pas items consommables") : noyés dans le stream, les spéciaux tombaient rarement au bon moment (zéro contrôle du timing), et le Hold slot était de toute façon toujours réquisitionné pour un jeton de score plutôt que pour préserver un spécial. Le nouveau format garde l'ADN "tout tombe dans une colonne" tout en rendant le timing enfin stratégique. L'inventaire est plein → achat bloqué au shop (même logique que les slots de Sheets/Badges).
+**Inventaire possédé, joué à la demande (révisé session 25)** — un spécial acheté n'est plus mélangé au deck/stream : il rejoint un **inventaire dédié de 3 slots** (`GameRules.SPECIAL_INVENTORY_SLOTS`, UI verticale à droite de l'écran), et se joue à la place du coup normal (clic sur le slot pour le sélectionner, puis clic sur une colonne — il tombe physiquement comme n'importe quel jeton, `TurnController.play_special_from_inventory`). Revient sur une décision précédente ("jetons du deck, pas items consommables") : noyés dans le stream, les spéciaux tombaient rarement au bon moment (zéro contrôle du timing), et le Hold slot était de toute façon toujours réquisitionné pour un jeton de score plutôt que pour préserver un spécial. Le nouveau format garde l'ADN "tout tombe dans une colonne" tout en rendant le timing enfin stratégique. L'inventaire est plein → achat bloqué au shop (même logique que les slots de Sheets/Sortilèges).
 
 ## Principes
 
@@ -81,7 +81,7 @@ Catalogue complet (statut + idées + prix) dans le [Google Sheet](https://docs.g
 
 Vendus par les [grenouilles orchestre](../univers/personnages/grenouilles-orchestre.md), dans le [contenant générique](../shop/packs.md) commun à toutes les catégories — à l'unité ou en pack (3 choix, tu en gardes 1). Très accessibles parce que jetables. Achat bloqué si l'inventaire de 3 slots (session 25) est déjà plein — il faut en jouer un pour en racheter.
 
-**Rareté (session 23)** — jusque-là tirés uniformément, les Spéciaux gagnent le même système de rareté pondérée que les Badges/Dés à coudre (`GameRules.RARITY_WEIGHTS`), pour que le prix reflète l'accessibilité plutôt que la seule puissance :
+**Rareté (session 23)** — jusque-là tirés uniformément, les Spéciaux gagnent le même système de rareté pondérée que les Sortilèges/Dés à coudre (`GameRules.RARITY_WEIGHTS`), pour que le prix reflète l'accessibilité plutôt que la seule puissance :
 
 | Rareté | Poids | Prix | Spéciaux |
 |---|---|---|---|

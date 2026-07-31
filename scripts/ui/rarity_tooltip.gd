@@ -1,6 +1,6 @@
-## Construit un tooltip personnalise avec un petit badge colore de rarete
+## Construit un tooltip personnalise avec un petit sortilège colore de rarete
 ## au-dessus du texte de description habituel. Utilise par tout controle qui
-## affiche un BadgeData au survol (BadgesUI, RarityButton) — les Partitions
+## affiche un SpellData au survol (SpellsUI, RarityButton) — les Partitions
 ## n'ont plus de rarete depuis la session 19 (voir SheetData).
 class_name RarityTooltip
 extends RefCounted
