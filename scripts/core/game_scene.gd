@@ -167,12 +167,18 @@ func _start_round() -> void:
 	score_label.pivot_offset = score_label.size * 0.5
 	turn_controller.start_round(RunService.current_round)
 
+	# Persistance entre manches (session 26) : jetons persistes tombent un a
+	# un, gauche a droite, AVANT les cases mystere -- puis finish_round_start
+	# genere les cases mystere (qui verront ces cases desormais occupees) et
+	# rend la main au joueur.
+	var carried_over: Array[TokenData] = await _play_carryover_intro()
+	turn_controller.finish_round_start(carried_over)
+
 	# Malus de boss GRANDE FAIM : l'Entity lache un skull 2x plus frequemment
 	# pour la manche (voir BossMalusManager, entity_manager vit ici et pas
 	# dans TurnController).
 	if RunService.boss_malus_manager.active_malus == BossMalusManager.Type.GRANDE_FAIM:
-		@warning_ignore("integer_division")
-		entity_manager.drop_interval_override = maxi(1, GameRules.ENTITY_DROP_INTERVAL / 2)
+		entity_manager.drop_chance_multiplier = 2.0
 
 	_update_score_display()
 	_update_zone_display()
@@ -181,6 +187,25 @@ func _start_round() -> void:
 	_on_roulette_gauge_changed(RunService.roulette_manager.get_gauge(), GameRules.ROULETTE_THRESHOLD)
 	grid_visual.refresh()
 	stream_ui.queue_redraw()
+
+
+## Persistance entre manches (session 26) : anime la chute de chaque jeton
+## persiste (le plus haut de chaque colonne a la fin de la manche
+## precedente), gauche a droite, une colonne a la fois -- avant que les cases
+## mystere n'apparaissent (voir TurnController.finish_round_start, appele
+## juste apres par _start_round). place_token_direct pose la donnee et
+## retourne la row d'atterrissage, animate_drop s'occupe du visuel.
+func _play_carryover_intro() -> Array[TokenData]:
+	var tokens: Array[TokenData] = RunService.run_manager.pop_carryover_tokens()
+	for col in range(tokens.size()):
+		var token: TokenData = tokens[col]
+		if token == null:
+			continue
+		var row: int = grid_manager.place_token_direct(col, token)
+		if row >= 0:
+			await grid_visual.animate_drop(col, row, token)
+			grid_visual.refresh()
+	return tokens
 
 
 func _update_score_display() -> void:
@@ -267,7 +292,8 @@ func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
 
 	var meche_courte_active: bool = RunService.boss_malus_manager.active_malus == BossMalusManager.Type.MECHE_COURTE
 
-	# Entity : drop un jeton skull tous les ENTITY_DROP_INTERVAL tours
+	# Entity : chance croissante de lacher un skull depuis le dernier drop
+	# (session 26, voir EntityManager.on_turn_resolved)
 	var entity_col: int = entity_manager.on_turn_resolved()
 	if entity_col >= 0:
 		var entity_token: TokenData = TokenData.make_entity()
@@ -284,7 +310,36 @@ func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
 	turn_controller.notify_timeline_done()
 
 
+## Aspiration en fin de manche (session 26) : chaque jeton persiste (voir
+## GridManager.get_top_base_tokens/get_top_base_token_row) s'envole vers le
+## haut, toutes les colonnes en meme temps -- pas sequentiel comme l'arrivee
+## (_play_carryover_intro), on vise un seul geste lisible de ~3 secondes,
+## pas un defile colonne par colonne. No-op silencieux si rien ne persiste.
+func _play_carryover_pickup(carried_over: Array[TokenData]) -> void:
+	var eligible: Array[Vector2i] = []
+	for col in range(carried_over.size()):
+		if carried_over[col] == null:
+			continue
+		var row: int = grid_manager.get_top_base_token_row(col)
+		if row >= 0:
+			eligible.append(Vector2i(col, row))
+	if eligible.is_empty():
+		return
+
+	await get_tree().create_timer(GameRules.CARRYOVER_PICKUP_PRE_DELAY).timeout
+	for cell in eligible:
+		grid_visual.animate_pickup(cell.x, cell.y)
+	await get_tree().create_timer(GameRules.CARRYOVER_PICKUP_DURATION).timeout
+	await get_tree().create_timer(GameRules.CARRYOVER_PICKUP_POST_DELAY).timeout
+
+
 func _on_round_won(final_score: int, target: int) -> void:
+	# Persistance entre manches (session 26) : snapshot avant que la grille de
+	# cette manche ne soit remplacee -- consomme par TurnController.start_round
+	# a la manche suivante (voir GridManager.get_top_base_tokens).
+	var carried_over: Array[TokenData] = grid_manager.get_top_base_tokens()
+	RunService.run_manager.set_carryover_tokens(carried_over)
+
 	var total_rounds: int = GameRules.ROUNDS_PER_ZONE * GameRules.ZONES_PER_RUN
 	if RunService.current_round >= total_rounds:
 		RunService.game_flow = RunService.GameFlow.RUN_WON
@@ -294,6 +349,11 @@ func _on_round_won(final_score: int, target: int) -> void:
 		await get_tree().create_timer(GameRules.ROUND_END_DELAY).timeout
 		SceneRouter.go_to_end_screen()
 		return
+
+	# Aspiration visuelle des jetons persistes (session 26), juste avant le
+	# message YOU WIN -- montre au joueur ce qui va lui revenir a la manche
+	# suivante (voir GridVisual.animate_pickup).
+	await _play_carryover_pickup(carried_over)
 
 	# Manche gagnee (hors derniere) : recompense detaillee (base + bonus pack
 	# de demarrage + bonus jetons restants + bonus sortilèges on_round_end) puis

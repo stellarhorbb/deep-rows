@@ -43,6 +43,12 @@ var _button_pool: Array[TokenData] = []
 var _special_inventory: Array[TokenData.SpecialType] = []
 var _grid_modifiers: Dictionary = {}    # Vector2i -> Array[StringName]
 
+## Persistance entre manches (session 26) : snapshot du jeton de base le plus
+## haut de chaque colonne (voir GridManager.get_top_base_tokens), pris juste
+## avant que la grille de la manche gagnee ne soit remplacee. Consomme une
+## seule fois par TurnController.start_round au debut de la manche suivante.
+var _carryover_tokens: Array[TokenData] = []
+
 ## Canaux alimentables par plusieurs Sortilèges a la fois (session 18) : un seul
 ## pattern partout — Dictionary[spell_id] -> valeur pour les canaux "flat",
 ## Dictionary[cle] -> Dictionary[spell_id] -> valeur pour les canaux "keyed"
@@ -366,6 +372,18 @@ func get_sheet_cumulative_score(sheet_name: StringName) -> int:
 	if not _sheet_progress.has(sheet_name):
 		return 0
 	return (_sheet_progress[sheet_name] as Dictionary)["cumulative"] as int
+
+
+func set_carryover_tokens(tokens: Array[TokenData]) -> void:
+	_carryover_tokens = tokens
+
+
+## Consomme et vide -- une seule manche a la fois, jamais accumule si
+## start_round n'est pas appele entre-temps (ne devrait jamais arriver).
+func pop_carryover_tokens() -> Array[TokenData]:
+	var tokens: Array[TokenData] = _carryover_tokens
+	_carryover_tokens = []
+	return tokens
 
 
 ## Reset la couche "modifiers de manche" : grid modifiers + rule multipliers.

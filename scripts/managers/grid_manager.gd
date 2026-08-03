@@ -192,15 +192,101 @@ func place_token_direct(col: int, token: TokenData) -> int:
 ## jamais en row 0 (le sol reste toujours garanti dans chaque colonne).
 ## Un jeton qui tombe traverse un trou sans pouvoir s'y arreter — contrairement
 ## a un Rock, qui bloque et sert d'appui. Appele au debut de chaque manche.
-func generate_random_holes(count: int) -> void:
+func generate_random_holes() -> void:
 	_holes.clear()
+	_generate_seafloor()
+	var red_count: int = randi_range(GameRules.ROUND_START_RED_HOLES_MIN, GameRules.ROUND_START_RED_HOLES_MAX)
+	_scatter_holes(red_count)
+	holes_changed.emit(_holes.duplicate())
+
+
+## "Fond marin" (session 26, quatrieme jet) : plusieurs pics independants
+## (GameRules.SEAFLOOR_PEAK_COUNT_MIN/MAX), chacun ancre sur une colonne au
+## hasard -- pas forcement centre, peut deborder d'un bord (_carve_peak
+## clippe tout seul).
+func _generate_seafloor() -> void:
+	var peak_count: int = randi_range(GameRules.SEAFLOOR_PEAK_COUNT_MIN, GameRules.SEAFLOOR_PEAK_COUNT_MAX)
+	for i in range(peak_count):
+		var anchor: int = randi() % _cols
+		var height: int = _pick_seafloor_peak_height()
+		_carve_peak(anchor, height)
+
+
+## Pyramide en escalier centree sur `anchor_col` : largeur `height * 2 - 1`
+## a la base (row 0), retrecit de 2 cases par row en montant jusqu'a 1 case
+## au sommet (row height-1). Colonnes hors-grille simplement ignorees --
+## clippe naturellement les pics ancres pres d'un bord.
+func _carve_peak(anchor_col: int, height: int) -> void:
+	for row in range(height):
+		var half_width: int = height - 1 - row
+		for col in range(anchor_col - half_width, anchor_col + half_width + 1):
+			if col < 0 or col >= _cols:
+				continue
+			_holes[Vector2i(col, row)] = true
+
+
+## Tirage a taux fixe par hauteur -- meme principe que
+## MysteryCellEffects.pick_random (GameRules.SEAFLOOR_PEAK_HEIGHT_RATES).
+func _pick_seafloor_peak_height() -> int:
+	var rates: Array[float] = GameRules.SEAFLOOR_PEAK_HEIGHT_RATES
+	var roll: float = randf()
+	var cumulative: float = 0.0
+	for i in range(rates.size()):
+		cumulative += rates[i]
+		if roll < cumulative:
+			return i + 1
+	return 1
+
+
+## Trous "rouges" en plus du fond marin, disperses au hasard sur toute la
+## grille (jamais en row 0 -- le sol garde toujours au moins une case
+## non-trouee sur ces colonnes-la).
+func _scatter_holes(count: int) -> void:
+	var target: int = _holes.size() + count
 	var attempts: int = 0
-	while _holes.size() < count and attempts < count * 20:
+	while _holes.size() < target and attempts < count * 20:
 		attempts += 1
 		var col: int = randi() % _cols
 		var row: int = 1 + randi() % (_rows - 1)  # jamais row 0
 		_holes[Vector2i(col, row)] = true
-	holes_changed.emit(_holes.duplicate())
+
+
+## Persistance entre manches (session 26) : pour chaque colonne, le jeton
+## qui persiste est celui de la case occupee la plus haute, SEULEMENT si
+## c'est un TokenData.Kind.BASE -- si la case occupee la plus haute est un
+## Rock/Skull/Special/Residue, la colonne ne persiste rien du tout, meme
+## s'il y a un bon jeton juste en dessous. Volontairement tactique : couvrir
+## un jeton (avec un Rock par ex.) le protege de la persistance, il reste
+## dans le deck possede plutot que d'etre re-pose au hasard la manche
+## suivante. Colonne sans aucune case occupee -> null. Appele juste avant
+## que la grille de la manche ne soit remplacee (voir GameScene._on_round_won).
+func get_top_base_tokens() -> Array[TokenData]:
+	var result: Array[TokenData] = []
+	result.resize(_cols)
+	for c in range(_cols):
+		result[c] = null
+		for r in range(_rows - 1, -1, -1):
+			var token: TokenData = _grid[c][r]
+			if token == null:
+				continue
+			if token.kind == TokenData.Kind.BASE:
+				result[c] = token
+			break
+	return result
+
+
+## Meme regle que get_top_base_tokens mais pour une seule colonne, retourne
+## la row plutot que le jeton -- utilise par l'animation d'aspiration
+## (GameScene._on_round_won) pour savoir d'ou faire partir le sprite.
+## -1 si rien ne persiste pour cette colonne (vide ou bloquee par un
+## Rock/Skull/Special en haut).
+func get_top_base_token_row(col: int) -> int:
+	for r in range(_rows - 1, -1, -1):
+		var token: TokenData = _grid[col][r]
+		if token == null:
+			continue
+		return r if token.kind == TokenData.Kind.BASE else -1
+	return -1
 
 
 func get_holes() -> Dictionary:
@@ -216,9 +302,10 @@ func add_holes(cells: Array[Vector2i]) -> void:
 
 
 ## Cases mystere (session 24) : genere `count` cases a des positions
-## aleatoires, jamais sur un trou (jamais atterrissable de toute facon).
-## Appele au debut de chaque manche, sur une grille encore vide — meme
-## timing que generate_random_holes. Le contenu (MysteryCellEffects.Type)
+## aleatoires, jamais sur un trou (jamais atterrissable de toute facon) ni
+## sur une case deja occupee (session 26 : les jetons persistes entre
+## manches sont poses avant cet appel, voir TurnController.start_round).
+## Appele au debut de chaque manche. Le contenu (MysteryCellEffects.Type)
 ## est tire tout de suite mais reste cache jusqu'a declenchement, voir
 ## _check_mystery_trigger.
 func generate_random_mystery_cells(count: int) -> void:
@@ -227,7 +314,7 @@ func generate_random_mystery_cells(count: int) -> void:
 	while _mystery_cells.size() < count and attempts < count * 20:
 		attempts += 1
 		var cell: Vector2i = Vector2i(randi() % _cols, randi() % _rows)
-		if _holes.has(cell) or _mystery_cells.has(cell):
+		if _holes.has(cell) or _mystery_cells.has(cell) or _grid[cell.x][cell.y] != null:
 			continue
 		_mystery_cells[cell] = MysteryCellEffects.pick_random()
 	_notify_mystery_cells_changed()

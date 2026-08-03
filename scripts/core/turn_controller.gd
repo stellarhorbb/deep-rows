@@ -85,15 +85,14 @@ func start_round(round_number: int) -> void:
 	score_manager.reset_round(round_number)
 	grid_manager.init_grid()
 
-	# 0. Grille cabossee : trous aleatoires deja en place avant le premier drop,
-	# differents a chaque manche.
-	var hole_count: int = randi_range(GameRules.ROUND_START_HOLES_MIN, GameRules.ROUND_START_HOLES_MAX)
-	grid_manager.generate_random_holes(hole_count)
+	# 0. Grille cabossee : fond marin + trous rouges deja en place avant le
+	# premier drop, differents a chaque manche.
+	grid_manager.generate_random_holes()
 
-	# 0b. Cases mystere (session 24) : meme timing que les trous, grille encore
-	# vide. Contenu tire tout de suite mais cache jusqu'a declenchement.
-	var mystery_count: int = randi_range(GameRules.ROUND_START_MYSTERY_MIN, GameRules.ROUND_START_MYSTERY_MAX)
-	grid_manager.generate_random_mystery_cells(mystery_count)
+	# 0a. Persistance entre manches (session 26) : place les jetons persistes
+	# en donnee seule -- l'animation (chute gauche a droite) et les cases
+	# mystere (qui doivent les voir deja poses) sont orchestrees par
+	# GameScene, voir finish_round_start() plus bas.
 
 	# 1. Reset de la couche modifiers de manche.
 	run_manager.reset_round_modifiers()
@@ -119,6 +118,20 @@ func start_round(round_number: int) -> void:
 
 	_reroll_colonne_maudite()
 
+	# Suite dans finish_round_start(), appelee par GameScene une fois l'intro
+	# visuelle des jetons persistes terminee (voir GameScene._start_round).
+
+
+## Appele par GameScene apres l'animation des jetons persistes (chute gauche
+## a droite, session 26) -- genere les cases mystere en dernier, expres,
+## pour qu'elles evitent les cases desormais occupees par ces jetons, puis
+## rend la main au joueur. `carried_over` : les jetons que GameScene vient de
+## poser sur la grille, pour que build_deck() ne leur redonne pas une
+## deuxieme copie jouable (ils font deja partie du pool possede).
+func finish_round_start(carried_over: Array[TokenData] = []) -> void:
+	var mystery_count: int = randi_range(GameRules.ROUND_START_MYSTERY_MIN, GameRules.ROUND_START_MYSTERY_MAX)
+	grid_manager.generate_random_mystery_cells(mystery_count)
+
 	# 2. Les sortilèges on_round_start peuplent grid_modifiers et rule_multipliers.
 	round_started.emit()
 
@@ -131,7 +144,7 @@ func start_round(round_number: int) -> void:
 	deck_manager.hold_capacity = 0 if context.hold_locked else GameRules.BASE_HOLD_SLOTS + context.hold_slot_bonus
 	deck_manager.preview_bonus = context.preview_size_bonus
 	deck_manager.rock_count_bonus = context.rock_count_bonus
-	deck_manager.build_deck(run_manager.get_button_pool())
+	deck_manager.build_deck(run_manager.get_button_pool(), carried_over)
 	deck_manager.advance_stream()
 	_state = State.AWAITING_INPUT
 	turn_started.emit()

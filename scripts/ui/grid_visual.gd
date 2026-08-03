@@ -129,9 +129,37 @@ func set_holes(holes: Dictionary) -> void:
 
 
 ## Appele par game_scene quand GridManager emet mystery_cells_changed.
+## Particules (session 26) uniquement sur les cases vraiment nouvelles --
+## ce signal refire aussi quand une case se declenche et disparait du
+## dictionnaire, pas question de re-declencher un effet d'apparition dessus.
 func set_mystery_cells(cells: Array[Vector2i]) -> void:
+	for cell in cells:
+		if not _mystery_cells.has(cell):
+			_spawn_mystery_particles(cell)
 	_mystery_cells = cells
 	queue_redraw()
+
+
+## Petit burst de particules (premier jet, pas d'asset dedie) a l'apparition
+## d'une case mystere -- meme couleur que le marqueur "?" pour rester coherent.
+func _spawn_mystery_particles(cell: Vector2i) -> void:
+	var particles: CPUParticles2D = CPUParticles2D.new()
+	add_child(particles)
+	particles.position = _grid_to_pixel(cell.x, cell.y)
+	particles.amount = 16
+	particles.lifetime = 0.5
+	particles.one_shot = true
+	particles.explosiveness = 1.0
+	particles.direction = Vector2.UP
+	particles.spread = 180.0
+	particles.initial_velocity_min = 40.0
+	particles.initial_velocity_max = 90.0
+	particles.gravity = Vector2(0, 60)
+	particles.scale_amount_min = 2.0
+	particles.scale_amount_max = 4.0
+	particles.color = mystery_color
+	particles.emitting = true
+	get_tree().create_timer(particles.lifetime + 0.1).timeout.connect(particles.queue_free)
 
 
 ## Appele par game_scene quand GridManager emet blocked_column_changed.
@@ -215,6 +243,26 @@ func animate_drop(col: int, row: int, token: TokenData) -> void:
 	tween.tween_property(sprite, "position:y", end_pos.y - 4.0, 0.06).set_ease(Tween.EASE_OUT)
 	tween.tween_property(sprite, "position:y", end_pos.y, 0.06).set_ease(Tween.EASE_IN)
 	await tween.finished
+
+
+## Aspiration en fin de manche (session 26, persistance entre manches) :
+## miroir de animate_drop -- le jeton s'envole vers le haut et s'estompe,
+## au lieu de tomber. Ne fait pas d'await elle-meme (appelee en parallele
+## sur plusieurs colonnes a la fois par GameScene, contrairement a
+## animate_drop qui est sequentielle a l'arrivee) -- l'appelant attend la
+## duree fixe en dehors.
+func animate_pickup(col: int, row: int) -> void:
+	var cell: Vector2i = Vector2i(col, row)
+	if not _token_sprites.has(cell):
+		return
+	var sprite: Sprite2D = _token_sprites[cell] as Sprite2D
+	var target_pos: Vector2 = _grid_to_pixel(col, GameRules.ROWS)
+	var tween: Tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(sprite, "position", target_pos, GameRules.CARRYOVER_PICKUP_DURATION).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tween.tween_property(sprite, "modulate:a", 0.0, GameRules.CARRYOVER_PICKUP_DURATION)
+	await tween.finished
+	remove_sprite_at(cell)
 
 
 ## Supprime le sprite a une position donnee (utile pour les specials qui ne restent pas).

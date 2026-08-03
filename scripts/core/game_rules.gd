@@ -66,11 +66,38 @@ const CROW_IDLE_TICKS: int = 1
 ## ressenti.
 const MOBILE_EATER_GAMBLE_MULT: float = 1.5
 
-# "Grille cabossee" — trous generes au debut de chaque manche (jamais en row 0,
-# le sol reste toujours garanti). Un jeton qui tombe les traverse sans pouvoir
-# s'y arreter — different d'un Rock, qui bloque et sert d'appui.
-const ROUND_START_HOLES_MIN: int = 5
-const ROUND_START_HOLES_MAX: int = 8
+# "Grille cabossee" — trous generes au debut de chaque manche. Un jeton qui
+# tombe les traverse sans pouvoir s'y arreter — different d'un Rock, qui
+# bloque et sert d'appui.
+
+## "Fond marin" (session 26, quatrieme jet) : plusieurs pics independants,
+## chacun une pyramide en escalier (largeur de base 1/3/5 pour hauteur
+## 1/2/3, retrecit de 2 cases par row en montant jusqu'a 1 case au sommet)
+## ancree sur une colonne au hasard -- pas forcement centree, clippee aux
+## bords si l'ancre est pres d'un cote (le pic "sort du champ", voulu). Les
+## versions precedentes (marche aleatoire, tirage independant par colonne,
+## pic unique + solitaires) ne rendaient jamais assez varie. Voir
+## GridManager._generate_seafloor / _carve_peak.
+const SEAFLOOR_PEAK_COUNT_MIN: int = 2
+const SEAFLOOR_PEAK_COUNT_MAX: int = 4
+
+## Taux fixe par hauteur (1/2/3), meme principe que MYSTERY_RARITY_RATES --
+## index 0 = hauteur 1 (case simple), index 2 = hauteur 3 (gros pic).
+const SEAFLOOR_PEAK_HEIGHT_RATES: Array[float] = [0.45, 0.35, 0.20]
+
+## Aspiration des jetons persistes en fin de manche (session 26), juste avant
+## l'ecran YOU WIN -- duree du vol + fondu (GridVisual.animate_pickup), plus
+## une courte pause avant/apres pour laisser le geste se lire. Vise ~3
+## secondes au total, demande par le user.
+const CARRYOVER_PICKUP_DURATION: float = 1.8
+const CARRYOVER_PICKUP_PRE_DELAY: float = 0.6
+const CARRYOVER_PICKUP_POST_DELAY: float = 0.6
+
+## Trous isoles en plus du fond marin, disperses au hasard sur toute la
+## grille (jamais en row 0 -- le sol garde toujours au moins une case
+## non-trouee sur ces colonnes-la). Premier jet, a ajuster au ressenti.
+const ROUND_START_RED_HOLES_MIN: int = 2
+const ROUND_START_RED_HOLES_MAX: int = 4
 
 # Stream
 const PREVIEW_SIZE: int = 3
@@ -220,7 +247,19 @@ const MYSTERY_FLIES_BIG_LOSS: int = 2
 const MYSTERY_JACKPOT_FLIES: int = 20
 
 # Entity
-const ENTITY_DROP_INTERVAL: int = 5  # Un drop tous les N poses joueur
+## Drop de skull (session 26, remplace l'ancien intervalle fixe) : chance qui
+## grimpe de ENTITY_DROP_INCREMENT chaque tour depuis le dernier drop,
+## plafonnee naturellement a 100% (un pourcentage ne peut pas depasser 100 --
+## pas besoin d'un "forced" code a part). Premier jet a 20%+10% juge trop
+## frequent au playtest (moyenne ~3 tours) ; retune a 5%+10% par tour ->
+## moyenne simulee ~5.3 tours, quasiment identique a l'ancien intervalle
+## fixe de 5. Le plafond naturel ne tombe que tres tard (tour 20) mais
+## n'est quasiment jamais atteint en pratique (~93% des cas deja resolus
+## avant le tour 9). Remplace le comptage exact ("je sais qu'un skull tombe
+## dans exactement N tours") par une vraie incertitude, bornee et simple a
+## presenter (un pourcentage, pas une regle arbitraire).
+const ENTITY_DROP_BASE_CHANCE: float = 0.05
+const ENTITY_DROP_INCREMENT: float = 0.05
 
 ## Axe casino (session 25) -- jauge qui accumule la valeur brute des jetons
 ## poses (voir RouletteManager), fixe pour toute la run, PAS un ratio de la

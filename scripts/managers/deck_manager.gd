@@ -30,16 +30,31 @@ var _hold: Array[TokenData] = []
 ## jamais muter les instances possedees. Les speciaux ne font plus partie du
 ## deck depuis la session 25 (voir RunManager._special_inventory) : joues a
 ## la demande, jamais melanges dans le stream.
-func build_deck(button_pool: Array[TokenData]) -> void:
+## `carried_over` (session 26) : jetons du haut de chaque colonne, deja
+## poses sur la grille par la persistance entre manches -- ce sont deja des
+## exemplaires du pool possede, pas question de leur en redonner une
+## deuxieme copie jouable cette manche (voir GameScene._play_carryover_intro).
+func build_deck(button_pool: Array[TokenData], carried_over: Array[TokenData] = []) -> void:
 	_deck.clear()
 	_current = null
 	_hold.clear()
 	for i in range(hold_capacity):
 		_hold.append(null)
 
+	var carried_counts: Dictionary = {}  # Vector2i(family, value) -> compte
+	for token in carried_over:
+		if token == null:
+			continue
+		var key: Vector2i = Vector2i(token.family, token.value)
+		carried_counts[key] = carried_counts.get(key, 0) + 1
+
 	# Jetons de base : copies fraiches du pool possede (persistant pour la run).
 	# locked propage explicitement (make_base ne le porte pas par defaut).
 	for source_token in button_pool:
+		var key: Vector2i = Vector2i(source_token.family, source_token.value)
+		if carried_counts.get(key, 0) > 0:
+			carried_counts[key] -= 1
+			continue
 		var copy: TokenData = TokenData.make_base(source_token.family, source_token.value)
 		copy.locked = source_token.locked
 		_deck.append(copy)
