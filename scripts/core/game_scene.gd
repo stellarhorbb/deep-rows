@@ -133,6 +133,9 @@ func _wire_signals() -> void:
 	turn_controller.round_won.connect(_on_round_won)
 	turn_controller.round_lost.connect(_on_round_lost)
 	turn_controller.petard_scored.connect(_on_petard_scored)
+	turn_controller.comete_scored.connect(_on_comete_scored)
+	turn_controller.va_tout_resolved.connect(_on_va_tout_resolved)
+	turn_controller.dropped_token_mutated.connect(_on_dropped_token_mutated)
 	turn_controller.mobile_specials_scored.connect(_on_mobile_specials_scored)
 	grid_manager.token_placed.connect(_on_token_placed)
 	grid_manager.special_landing.connect(_on_special_landing)
@@ -167,6 +170,14 @@ func _start_round() -> void:
 	score_label.pivot_offset = score_label.size * 0.5
 	turn_controller.start_round(RunService.current_round)
 
+	# Fond/label de biome mis a jour AVANT l'animation de chute des jetons
+	# persistes (voir plus bas) -- sinon le fond/nom affichent encore l'etat
+	# de la manche precedente (ou un defaut editeur) pendant les ~3 secondes
+	# de la chute, avant de sauter au bon biome une fois l'await termine (bug
+	# remonte en playtest).
+	_update_score_display()
+	_update_zone_display()
+
 	# Persistance entre manches (session 26) : jetons persistes tombent un a
 	# un, gauche a droite, AVANT les cases mystere -- puis finish_round_start
 	# genere les cases mystere (qui verront ces cases desormais occupees) et
@@ -180,8 +191,6 @@ func _start_round() -> void:
 	if RunService.boss_malus_manager.active_malus == BossMalusManager.Type.GRANDE_FAIM:
 		entity_manager.drop_chance_multiplier = 2.0
 
-	_update_score_display()
-	_update_zone_display()
 	_on_flies_changed(RunService.run_manager.get_flies())
 	_on_shake_charges_changed(RunService.run_manager.get_shake_charges())
 	_on_roulette_gauge_changed(RunService.roulette_manager.get_gauge(), GameRules.ROULETTE_THRESHOLD)
@@ -197,14 +206,24 @@ func _start_round() -> void:
 ## retourne la row d'atterrissage, animate_drop s'occupe du visuel.
 func _play_carryover_intro() -> Array[TokenData]:
 	var tokens: Array[TokenData] = RunService.run_manager.pop_carryover_tokens()
-	for col in range(tokens.size()):
-		var token: TokenData = tokens[col]
-		if token == null:
-			continue
-		var row: int = grid_manager.place_token_direct(col, token)
-		if row >= 0:
-			await grid_visual.animate_drop(col, row, token)
-			grid_visual.refresh()
+	var depth: int = GameRules.CARRYOVER_MAX_DEPTH
+	# Premiere manche d'une run (ou tout cas ou rien n'a encore ete stocke) :
+	# tokens est vide plutot que dimensionne a COLS*depth, voir RunManager.
+	# _carryover_tokens (defaut []).
+	if tokens.size() < GameRules.COLS * depth:
+		return tokens
+	var vestige_active: bool = RunService.run_manager.has_spell(&"vestige")
+	for col in range(GameRules.COLS):
+		for k in range(depth):
+			var token: TokenData = tokens[col * depth + k]
+			if token == null:
+				continue
+			var row: int = grid_manager.place_token_direct(col, token)
+			if row >= 0 and vestige_active:
+				RunService.run_manager.add_grid_modifier(Vector2i(col, row), GameRules.MODIFIER_BOOST)
+			if row >= 0:
+				await grid_visual.animate_drop(col, row, token)
+				grid_visual.refresh()
 	return tokens
 
 
@@ -311,18 +330,25 @@ func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
 
 
 ## Aspiration en fin de manche (session 26) : chaque jeton persiste (voir
-## GridManager.get_top_base_tokens/get_top_base_token_row) s'envole vers le
+## GridManager.get_top_base_tokens/get_top_base_token_rows) s'envole vers le
 ## haut, toutes les colonnes en meme temps -- pas sequentiel comme l'arrivee
 ## (_play_carryover_intro), on vise un seul geste lisible de ~3 secondes,
 ## pas un defile colonne par colonne. No-op silencieux si rien ne persiste.
+## carried_over suit le layout fixe de GridManager.get_top_base_tokens (voir
+## GameRules.CARRYOVER_MAX_DEPTH) -- jusqu'a 2 cases eligibles par colonne
+## avec le Sortilège "Deux étages".
 func _play_carryover_pickup(carried_over: Array[TokenData]) -> void:
+	var depth: int = GameRules.CARRYOVER_MAX_DEPTH
+	if carried_over.size() < GameRules.COLS * depth:
+		return
 	var eligible: Array[Vector2i] = []
-	for col in range(carried_over.size()):
-		if carried_over[col] == null:
-			continue
-		var row: int = grid_manager.get_top_base_token_row(col)
-		if row >= 0:
-			eligible.append(Vector2i(col, row))
+	for col in range(GameRules.COLS):
+		var rows: Array[int] = grid_manager.get_top_base_token_rows(col)
+		for k in range(depth):
+			if carried_over[col * depth + k] == null:
+				continue
+			if rows[k] >= 0:
+				eligible.append(Vector2i(col, rows[k]))
 	if eligible.is_empty():
 		return
 
@@ -336,8 +362,16 @@ func _play_carryover_pickup(carried_over: Array[TokenData]) -> void:
 func _on_round_won(final_score: int, target: int) -> void:
 	# Persistance entre manches (session 26) : snapshot avant que la grille de
 	# cette manche ne soit remplacee -- consomme par TurnController.start_round
-	# a la manche suivante (voir GridManager.get_top_base_tokens).
+	# a la manche suivante (voir GridManager.get_top_base_tokens). Le layout
+	# est toujours calcule jusqu'a CARRYOVER_MAX_DEPTH ; sans le Sortilège
+	# "Deux étages" (session "Vague 1"), on efface les slots secondaires
+	# avant stockage -- une seule case par colonne persiste, comme avant.
 	var carried_over: Array[TokenData] = grid_manager.get_top_base_tokens()
+	if not RunService.run_manager.has_spell(&"deux_etages"):
+		var depth: int = GameRules.CARRYOVER_MAX_DEPTH
+		for c in range(GameRules.COLS):
+			for k in range(1, depth):
+				carried_over[c * depth + k] = null
 	RunService.run_manager.set_carryover_tokens(carried_over)
 
 	var total_rounds: int = GameRules.ROUNDS_PER_ZONE * GameRules.ZONES_PER_RUN
@@ -475,6 +509,39 @@ func _on_petard_detonated() -> void:
 func _on_petard_scored(amount: int) -> void:
 	message_display.show_message("EXPLOSION +" + str(amount) + " TICKETS", &"cascade")
 	_animate_score_to(_displayed_score + amount)
+
+
+## Comete (session "Vague 2") : meme raison que _on_petard_scored ci-dessus,
+## message dedie plutot que de reutiliser "EXPLOSION" (ne colle pas au theme).
+func _on_comete_scored(amount: int) -> void:
+	message_display.show_message("COMÈTE +" + str(amount) + " TICKETS", &"cascade")
+	_animate_score_to(_displayed_score + amount)
+
+
+## Sortilège "Dernier dernier Souffle" (Va-tout, session "Vague 2") : moment
+## dedie pour ce tirage all-in, distinct du reste de la banniere de
+## resolution -- meme raison que petard_scored/comete_scored (score modifie
+## en dehors du pipeline normal).
+func _on_va_tout_resolved(final_score: int, won_gamble: bool) -> void:
+	if won_gamble:
+		message_display.show_message("VA-TOUT ! TICKETS DOUBLÉS", &"cascade")
+	else:
+		message_display.show_message("VA-TOUT PERDU...", &"cascade")
+	_animate_score_to(final_score)
+
+
+## Sortilège "Pile ou Face" (session "Vague 2") : bug remonte en playtest
+## ("trigger jamais") -- en fait deux bugs de feedback superposes, pas un
+## echec de la logique elle-meme. 1) TurnController.dropped_token_mutated
+## ne se declenchait jamais faute de signal dedie (spell_triggered de
+## SpellManager ne s'emet que si des mouches ont bouge, jamais le cas ici).
+## 2) meme une fois le signal cable, sync_sprites()/refresh() ne rafraichit
+## jamais le contenu d'un sprite deja cree (seulement sa presence) -- il
+## fallait rebuild_sprites() (meme fonction que _on_petard_detonated/_on_
+## mobile_specials_ticked pour la meme raison).
+func _on_dropped_token_mutated() -> void:
+	grid_visual.rebuild_sprites()
+	spells_ui.tilt_spell(&"pile_ou_face")
 
 
 ## Cavalier/Frog/Liane (mangeurs/scoreurs, session 22) ont mange un jeton en

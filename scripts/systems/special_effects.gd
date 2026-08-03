@@ -34,6 +34,16 @@ static func can_play(grid: Array, token: TokenData, col: int, _row: int, cols: i
 				return _column_height(grid, col, rows, holes) < rows
 			TokenData.SpecialType.ARMAGEDDON:
 				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.CRISTAL:
+				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.DIAMANT:
+				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.COMETE:
+				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.AMPLIFICATEUR:
+				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.SIPHON:
+				return _column_height(grid, col, rows, holes) < rows
 
 	return false
 
@@ -137,6 +147,58 @@ static func execute_enclume(grid: Array, col: int, rows: int, holes: Dictionary 
 		grid[col][usable_rows[i]] = col_tokens[i]
 
 
+## Cristal/Diamant (session "Vague 1") : instant a l'impact, comme Maree.
+## Transforme tout Rock present dans les 4 cases orthogonales autour du point
+## d'impact en jeton de base d'une famille aleatoire et de la valeur donnee
+## (1 pour Cristal, 9 pour Diamant), marque temporaire (TokenData.temporary)
+## -- premier jet de rayon, a retoucher si ca se sent trop genereux/maigre au
+## playtest. S'il ne score jamais, il ne persiste pas a la manche suivante
+## (voir GridManager.get_top_base_tokens) : redevient un Rock.
+static func execute_cristal_diamant(grid: Array, col: int, row: int, cols: int, rows: int, value: int, holes: Dictionary = {}) -> void:
+	var offsets: Array[Vector2i] = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
+	for offset in offsets:
+		var cc: int = col + offset.x
+		var rr: int = row + offset.y
+		if cc < 0 or cc >= cols or rr < 0 or rr >= rows:
+			continue
+		if holes.has(Vector2i(cc, rr)):
+			continue
+		var token: TokenData = grid[cc][rr]
+		if token == null or token.kind != TokenData.Kind.ROCK:
+			continue
+		var family: int = randi() % GameRules.FAMILY_COUNT
+		var new_token: TokenData = TokenData.make_base(family as TokenData.Family, value)
+		new_token.temporary = true
+		grid[cc][rr] = new_token
+
+
+## Comete (session "Vague 2") : instant a l'impact, comme Maree. Traverse
+## toute la diagonale qui passe par le point d'impact (les deux sens,
+## jusqu'aux bords) et score chaque jeton scorable croise -- valeur brute,
+## sans multiplicateur, meme convention que les explosifs. Ne touche pas aux
+## cases non scorables (Rock/Special/Entity), seulement retirees si elles
+## etaient scorables. Choix de diagonale (bas-gauche/haut-droite) arbitraire
+## en l'absence de mecanique de visee -- premier jet, a retoucher si besoin.
+static func execute_comete(grid: Array, col: int, row: int, cols: int, rows: int, holes: Dictionary = {}) -> int:
+	var score: int = 0
+	var directions: Array[Vector2i] = [Vector2i(1, 1), Vector2i(-1, -1)]
+	for offset in directions:
+		var cc: int = col
+		var rr: int = row
+		while true:
+			cc += offset.x
+			rr += offset.y
+			if cc < 0 or cc >= cols or rr < 0 or rr >= rows:
+				break
+			if holes.has(Vector2i(cc, rr)):
+				continue
+			var token: TokenData = grid[cc][rr]
+			if token != null and token.is_scorable():
+				score += token.value
+				grid[cc][rr] = null
+	return score
+
+
 ## Mange le contenu d'une case pour un special "mangeur/scoreur" (Cavalier,
 ## Frog, Liane) : un jeton scorable present y est retire et sa valeur brute
 ## (sans multiplicateur — meme convention que la Bombe/le Pétard) est
@@ -160,6 +222,30 @@ static func _eat_cell(grid: Array, cell: Vector2i) -> Dictionary:
 ## sa croissance est deterministe (toujours vers la droite), pas un gamble.
 static func _apply_gamble_mult(score: int) -> int:
 	return int(round(score * GameRules.MOBILE_EATER_GAMBLE_MULT))
+
+
+## Siphon (session "Vague 3") : aspire simultanement la case au-dessus ET en
+## dessous a chaque tick (ne se deplace jamais lui-meme, contrairement a
+## Cavalier/Frog/Liane). Retourne {"score": int, "eaten": int} -- eaten = le
+## nombre de cases reellement mangees ce tick (0, 1 ou 2), utilise par
+## GridManager.tick_mobile_specials a la fois pour savoir quand Siphon n'a
+## plus rien a manger (colonne "vide" autour de lui) et pour decompter son
+## plafond fixe de bouchees (GameRules.SIPHON_MAX_EATS) -- capture une fois a
+## la pose, jamais rallonge meme si le joueur re-nourrit la colonne.
+static func siphon_eat(grid: Array, col: int, row: int, rows: int) -> Dictionary:
+	var total_score: int = 0
+	var eaten: int = 0
+	if row + 1 < rows:
+		var above: Dictionary = _eat_cell(grid, Vector2i(col, row + 1))
+		total_score += above["score"] as int
+		if above["ate"] as bool:
+			eaten += 1
+	if row - 1 >= 0:
+		var below: Dictionary = _eat_cell(grid, Vector2i(col, row - 1))
+		total_score += below["score"] as int
+		if below["ate"] as bool:
+			eaten += 1
+	return {"score": total_score, "eaten": eaten}
 
 
 ## Cavalier : deplacement d'echecs en L (8 destinations possibles), tire au

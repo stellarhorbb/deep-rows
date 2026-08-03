@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SpellData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/spell_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/spells/effect_jamais_1_sans_2.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"jamais_1_sans_2"
+label = "JAMAIS 1 SANS 2"
+description = "Un Boost obtenu à la roulette s'applique à 2 jetons du pool au lieu d'1"
+trigger = &"on_round_start"
+price = 5
+rarity = 2
+effect_script = ExtResource("2_effect")

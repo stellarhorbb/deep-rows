@@ -87,7 +87,7 @@ func bind_round(turn_controller: TurnController) -> void:
 	# manche, plus seulement au demarrage d'une run -- revient sur la decision
 	# initiale ("seuil fixe pour toute la run", voir decisions-tranchees.md),
 	# a retoucher dans le GDD si ca se confirme au playtest prolonge.
-	_gauge = 0
+	_gauge = GameRules.ROULETTE_HEAD_START_GAUGE if run_manager != null and run_manager.has_spell(&"bon_depart") else 0
 	gauge_changed.emit(_gauge, GameRules.ROULETTE_THRESHOLD)
 	# Securite anti-fuite entre manches : si une roulette s'est declenchee au
 	# tout dernier coup d'une manche, ni le multiplicateur ni le Boost en
@@ -183,7 +183,7 @@ func _on_turn_resolved(_timeline: Array[Dictionary]) -> void:
 				multi_status_changed.emit(false, 1.0)
 	if _pending_multi > 0.0:
 		run_manager.set_global_multiplier(_pending_multi, &"roulette")
-		_multi_drops_remaining = GameRules.ROULETTE_MULTI_DROPS
+		_multi_drops_remaining = GameRules.ROULETTE_MULTI_DROPS_EXTENDED if run_manager.has_spell(&"fenetre_longue") else GameRules.ROULETTE_MULTI_DROPS
 		multi_status_changed.emit(true, _pending_multi)
 		_pending_multi = -1.0
 
@@ -241,16 +241,18 @@ func _maybe_apply_boost() -> void:
 ## grille si aucun jeton de base n'y est present (grille encore vide, edge
 ## case rarissime).
 func _apply_boost(amount: int) -> void:
-	if run_manager != null:
-		run_manager.boost_random_button(amount)
-	if _grid_manager == null:
-		return
-	var cell: Vector2i = _grid_manager.boost_random_token(amount)
-	if cell.x < 0:
-		return
-	var token: TokenData = _grid_manager.get_cell(cell.x, cell.y)
-	if token != null:
-		token_boosted.emit(cell, token)
+	var hits: int = 2 if run_manager != null and run_manager.has_spell(&"jamais_1_sans_2") else 1
+	for _i in hits:
+		if run_manager != null:
+			run_manager.boost_random_button(amount)
+		if _grid_manager == null:
+			continue
+		var cell: Vector2i = _grid_manager.boost_random_token(amount)
+		if cell.x < 0:
+			continue
+		var token: TokenData = _grid_manager.get_cell(cell.x, cell.y)
+		if token != null:
+			token_boosted.emit(cell, token)
 
 
 func get_gauge() -> int:

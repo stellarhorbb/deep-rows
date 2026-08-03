@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SpecialItem" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_item.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+label = "SIPHON"
+description = "Aspire et score les jetons au-dessus et en-dessous à chaque tour, jusqu'à 5 bouchées."
+price = 3
+rarity = 2
+special_type = 17

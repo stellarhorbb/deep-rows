@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SheetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/sheet_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+unlock_id = "sheet:wedding"
+sheet_name = &"wedding"
+shape = &"wedding"
+rule = &"faces"
+min_size = 2
+direction = &"any"
+score_multiplier = 4.0
+label = "WEDDING"
+price = 12

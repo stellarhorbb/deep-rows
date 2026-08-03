@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SpecialItem" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_item.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+label = "CRISTAL"
+description = "S'il touche un Rock, le transforme en jeton de famille aléatoire, valeur 1, pour la manche."
+price = 2
+rarity = 1
+special_type = 13

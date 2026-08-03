@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SheetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/sheet_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+unlock_id = "sheet:shadow_dance"
+sheet_name = &"shadow_dance"
+shape = &"shadow_dance"
+rule = &"shadow_dance"
+min_size = 4
+direction = &"any"
+label = "SHADOW DANCE"
+price = 20
+is_legendary = true

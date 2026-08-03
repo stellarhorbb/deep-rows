@@ -35,6 +35,10 @@ const SHEET_PATHS: Array[String] = [
 	"res://resources/sheets/minima.tres",
 	"res://resources/sheets/maxima.tres",
 	"res://resources/sheets/prime.tres",
+	"res://resources/sheets/jackpot_777.tres",
+	"res://resources/sheets/jackpot_9999.tres",
+	"res://resources/sheets/wedding.tres",
+	"res://resources/sheets/royal_court.tres",
 ]
 
 ## Petit pool a part (session 20) — jamais dans SHEET_PATHS/le tirage uniforme
@@ -44,6 +48,9 @@ const SHEET_PATHS: Array[String] = [
 const LEGENDARY_SHEET_PATHS: Array[String] = [
 	"res://resources/sheets/legendary_lost_corners.tres",
 	"res://resources/sheets/legendary_royal_square.tres",
+	"res://resources/sheets/legendary_skull_line.tres",
+	"res://resources/sheets/legendary_shadow_dance.tres",
+	"res://resources/sheets/legendary_black_hole.tres",
 	"res://resources/sheets/legendary_last_trick.tres",
 ]
 
@@ -61,6 +68,11 @@ const SPECIAL_PATHS: Array[String] = [
 	"res://resources/specials/special_underground.tres",
 	"res://resources/specials/special_hypercube.tres",
 	"res://resources/specials/special_armageddon.tres",
+	"res://resources/specials/special_cristal.tres",
+	"res://resources/specials/special_diamant.tres",
+	"res://resources/specials/special_comete.tres",
+	"res://resources/specials/special_amplificateur.tres",
+	"res://resources/specials/special_siphon.tres",
 ]
 
 ## Sortilèges achetables (SpellData).
@@ -121,6 +133,19 @@ const SPELL_PATHS: Array[String] = [
 	"res://resources/spells/spell_virtuose.tres",
 	"res://resources/spells/spell_dresseur_fou.tres",
 	"res://resources/spells/spell_souffle_obscur.tres",
+	"res://resources/spells/spell_favoritisme.tres",
+	"res://resources/spells/spell_bon_depart.tres",
+	"res://resources/spells/spell_fenetre_longue.tres",
+	"res://resources/spells/spell_jamais_1_sans_2.tres",
+	"res://resources/spells/spell_deux_etages.tres",
+	"res://resources/spells/spell_vestige.tres",
+	"res://resources/spells/spell_decuple_petard.tres",
+	"res://resources/spells/spell_quintuple_bombe.tres",
+	"res://resources/spells/spell_triple_armageddon.tres",
+	"res://resources/spells/spell_pierre_de_famille.tres",
+	"res://resources/spells/spell_pile_ou_face.tres",
+	"res://resources/spells/spell_dernier_dernier_souffle.tres",
+	"res://resources/spells/spell_miroir.tres",
 ]
 
 ## Outils de deck achetables (DeckToolData) — voir docs/brainstorms/brainstorm-outils-deck.md.

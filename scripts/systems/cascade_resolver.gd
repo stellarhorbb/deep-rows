@@ -29,21 +29,58 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 			push_error("CascadeResolver: MAX_CASCADE_PASSES atteint, resolution interrompue (bug de boucle infinie ?)")
 			break
 
-		var candidates: Array[Dictionary] = SheetMatcher.find_all(grid, cols, rows, context)
+		var wildcard_cells: Dictionary = {}
+		if context.rock_wildcard_family:
+			wildcard_cells = _apply_rock_wildcard(grid, cols, rows, context)
+
+		var candidates: Array[Dictionary] = SheetMatcher.find_all(grid, cols, rows, context, holes)
+
+		# "Pierre de Famille" : le scan ci-dessus vient de tourner avec les
+		# Rocks temporairement mutes en jetons (voir _apply_rock_wildcard) --
+		# on les remet en Rock immediatement, et on tague chaque groupe
+		# concerne pour que le scoring/la suppression sachent lesquelles de
+		# leurs cellules sont de vrais Rocks (zero valeur propre, jamais
+		# retirees, voir plus bas).
+		if wildcard_cells.size() > 0:
+			_revert_rock_wildcard(grid, wildcard_cells)
+			for group in candidates:
+				var group_wildcards: Array = []
+				for cell in (group["cells"] as Array):
+					if wildcard_cells.has(cell):
+						group_wildcards.append(cell)
+				if group_wildcards.size() > 0:
+					group["wildcard_rock_cells"] = group_wildcards
+
 		if candidates.size() == 0:
 			break
 
 		# Capture la famille avant suppression des cellules (utile aux sortilèges
-		# qui lisent la timeline apres coup, ex: "Un Pour Tous").
+		# qui lisent la timeline apres coup, ex: "Un Pour Tous"). Si le groupe a
+		# des cellules "Pierre de Famille", on lit la famille sur une vraie
+		# cellule plutot que sur le Rock (qui n'en a pas de reelle).
 		for group in candidates:
 			if group.get("match_rule") == &"family":
 				var cells: Array = group["cells"]
-				if cells.size() > 0:
-					var first_cell: Vector2i = cells[0]
-					var first_token: TokenData = grid[first_cell.x][first_cell.y] as TokenData
+				var wildcard_rock_cells: Array = group.get("wildcard_rock_cells", [])
+				var family_cell: Vector2i = Vector2i(-1, -1)
+				for cell in cells:
+					if not wildcard_rock_cells.has(cell):
+						family_cell = cell
+						break
+				if family_cell.x >= 0:
+					var first_token: TokenData = grid[family_cell.x][family_cell.y] as TokenData
 					if first_token != null:
 						group["family"] = first_token.family
-			group["score"] = _score_group(group, grid, cascade_level, context)
+			# Special "Amplificateur" (session "Vague 2", revise) : detecte
+			# AVANT le scoring (pour que _score_group inclue le x2), utilise
+			# aussi plus bas pour le retirer du jeu (usage unique).
+			var amp_check_cells: Array = (group["cells"] as Array).duplicate()
+			if group.has("center"):
+				amp_check_cells.append(group["center"])
+			var amp_cells: Array[Vector2i] = _adjacent_amplificateurs(amp_check_cells, grid, cols, rows)
+			if amp_cells.size() > 0:
+				group["amplificateur_cells"] = amp_cells
+			group["score"] = _score_group(group, grid, cascade_level, context, holes)
 
 		# Deux formes differentes peuvent matcher dans la meme passe de
 		# resolution. On trie par score decroissant, puis pour chaque candidat
@@ -134,6 +171,10 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 			var is_rock_harvest: bool = group["shape"] == &"diamond" and group.get("match_rule") == &"rock"
 			if not is_rock_harvest:
 				var group_cells: Array = group["cells"]
+				# "Pierre de Famille" : les cellules Rock qui ont juste servi a
+				# debloquer le match (voir _apply_rock_wildcard) restent en place,
+				# comme les 4 Rocks d'un Diamond Rock ci-dessus -- jamais retirees.
+				var wildcard_rock_cells: Array = group.get("wildcard_rock_cells", [])
 				# "Récif vivant" (session 17) : un jeton aleatoire PARMI CEUX QUI
 				# VIENNENT DE SCORER echappe a la suppression et devient un rock
 				# a la place, plutot que de disparaitre normalement.
@@ -143,6 +184,8 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 					rock_replacements.append(skip_cell)
 				for cell in group_cells:
 					if cell == skip_cell:
+						continue
+					if wildcard_rock_cells.has(cell):
 						continue
 					cells_to_remove[cell] = true
 			# Diamond Rock "recolte" son centre : il est scorable (voir
@@ -165,6 +208,13 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 					var bottom_token: TokenData = grid[c][0] as TokenData
 					if bottom_token != null and bottom_token.is_scorable():
 						cells_to_remove[Vector2i(c, 0)] = true
+			# Special "Amplificateur" (session "Vague 2", revise) : usage
+			# unique, comme Hypercube -- se retire du jeu des qu'il a double
+			# le score d'un groupe accepte (pas un simple candidat rejete en
+			# doublon). Reutilise cells_to_remove : meme evenement REMOVE, meme
+			# animation que le reste du groupe.
+			for amp_cell in (group.get("amplificateur_cells", []) as Array):
+				cells_to_remove[amp_cell as Vector2i] = true
 		var removed_cells: Array[Vector2i] = []
 		for cell in cells_to_remove.keys():
 			removed_cells.append(cell as Vector2i)
@@ -319,13 +369,80 @@ func resolve(grid: Array, cols: int, rows: int, context: RunContext, holes: Dict
 	}
 
 
+## Special "Amplificateur" (session "Vague 2", revise) : cellules d'un
+## Amplificateur encore vivant sur la grille, adjacentes orthogonalement a au
+## moins une des cellules donnees. Vide si aucun. Dedupliqu -- une meme
+## cellule d'Amplificateur n'apparait qu'une fois meme si plusieurs cellules
+## du groupe la touchent.
+func _adjacent_amplificateurs(cells: Array, grid: Array, cols: int, rows: int) -> Array[Vector2i]:
+	var found: Array[Vector2i] = []
+	var offsets: Array[Vector2i] = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
+	for cell in cells:
+		var gc: Vector2i = cell as Vector2i
+		for offset in offsets:
+			var ac: Vector2i = Vector2i(gc.x + offset.x, gc.y + offset.y)
+			if ac.x < 0 or ac.x >= cols or ac.y < 0 or ac.y >= rows:
+				continue
+			var maybe_amp: TokenData = grid[ac.x][ac.y] as TokenData
+			if maybe_amp == null or maybe_amp.kind != TokenData.Kind.SPECIAL or maybe_amp.special_type != TokenData.SpecialType.AMPLIFICATEUR:
+				continue
+			if not found.has(ac):
+				found.append(ac)
+	return found
+
+
+## Sortilège "Pierre de Famille" (session "Vague 2", revise) : pour chaque
+## Rock de la grille, essaie chacune des 4 familles a tour de role -- mutation
+## TEMPORAIRE, juste le temps du vrai scan qui suit dans resolve() (voir
+## _revert_rock_wildcard) : le Rock reste un Rock apres coup (zero valeur
+## propre, jamais retire, voir cells_to_remove/wildcard_rock_cells plus haut),
+## il sert seulement a debloquer le match des AUTRES jetons du groupe. Appele
+## a chaque passe de cascade (pas seulement une fois), pour capter les
+## opportunites qui apparaissent apres une resolution/gravite. Retourne les
+## cellules mutees (Vector2i -> true) pour ce scan.
+func _apply_rock_wildcard(grid: Array, cols: int, rows: int, context: RunContext) -> Dictionary:
+	var rock_cells: Array[Vector2i] = []
+	for c in range(cols):
+		for r in range(rows):
+			var token: TokenData = grid[c][r] as TokenData
+			if token != null and token.kind == TokenData.Kind.ROCK:
+				rock_cells.append(Vector2i(c, r))
+
+	var wildcard_cells: Dictionary = {}
+	for cell in rock_cells:
+		var completed: bool = false
+		for family in range(GameRules.FAMILY_COUNT):
+			grid[cell.x][cell.y] = TokenData.make_base(family as TokenData.Family, 1)
+			var candidates: Array[Dictionary] = SheetMatcher.find_all(grid, cols, rows, context)
+			for group in candidates:
+				if group.get("match_rule") != &"family":
+					continue
+				if (group["cells"] as Array).has(cell):
+					completed = true
+					break
+			if completed:
+				wildcard_cells[cell] = true
+				break
+		if not completed:
+			grid[cell.x][cell.y] = TokenData.make_rock()
+	return wildcard_cells
+
+
+## Voir _apply_rock_wildcard : remet chaque cellule mutee en Rock une fois le
+## VRAI scan de la passe termine (candidates deja captures).
+func _revert_rock_wildcard(grid: Array, wildcard_cells: Dictionary) -> void:
+	for cell in wildcard_cells.keys():
+		var c: Vector2i = cell as Vector2i
+		grid[c.x][c.y] = TokenData.make_rock()
+
+
 ## Calcule le score d'un groupe.
 ## Toutes les formes (lignes comprises) : multiplicateur fixe defini sur le sheet.
 ## Cellules modifiees : chaque cellule concernee multiplie le total par son coef (HALF/BOOST/DOUBLE/TRIPLE).
 ## rule_mult : multiplicateur applique selon la rule du pattern (ex: "family" x2 via sortilège),
 ## voir RunContext.get_rule_multiplier — combine par produit si plusieurs sortilèges.
 ## sheet_level_multipliers : multiplicateur selon le niveau de la Partition qui a matche (level up).
-func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: RunContext) -> int:
+func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: RunContext, holes: Dictionary = {}) -> int:
 	var grid_modifiers: Dictionary = context.grid_modifiers
 	var sheet_level_multipliers: Dictionary = context.sheet_level_multipliers
 	var cascade_mult: float = pow(GameRules.CASCADE_MULTIPLIER_BASE, cascade_level)
@@ -386,6 +503,8 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 			scored_cells = group["cells"]
 
 		var diamond_grid_mult: float = _grid_modifier_multiplier(scored_cells, grid_modifiers)
+		if (group.get("amplificateur_cells", []) as Array).size() > 0:
+			diamond_grid_mult *= GameRules.AMPLIFICATEUR_MULT
 		var diamond_value_bonus_mult: float = _value_bonus_multiplier(scored_cells, grid, context)
 		var diamond_sum_bonus: Dictionary = _value_sum_bonus(group, scored_cells, grid, context)
 		var base_value: int = diamond_raw_value + (diamond_sum_bonus["amount"] as int)
@@ -409,6 +528,15 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		if token != null and token.is_scorable():
 			raw_value += _effective_token_value(token, context)
 
+	# "Skull Line 4" (session "Vague 3") : les 4 cellules sont des
+	# entity-skulls, jamais scorables (raw_value reste a 0 par la boucle
+	# ci-dessus) -- remplace par un tirage a palier, comme s'ils etaient une
+	# "recolte" au lieu de vrais jetons de base.
+	var skull_line_roll: int = -1
+	if sheet_name == &"skull_line":
+		skull_line_roll = _roll_tiered_value(GameRules.SKULL_LINE_VALUE_RATES, GameRules.SKULL_LINE_VALUES)
+		raw_value = skull_line_roll
+
 	var sum_bonus: Dictionary = _value_sum_bonus(group, group["cells"], grid, context)
 	var value_sum: int = raw_value + (sum_bonus["amount"] as int)
 	group["upgrade_candidates"] = _roll_upgrades(group["cells"], grid, context) + _roll_face_promotions(group["cells"], grid, context)
@@ -427,11 +555,22 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	elif sheet_name == &"royal_square":
 		legendary_roll = randi_range(GameRules.ROYAL_SQUARE_ROLL_MIN, GameRules.ROYAL_SQUARE_ROLL_MAX)
 		shape_mult = float(legendary_roll)
+	elif sheet_name == &"skull_line" or sheet_name == &"shadow_dance":
+		# Multi = nombre d'entity-skulls actuellement sur la grille (lecture
+		# live, meme principe que Mouche doree/Lost Corners) -- laisser des
+		# skulls s'accumuler au lieu de les eviter devient payant.
+		shape_mult = float(_count_skulls(grid))
+	elif sheet_name == &"black_hole":
+		# Multi = nombre de trous sur la grille -- meme principe, composer
+		# avec un fond marin charge plutot que le subir.
+		shape_mult = float(holes.size())
 
 	if partition_targeted:
 		shape_mult = 1.0
 
 	var grid_mult: float = _grid_modifier_multiplier(group["cells"], grid_modifiers)
+	if (group.get("amplificateur_cells", []) as Array).size() > 0:
+		grid_mult *= GameRules.AMPLIFICATEUR_MULT
 	var value_bonus_mult: float = _value_bonus_multiplier(group["cells"], grid, context)
 	var mult_contribs: Dictionary = _mult_contributions(group["cells"], grid, context, rule, sheet_name)
 	# cascade_mult exclu du breakdown affiche, meme raison que la branche diamond.
@@ -441,6 +580,10 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		(group["score_breakdown"] as Dictionary)["roll"] = legendary_roll
 		(group["score_breakdown"] as Dictionary)["roll_min"] = GameRules.ROYAL_SQUARE_ROLL_MIN
 		(group["score_breakdown"] as Dictionary)["roll_max"] = GameRules.ROYAL_SQUARE_ROLL_MAX
+	if skull_line_roll >= 0:
+		(group["score_breakdown"] as Dictionary)["roll"] = skull_line_roll
+		(group["score_breakdown"] as Dictionary)["roll_min"] = GameRules.SKULL_LINE_VALUES[0]
+		(group["score_breakdown"] as Dictionary)["roll_max"] = GameRules.SKULL_LINE_VALUES[GameRules.SKULL_LINE_VALUES.size() - 1]
 	return int(value_sum * shape_mult * cascade_mult * grid_mult * rule_mult * level_mult * global_mult * value_bonus_mult * scaling_mult * sheet_bonus_mult)
 
 
@@ -457,6 +600,31 @@ func _bottom_row_value_sum(grid: Array) -> int:
 		if token != null and token.is_scorable():
 			sum += token.value
 	return sum
+
+
+## Nombre d'entity-skulls actuellement sur la grille -- multiplicateur
+## dynamique de Skull Line 4/Shadow Dance (session "Vague 3").
+func _count_skulls(grid: Array) -> int:
+	var count: int = 0
+	for c in range(GameRules.COLS):
+		for r in range(GameRules.ROWS):
+			var token: TokenData = grid[c][r] as TokenData
+			if token != null and token.kind == TokenData.Kind.ENTITY:
+				count += 1
+	return count
+
+
+## Tirage a palier generique (meme principe que RouletteRewards.roll_tier) :
+## `rates` doit sommer a 1.0, `values[i]` est la valeur retournee pour le
+## palier i. Utilise par Skull Line 4.
+func _roll_tiered_value(rates: Array[float], values: Array[int]) -> int:
+	var roll: float = randf()
+	var cumulative: float = 0.0
+	for i in range(rates.size()):
+		cumulative += rates[i]
+		if roll < cumulative:
+			return values[i]
+	return values[values.size() - 1]
 
 
 ## Chaque cellule modifiee dans la liste multiplie le total par son coefficient

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SpellData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/spell_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/spells/effect_fenetre_longue.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"fenetre_longue"
+label = "FENÊTRE LONGUE"
+description = "Le Multiplicateur de roulette reste actif 5 tours au lieu de 3"
+trigger = &"on_round_start"
+price = 5
+rarity = 2
+effect_script = ExtResource("2_effect")

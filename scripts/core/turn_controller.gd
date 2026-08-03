@@ -19,6 +19,11 @@ signal last_breath_started()
 ## _trigger_second_wave. Meme role que last_breath_started, pour sa propre
 ## banniere/message dedie.
 signal second_wave_started()
+## Sortilège "Dernier dernier Souffle" (Va-tout, session "Vague 2") : emis
+## une fois le tirage all-in resolu, avec le score final APRES le tirage --
+## le visuel doit reveler ce moment explicitement (voir GameScene._on_va_
+## tout_resolved), meme raison que petard_scored/comete_scored.
+signal va_tout_resolved(final_score: int, won_gamble: bool)
 signal round_won(score: int, target: int)
 signal round_lost(score: int, target: int)
 ## Emis quand un explosif de la famille Petard/Bombe/Armageddon (session 25)
@@ -26,6 +31,19 @@ signal round_lost(score: int, target: int)
 ## normale (voir GridManager.tick_special_countdowns) — le visuel doit
 ## reveler ce score explicitement (voir GameScene._on_petard_scored).
 signal petard_scored(amount: int)
+## Emis quand le special "Comete" (session "Vague 2") score en traversant sa
+## diagonale -- meme raison que petard_scored, en dehors de la banniere de
+## resolution normale (instant a l'impact, voir GridManager.execute_special).
+signal comete_scored(amount: int)
+## Sortilège "Pile ou Face" (session "Vague 2") : le jeton qui vient d'etre
+## pose a ete mute en place (valeur ou kind) -- rien d'autre dans le jeu ne
+## mute le jeton dropped lui-meme pendant on_token_drop, donc une diff avant/
+## apres suffit a detecter le declenchement sans coupler TurnController a un
+## id de Sortilège precis. Le visuel doit reconstruire le sprite concerne
+## (voir GameScene._on_dropped_token_mutated) : sync_sprites/refresh ne
+## rafraichissent jamais le contenu d'un sprite deja cree, seulement sa
+## presence.
+signal dropped_token_mutated()
 ## Emis quand un special "mangeur/scoreur" (Cavalier, Frog, Liane) mange un
 ## jeton en se deplacant/grandissant — meme raison que petard_scored, en
 ## dehors de la banniere de resolution normale (voir tick_mobile_specials).
@@ -50,6 +68,12 @@ var _state: State = State.AWAITING_INPUT
 ## pour la manche en cours, pour ne jamais la redeclencher (voir _on_
 ## resolution_complete). Remis a faux a chaque nouveau Dernier Souffle.
 var _second_wave_triggered: bool = false
+
+## Sortilège "Dernier dernier Souffle" (Va-tout, session "Vague 2") : vrai
+## des que le tirage all-in a ete tente pour la manche en cours, pour ne
+## jamais le redeclencher (voir _on_resolution_complete). Remis a faux a
+## chaque nouveau Dernier Souffle, meme convention que _second_wave_triggered.
+var _vatout_triggered: bool = false
 
 ## Vrai pendant la 1ere des deux passes de resolution d'un tour normal (voir
 ## play_current_to) — resout un pattern deja complet AVANT que les mobiles/
@@ -233,7 +257,7 @@ func _resolve_turn() -> void:
 	# Special "Pétard à mèche" : decompte/detone AVANT resolve(), meme raison
 	# que MÈCHE COURTE ci-dessus — inconditionnel, ce n'est pas un malus de
 	# boss mais un outil achete par le joueur.
-	var petard_score: int = grid_manager.tick_special_countdowns()
+	var petard_score: int = grid_manager.tick_special_countdowns(_explosive_multipliers())
 	if petard_score > 0:
 		score_manager.add_score(petard_score)
 		petard_scored.emit(petard_score)
@@ -256,7 +280,11 @@ func _resolve_turn() -> void:
 ## jeton dans la meme colonne (voir play_current_to).
 func _drop_token(token: TokenData, col: int) -> void:
 	grid_manager.place_token(token, col, 0)
+	var pre_value: int = token.value
+	var pre_kind: TokenData.Kind = token.kind
 	token_dropped.emit(token, col, 0)
+	if token.value != pre_value or token.kind != pre_kind:
+		dropped_token_mutated.emit()
 
 	await drop_animated
 
@@ -265,7 +293,10 @@ func _drop_token(token: TokenData, col: int) -> void:
 	# play_special_from_inventory) -- ce jeton ne vient plus jamais du deck/
 	# stream (session 25).
 	if token.kind == TokenData.Kind.SPECIAL:
-		grid_manager.execute_special(token, col)
+		var special_score: int = grid_manager.execute_special(token, col)
+		if special_score > 0:
+			score_manager.add_score(special_score)
+			comete_scored.emit(special_score)
 		await special_effect_done
 
 
@@ -433,6 +464,27 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 			await timeline_done_ack
 			_trigger_second_wave()
 			return
+
+		# Sortilège "Dernier dernier Souffle" (Va-tout, session "Vague 2") :
+		# mise tout le score final de la manche sur un tirage, une seule fois
+		# (voir _vatout_triggered) -- APRES Souffle Obscur, pour parier sur le
+		# score reellement definitif. 20% double (peut transformer la defaite
+		# en victoire si ca depasse la cible), sinon le score tombe a 0.
+		if run_manager.has_spell(&"dernier_dernier_souffle") and not _vatout_triggered:
+			_vatout_triggered = true
+			var vatout_stake: int = score_manager.get_score()
+			var vatout_won: bool = randf() < GameRules.VA_TOUT_WIN_CHANCE
+			if vatout_won:
+				score_manager.add_score(vatout_stake)
+			else:
+				score_manager.subtract_score(vatout_stake)
+			va_tout_resolved.emit(score_manager.get_score(), vatout_won)
+			if score_manager.is_target_reached():
+				await timeline_done_ack
+				_state = State.ROUND_OVER
+				round_won.emit(score_manager.get_score(), score_manager.get_target())
+				return
+
 		await timeline_done_ack
 		_state = State.ROUND_OVER
 		round_lost.emit(score_manager.get_score(), score_manager.get_target())
@@ -515,16 +567,33 @@ func notify_timeline_done() -> void:
 	timeline_done_ack.emit()
 
 
+## Sortilèges Décuple Pétard/Quintuple Bombe/Triple Armageddon (session
+## "Vague 1") -- chacun boost le score d'un seul type d'explosif. Construit
+## ici (pas dans GridManager, qui reste pure logique de grille sans notion
+## de Sortilèges) et passe a tick_special_countdowns/detonate_remaining_
+## explosives.
+func _explosive_multipliers() -> Dictionary:
+	var mults: Dictionary = {}
+	if run_manager.has_spell(&"decuple_petard"):
+		mults[TokenData.SpecialType.PETARD_A_MECHE] = GameRules.DECUPLE_PETARD_MULT
+	if run_manager.has_spell(&"quintuple_bombe"):
+		mults[TokenData.SpecialType.BOMBE] = GameRules.QUINTUPLE_BOMBE_MULT
+	if run_manager.has_spell(&"triple_armageddon"):
+		mults[TokenData.SpecialType.ARMAGEDDON] = GameRules.TRIPLE_ARMAGEDDON_MULT
+	return mults
+
+
 func _trigger_last_breath() -> void:
 	_state = State.LAST_BREATH
 	_second_wave_triggered = false
+	_vatout_triggered = false
 	last_breath_started.emit()
 	grid_manager.explode_residues()
 	grid_manager.clear_remaining_mobile_specials()
 	# Toute la famille Petard/Bombe/Armageddon encore active explose aussi
 	# (decision verrouillee : "les jetons speciaux poses explosent" au
 	# Dernier Souffle), meme si son countdown n'est pas termine.
-	var petard_score: int = grid_manager.detonate_remaining_explosives()
+	var petard_score: int = grid_manager.detonate_remaining_explosives(_explosive_multipliers())
 	if petard_score > 0:
 		score_manager.add_score(petard_score)
 		petard_scored.emit(petard_score)

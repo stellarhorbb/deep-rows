@@ -526,9 +526,181 @@ static func find_primes(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
 	return _find_sequence_matches(grid, cols, rows, windows, &"prime")
 
 
+## Skull Line 4 (tiroir rare/signature, session "Vague 3") : 4+ entity-skulls
+## consecutifs sur un axe -- detecteur dedie (les entity-skulls ne sont
+## jamais scorables, donc jamais consideres par find_lines/_tokens_match).
+## Meme dedup que find_lines : sauter une cellule de depart si son
+## predecesseur sur l'axe prolonge deja la meme sequence.
+static func find_skull_line(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	var results: Array[Dictionary] = []
+	for axis_entry in AXES:
+		var dx: int = (axis_entry[0] as Vector2i).x
+		var dy: int = (axis_entry[0] as Vector2i).y
+		var dir_name: StringName = axis_entry[1]
+		for c in range(cols):
+			for r in range(rows):
+				var token: TokenData = grid[c][r] as TokenData
+				if token == null or token.kind != TokenData.Kind.ENTITY:
+					continue
+				var pc: int = c - dx
+				var pr: int = r - dy
+				if pc >= 0 and pc < cols and pr >= 0 and pr < rows:
+					var prev_t: TokenData = grid[pc][pr] as TokenData
+					if prev_t != null and prev_t.kind == TokenData.Kind.ENTITY:
+						continue
+				var line: Array[Vector2i] = [Vector2i(c, r)]
+				var nc: int = c + dx
+				var nr: int = r + dy
+				while nc >= 0 and nc < cols and nr >= 0 and nr < rows:
+					var nt: TokenData = grid[nc][nr] as TokenData
+					if nt == null or nt.kind != TokenData.Kind.ENTITY:
+						break
+					line.append(Vector2i(nc, nr))
+					nc += dx
+					nr += dy
+				if line.size() >= 4:
+					results.append({
+						"cells": line,
+						"match_rule": &"skull_line",
+						"shape": &"skull_line",
+						"direction": dir_name,
+					})
+	return results
+
+
+## Shadow Dance (tiroir rare/signature, session "Vague 3") : alterne 4
+## cellules X/Entity/X/Entity sur un axe (X = meme famille, n'importe quelle
+## valeur) -- accepte les deux lectures (X en premier ou Entity en premier),
+## la meme ligne physique lue depuis l'autre bout doit rester valide.
+static func find_shadow_dance(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	var results: Array[Dictionary] = []
+	for axis_entry in AXES:
+		var dx: int = (axis_entry[0] as Vector2i).x
+		var dy: int = (axis_entry[0] as Vector2i).y
+		var dir_name: StringName = axis_entry[1]
+		for c in range(cols):
+			for r in range(rows):
+				var cells: Array[Vector2i] = []
+				var tokens: Array[TokenData] = []
+				var in_bounds: bool = true
+				for i in range(4):
+					var cell: Vector2i = Vector2i(c + dx * i, r + dy * i)
+					if cell.x < 0 or cell.x >= cols or cell.y < 0 or cell.y >= rows:
+						in_bounds = false
+						break
+					var token: TokenData = grid[cell.x][cell.y] as TokenData
+					if token == null:
+						in_bounds = false
+						break
+					cells.append(cell)
+					tokens.append(token)
+				if not in_bounds:
+					continue
+				var pattern_x_first: bool = tokens[1].kind == TokenData.Kind.ENTITY and tokens[3].kind == TokenData.Kind.ENTITY \
+					and tokens[0].is_scorable() and tokens[2].is_scorable() and tokens[0].family == tokens[2].family
+				var pattern_entity_first: bool = tokens[0].kind == TokenData.Kind.ENTITY and tokens[2].kind == TokenData.Kind.ENTITY \
+					and tokens[1].is_scorable() and tokens[3].is_scorable() and tokens[1].family == tokens[3].family
+				if not pattern_x_first and not pattern_entity_first:
+					continue
+				results.append({
+					"cells": cells,
+					"match_rule": &"shadow_dance",
+					"shape": &"shadow_dance",
+					"direction": dir_name,
+				})
+	return results
+
+
+## Black Hole (tiroir rare/signature, session "Vague 3") : losange autour
+## d'un centre qui est un VRAI trou de la grille cabossee (pas juste une
+## case inoccupee) -- seul detecteur du jeu a avoir besoin de `holes`, voir
+## find_all/CascadeResolver.resolve. Les 4 bras scorent leur vraie valeur
+## (pas de "recolte" comme Diamond Rock, le centre n'est pas un jeton).
+static func find_black_hole(grid: Array, cols: int, rows: int, holes: Dictionary) -> Array[Dictionary]:
+	var results: Array[Dictionary] = []
+	for c in range(1, cols - 1):
+		for r in range(1, rows - 1):
+			var center: Vector2i = Vector2i(c, r)
+			if not holes.has(center):
+				continue
+			var top: TokenData = grid[c][r - 1] as TokenData
+			var bottom: TokenData = grid[c][r + 1] as TokenData
+			var left: TokenData = grid[c - 1][r] as TokenData
+			var right: TokenData = grid[c + 1][r] as TokenData
+			if top == null or bottom == null or left == null or right == null:
+				continue
+			if not (top.is_scorable() and bottom.is_scorable() and left.is_scorable() and right.is_scorable()):
+				continue
+			results.append({
+				"cells": [Vector2i(c, r - 1), Vector2i(c - 1, r), Vector2i(c + 1, r), Vector2i(c, r + 1)],
+				"match_rule": &"black_hole",
+				"shape": &"black_hole",
+				"direction": &"any",
+			})
+	return results
+
+
+## Wedding (tiroir rare/signature figures, session "Vague 2") : Roi +
+## Reine sur deux cases orthogonalement adjacentes -- detecteur dedie, pas
+## une forme generique (meme esprit que Diamond Rock). Ne double-compte pas
+## la meme paire (ne regarde que droite/bas depuis chaque cellule).
+static func find_wedding(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	var results: Array[Dictionary] = []
+	var directions: Array[Vector2i] = [Vector2i(1, 0), Vector2i(0, 1)]
+	var queen_value: int = GameRules.FACE_CARD_VALUES[2]  # Reine
+	var king_value: int = GameRules.FACE_CARD_VALUES[3]   # Roi
+	for c in range(cols):
+		for r in range(rows):
+			var token: TokenData = grid[c][r] as TokenData
+			if token == null or not token.is_scorable():
+				continue
+			if token.value != queen_value and token.value != king_value:
+				continue
+			for dir in directions:
+				var nc: int = c + dir.x
+				var nr: int = r + dir.y
+				if nc < 0 or nc >= cols or nr < 0 or nr >= rows:
+					continue
+				var neighbor: TokenData = grid[nc][nr] as TokenData
+				if neighbor == null or not neighbor.is_scorable():
+					continue
+				var pair_values: Array[int] = [token.value, neighbor.value]
+				pair_values.sort()
+				if pair_values != [queen_value, king_value]:
+					continue
+				results.append({
+					"cells": [Vector2i(c, r), Vector2i(nc, nr)],
+					"match_rule": &"faces",
+					"shape": &"wedding",
+					"direction": &"any",
+				})
+	return results
+
+
+## Royal Court (tiroir rare/signature figures, session "Vague 2") : meme
+## mecanique que Fibonacci/Nombres premiers (_find_sequence_matches),
+## fenetre fixe unique -- les 4 figures alignees dans l'ordre J-C-Q-K,
+## n'importe quel axe/sens (GameRules.FACE_CARD_VALUES est deja dans cet
+## ordre).
+static func find_royal_court(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	return _find_sequence_matches(grid, cols, rows, [GameRules.FACE_CARD_VALUES], &"royal_court")
+
+
+## 777/9999 (tiroir rare/signature, session "Vague 1") : meme mecanique que
+## Fibonacci/Nombres premiers (_find_sequence_matches), fenetre fixe unique
+## d'une valeur repetee plutot qu'une suite -- 3 jetons de valeur 7 (777) ou
+## 4 jetons de valeur 9 (9999), n'importe quel axe.
+static func find_jackpot_777(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	return _find_sequence_matches(grid, cols, rows, [GameRules.JACKPOT_777_SEQUENCE], &"jackpot_777")
+
+
+static func find_jackpot_9999(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	return _find_sequence_matches(grid, cols, rows, [GameRules.JACKPOT_9999_SEQUENCE], &"jackpot_9999")
+
+
 ## Trouve tous les groupes et filtre par les Sheets equipees.
 ## Un groupe passe si au moins un sheet matche : shape + rule + min_size + direction.
-static func find_all(grid: Array, cols: int, rows: int, context: RunContext) -> Array[Dictionary]:
+static func find_all(grid: Array, cols: int, rows: int, context: RunContext, holes: Dictionary = {}) -> Array[Dictionary]:
 	var all_groups: Array[Dictionary] = []
 	all_groups.append_array(find_lines(grid, cols, rows))
 	all_groups.append_array(find_squares(grid, cols, rows))
@@ -540,6 +712,13 @@ static func find_all(grid: Array, cols: int, rows: int, context: RunContext) -> 
 	all_groups.append_array(find_line_rainbow(grid, cols, rows))
 	all_groups.append_array(find_fibonacci(grid, cols, rows))
 	all_groups.append_array(find_primes(grid, cols, rows))
+	all_groups.append_array(find_jackpot_777(grid, cols, rows))
+	all_groups.append_array(find_jackpot_9999(grid, cols, rows))
+	all_groups.append_array(find_wedding(grid, cols, rows))
+	all_groups.append_array(find_royal_court(grid, cols, rows))
+	all_groups.append_array(find_skull_line(grid, cols, rows))
+	all_groups.append_array(find_shadow_dance(grid, cols, rows))
+	all_groups.append_array(find_black_hole(grid, cols, rows, holes))
 	all_groups.append_array(find_bottom_corners(grid, cols, rows))
 
 	# Legendaires en premier (session 20) : quand un sheet legendaire partage

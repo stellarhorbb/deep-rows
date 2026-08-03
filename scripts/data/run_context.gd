@@ -125,6 +125,13 @@ extends Resource
 # specials, pas par le pipeline de scoring (CascadeResolver).
 @export var mobiles_never_expire: bool = false
 
+# Sortilège "Pierre de Famille" (session "Vague 2") : vrai si equipe — un
+# Rock peut se convertir en jeton de base (mutation reelle sur la grille,
+# voir CascadeResolver._apply_rock_wildcard) pour completer un groupe rule
+# "family" qui matcherait sinon a l'identique. Simple flag, meme convention
+# que mobiles_never_expire ci-dessus.
+@export var rock_wildcard_family: bool = false
+
 # Malus de boss FAMILLE TERNIE / PARTITION TERNIE (voir BossMalusManager),
 # deux axes symetriques de la meme formule value_sum * multi :
 # - score_capped_family (TokenData.Family, -1 = aucune) : chaque jeton de

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SpellData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/spell_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/spells/effect_dernier_dernier_souffle.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"dernier_dernier_souffle"
+label = "DERNIER DERNIER SOUFFLE"
+description = "Au Dernier Souffle, mise tout le score de la manche sur un tirage : 20% double, sinon c'est perdu"
+trigger = &"on_round_start"
+price = 8
+rarity = 4
+effect_script = ExtResource("2_effect")

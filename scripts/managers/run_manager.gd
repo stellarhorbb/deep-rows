@@ -288,6 +288,7 @@ func build_context() -> RunContext:
 	ctx.score_capped_family = _score_capped_family
 	ctx.score_capped_sheet_name = _score_capped_sheet_name
 	ctx.mobiles_never_expire = has_spell(&"dresseur_fou")
+	ctx.rock_wildcard_family = has_spell(&"pierre_de_famille")
 	_active_context = ctx
 	return ctx
 
@@ -501,6 +502,48 @@ func add_pair_score_bonus(bonus: int, source: StringName = &"") -> void:
 ## entre sortilèges.
 func add_top_row_score_bonus(bonus: int, source: StringName = &"") -> void:
 	_top_row_score_bonus_contributions[source] = bonus
+
+
+## Sortilège "Miroir" (session "Vague 3") : duplique la contribution de
+## `source_id` sous `target_id` (l'id de Miroir), sur tous les canaux
+## generiques de RunContext ci-dessus. Ne fait RIEN pour les Sortilèges
+## "passifs" verifies directement par has_spell() ailleurs dans le code
+## (Bon départ, Favoritisme, Pile ou Face... — une bonne partie du
+## catalogue "Vague 1/2/3"), qui n'ecrivent dans aucun de ces canaux —
+## limitation connue, pas un bug : un vrai systeme generique demanderait de
+## refactorer chaque effect_*.gd pour parametrer son propre id plutot que de
+## le coder en dur.
+func mirror_spell_contribution(source_id: StringName, target_id: StringName) -> void:
+	for rule in _rule_multiplier_contributions.keys():
+		var inner: Dictionary = _rule_multiplier_contributions[rule] as Dictionary
+		if inner.has(source_id):
+			set_rule_multiplier(rule as StringName, inner[source_id] as float, target_id)
+	for value in _value_bonus_multiplier_contributions.keys():
+		var inner_v: Dictionary = _value_bonus_multiplier_contributions[value] as Dictionary
+		if inner_v.has(source_id):
+			add_value_bonus_multiplier(value as int, inner_v[source_id] as float, target_id)
+	for value in _retrigger_value_contributions.keys():
+		var inner_r: Dictionary = _retrigger_value_contributions[value] as Dictionary
+		if inner_r.has(source_id):
+			add_retrigger_value(value as int, target_id)
+	for family in _family_score_bonus_contributions.keys():
+		var inner_f: Dictionary = _family_score_bonus_contributions[family] as Dictionary
+		if inner_f.has(source_id):
+			add_family_score_bonus(family as TokenData.Family, inner_f[source_id] as int, target_id)
+	for sheet_name in _sheet_multiplier_bonus_contributions.keys():
+		var inner_s: Dictionary = _sheet_multiplier_bonus_contributions[sheet_name] as Dictionary
+		if inner_s.has(source_id):
+			add_sheet_multiplier_bonus(sheet_name as StringName, inner_s[source_id] as float, target_id)
+	if _global_multiplier_contributions.has(source_id):
+		set_global_multiplier(_global_multiplier_contributions[source_id] as float, target_id)
+	if _pair_score_bonus_contributions.has(source_id):
+		add_pair_score_bonus(_pair_score_bonus_contributions[source_id] as int, target_id)
+	if _top_row_score_bonus_contributions.has(source_id):
+		add_top_row_score_bonus(_top_row_score_bonus_contributions[source_id] as int, target_id)
+	if _scaling_mult_bonuses.has(source_id):
+		set_scaling_mult_bonus(target_id, _scaling_mult_bonuses[source_id] as float)
+	if _flat_score_bonuses.has(source_id):
+		set_flat_score_bonus(target_id, _flat_score_bonuses[source_id] as int)
 
 
 ## Ajoute un bonus de slots de hold pour la manche (ex: "Bénédiction", +1).
@@ -804,6 +847,24 @@ func equip_spell(spell: SpellData) -> bool:
 	return true
 
 
+## Reordonne deux slots equipes (session "Vague 3", reordonnancement pour
+## Miroir) -- purement cosmetique pour tout le reste du catalogue (le score
+## reste order-independent, voir Décisions tranchées), mais change ce que
+## Miroir copie puisqu'il lit toujours son voisin de gauche.
+func swap_equipped_spells(index_a: int, index_b: int) -> bool:
+	if index_a < 0 or index_a >= _equipped_spells.size():
+		return false
+	if index_b < 0 or index_b >= _equipped_spells.size():
+		return false
+	if index_a == index_b:
+		return false
+	var tmp: SpellData = _equipped_spells[index_a]
+	_equipped_spells[index_a] = _equipped_spells[index_b]
+	_equipped_spells[index_b] = tmp
+	spells_changed.emit(_equipped_spells)
+	return true
+
+
 ## Retire un Sortilège equipe (vente). Retourne false s'il n'etait pas equipe.
 ## Contrairement aux Partitions, prend effet immediatement : SpellManager lit
 ## la liste equipee en direct a chaque dispatch, pas de snapshot de manche.
@@ -925,7 +986,11 @@ func fuse_buttons(index_a: int, index_b: int) -> bool:
 
 	var token_a: TokenData = _button_pool[index_a]
 	var token_b: TokenData = _button_pool[index_b]
-	var result_family: TokenData.Family = token_a.family if randi() % 2 == 0 else token_b.family
+	var result_family: TokenData.Family
+	if has_spell(&"favoritisme"):
+		result_family = token_a.family if token_a.value >= token_b.value else token_b.family
+	else:
+		result_family = token_a.family if randi() % 2 == 0 else token_b.family
 	var result_value: int = min(token_a.value + token_b.value, GameRules.MAX_BUTTON_VALUE)
 
 	# Retirer le plus grand index d'abord pour ne pas decaler l'autre.

@@ -9,7 +9,7 @@ enum Family { BATONS, COUPES, EPEES, DENIERS }
 ## ARMAGEDDON (session 25) ajoute a la fin — jamais inserer un SpecialType au
 ## milieu, les .tres de la famille explosifs/Des a coudre referencent ces
 ## index par entier brut (special_type = N), un decalage romprait tout.
-enum SpecialType { NONE, FANTOME, BOMBE, MAREE, ENCLUME, PETARD_A_MECHE, CAVALIER, FROG, LIANE, CROW, UNDERGROUND, HYPERCUBE, ARMAGEDDON }
+enum SpecialType { NONE, FANTOME, BOMBE, MAREE, ENCLUME, PETARD_A_MECHE, CAVALIER, FROG, LIANE, CROW, UNDERGROUND, HYPERCUBE, ARMAGEDDON, CRISTAL, DIAMANT, COMETE, AMPLIFICATEUR, SIPHON }
 
 var kind: Kind = Kind.BASE
 var family: Family = Family.BATONS
@@ -35,6 +35,13 @@ var countdown: int = -1
 ## du PROCHAIN jeton joue, jamais des le tour ou il est pose (les deux
 ## fonctions de tick tournent juste apres le drop, dans le meme appel).
 var just_placed: bool = false
+
+## Vrai pour un jeton de base cree par Cristal/Diamant (conversion d'un Rock
+## "pour la manche", voir SpecialEffects.execute_cristal_diamant) — s'il ne
+## score jamais avant la fin de la manche, il ne persiste pas a la manche
+## suivante (voir GridManager.get_top_base_tokens) : redevient un Rock,
+## comme s'il n'avait jamais ete converti.
+var temporary: bool = false
 
 
 static func make_base(p_family: Family, p_value: int) -> TokenData:
@@ -106,4 +113,9 @@ static func special_type_label(t: SpecialType) -> String:
 		SpecialType.UNDERGROUND:    return "UNDERGROUND"
 		SpecialType.HYPERCUBE:      return "HYPERCUBE"
 		SpecialType.ARMAGEDDON:     return "ARMAGEDDON"
+		SpecialType.CRISTAL:        return "CRISTAL"
+		SpecialType.DIAMANT:        return "DIAMANT"
+		SpecialType.COMETE:         return "COMÈTE"
+		SpecialType.AMPLIFICATEUR:  return "AMPLIFICATEUR"
+		SpecialType.SIPHON:         return "SIPHON"
 		_:                          return "?"

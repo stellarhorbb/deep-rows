@@ -124,8 +124,9 @@ func place_token(token: TokenData, col: int, _row: int) -> void:
 
 ## Execute l'effet du special APRES l'animation de chute.
 ## Appele par le TurnController une fois le drop anime.
-func execute_special(token: TokenData, col: int) -> void:
+func execute_special(token: TokenData, col: int) -> int:
 	var result: Dictionary = {}
+	var score: int = 0
 	match token.special_type:
 		TokenData.SpecialType.FANTOME:
 			SpecialEffects.execute_fantome(_grid, col, _rows, _holes)
@@ -134,6 +135,15 @@ func execute_special(token: TokenData, col: int) -> void:
 			SpecialEffects.execute_maree(_grid, col, landing_row, _cols, _holes)
 		TokenData.SpecialType.ENCLUME:
 			SpecialEffects.execute_enclume(_grid, col, _rows, _holes)
+		TokenData.SpecialType.CRISTAL:
+			var cristal_row: int = column_height(col)
+			SpecialEffects.execute_cristal_diamant(_grid, col, cristal_row, _cols, _rows, GameRules.CRISTAL_VALUE, _holes)
+		TokenData.SpecialType.DIAMANT:
+			var diamant_row: int = column_height(col)
+			SpecialEffects.execute_cristal_diamant(_grid, col, diamant_row, _cols, _rows, GameRules.DIAMANT_VALUE, _holes)
+		TokenData.SpecialType.COMETE:
+			var comete_row: int = column_height(col)
+			score = SpecialEffects.execute_comete(_grid, col, comete_row, _cols, _rows, _holes)
 		# A partir d'ici : speciaux qui PERSISTENT sur la grille (contrairement
 		# a Fantome/Maree/Enclume qui rearrangent puis disparaissent) —
 		# se placent eux-memes au sommet de la colonne plutot que d'executer un
@@ -159,7 +169,12 @@ func execute_special(token: TokenData, col: int) -> void:
 			_place_persistent_special(token, col)
 		TokenData.SpecialType.HYPERCUBE:
 			_place_persistent_special(token, col)
+		TokenData.SpecialType.AMPLIFICATEUR:
+			_place_persistent_special(token, col)
+		TokenData.SpecialType.SIPHON:
+			_place_persistent_special(token, col, GameRules.SIPHON_MAX_EATS)
 	special_executed.emit(token.special_type, col, 0, result)
+	return score
 
 
 ## Place un special "pose" au sommet de la colonne, avec un countdown initial
@@ -260,33 +275,58 @@ func _scatter_holes(count: int) -> void:
 ## dans le deck possede plutot que d'etre re-pose au hasard la manche
 ## suivante. Colonne sans aucune case occupee -> null. Appele juste avant
 ## que la grille de la manche ne soit remplacee (voir GameScene._on_round_won).
+## Layout fixe : COLS * GameRules.CARRYOVER_MAX_DEPTH, index = col *
+## CARRYOVER_MAX_DEPTH + k (k=0 la case la plus haute, k=1 la suivante en
+## dessous). Le slot k+1 n'est rempli que si le slot k l'est deja -- des
+## qu'un Rock/Skull/Special/Residue est rencontre (case occupee mais pas
+## BASE), le scan de la colonne s'arrete completement, meme pour les slots
+## suivants. Toujours calcule jusqu'a CARRYOVER_MAX_DEPTH -- c'est
+## GameScene._on_round_won qui decide, selon le Sortilège "Deux étages", de
+## garder ou d'effacer les slots k>=1 avant stockage (voir GameRules.
+## CARRYOVER_MAX_DEPTH pour pourquoi le layout reste fixe).
 func get_top_base_tokens() -> Array[TokenData]:
+	var depth: int = GameRules.CARRYOVER_MAX_DEPTH
 	var result: Array[TokenData] = []
-	result.resize(_cols)
+	result.resize(_cols * depth)
 	for c in range(_cols):
-		result[c] = null
+		var slot: int = 0
 		for r in range(_rows - 1, -1, -1):
+			if slot >= depth:
+				break
 			var token: TokenData = _grid[c][r]
 			if token == null:
 				continue
-			if token.kind == TokenData.Kind.BASE:
-				result[c] = token
-			break
+			if token.kind != TokenData.Kind.BASE or token.temporary:
+				break
+			result[c * depth + slot] = token
+			slot += 1
 	return result
 
 
-## Meme regle que get_top_base_tokens mais pour une seule colonne, retourne
-## la row plutot que le jeton -- utilise par l'animation d'aspiration
-## (GameScene._on_round_won) pour savoir d'ou faire partir le sprite.
-## -1 si rien ne persiste pour cette colonne (vide ou bloquee par un
-## Rock/Skull/Special en haut).
-func get_top_base_token_row(col: int) -> int:
+## Meme regle que get_top_base_tokens, mais retourne les rows (pas les
+## jetons) pour une seule colonne -- utilise par l'animation d'aspiration
+## (GameScene._play_carryover_pickup) pour savoir d'ou faire partir chaque
+## sprite. Taille CARRYOVER_MAX_DEPTH, -1 pour un slot qui ne persiste rien
+## (vide, bloque par un Rock/Skull/Special, ou au-dela de la profondeur
+## reellement occupee).
+func get_top_base_token_rows(col: int) -> Array[int]:
+	var depth: int = GameRules.CARRYOVER_MAX_DEPTH
+	var result: Array[int] = []
+	result.resize(depth)
+	for k in range(depth):
+		result[k] = -1
+	var slot: int = 0
 	for r in range(_rows - 1, -1, -1):
+		if slot >= depth:
+			break
 		var token: TokenData = _grid[col][r]
 		if token == null:
 			continue
-		return r if token.kind == TokenData.Kind.BASE else -1
-	return -1
+		if token.kind != TokenData.Kind.BASE or token.temporary:
+			break
+		result[slot] = r
+		slot += 1
+	return result
 
 
 func get_holes() -> Dictionary:
@@ -486,7 +526,12 @@ func _explosive_offsets(special_type: TokenData.SpecialType) -> Array[Vector2i]:
 ## Contrairement a tick_entity_countdowns (gate par le malus de boss MÈCHE
 ## COURTE), appele inconditionnellement a chaque tour — voir
 ## TurnController.play_current_to. Retourne le score total gagne.
-func tick_special_countdowns() -> int:
+## `multiplier_by_type` (SpecialType -> float, defaut 1.0 si absent) : les
+## Sortilèges Décuple Pétard/Quintuple Bombe/Triple Armageddon (session
+## "Vague 1") multiplient le score d'un seul type d'explosif chacun -- fourni
+## par TurnController, qui seul a acces a RunManager.has_spell (GridManager
+## reste pure logique de grille, sans notion de Sortilèges).
+func tick_special_countdowns(multiplier_by_type: Dictionary = {}) -> int:
 	var to_detonate: Array[Vector2i] = []
 	for c in range(_cols):
 		for r in range(_rows):
@@ -504,7 +549,8 @@ func tick_special_countdowns() -> int:
 	var total_score: int = 0
 	for cell in to_detonate:
 		var special_type: TokenData.SpecialType = (_grid[cell.x][cell.y] as TokenData).special_type
-		total_score += _detonate_explosive(cell, _explosive_offsets(special_type))
+		var mult: float = multiplier_by_type.get(special_type, 1.0)
+		total_score += int(_detonate_explosive(cell, _explosive_offsets(special_type)) * mult)
 	if to_detonate.size() > 0:
 		petard_detonated.emit()
 	return total_score
@@ -593,6 +639,19 @@ func tick_mobile_specials() -> int:
 					_grid[cell.x][cell.y] = null
 			TokenData.SpecialType.UNDERGROUND:
 				SpecialEffects.dig_underground(_grid, cell.x, cell.y, _rows, _holes, never_expire)
+			TokenData.SpecialType.SIPHON:
+				var siphon_result: Dictionary = SpecialEffects.siphon_eat(_grid, cell.x, cell.y, _rows)
+				total_score += siphon_result["score"] as int
+				var eaten: int = siphon_result["eaten"] as int
+				if eaten == 0:
+					# Plus rien a manger au-dessus/en dessous -- colonne "vide"
+					# autour de lui, il disparait meme si son plafond de
+					# bouchees n'est pas atteint.
+					_grid[cell.x][cell.y] = null
+				elif not never_expire:
+					token.countdown -= eaten
+					if token.countdown <= 0:
+						_grid[cell.x][cell.y] = null
 
 	if cells.size() > 0:
 		mobile_specials_ticked.emit()
@@ -603,8 +662,8 @@ func tick_mobile_specials() -> int:
 ## voir CLAUDE.md) — toute la famille Petard/Bombe/Armageddon encore active
 ## detone immediatement, countdown ou pas, en miroir de explode_residues pour
 ## les Rocks/Residus (voir TurnController._trigger_last_breath). Retourne le
-## score gagne.
-func detonate_remaining_explosives() -> int:
+## score gagne. `multiplier_by_type` : voir tick_special_countdowns.
+func detonate_remaining_explosives(multiplier_by_type: Dictionary = {}) -> int:
 	var to_detonate: Array[Vector2i] = []
 	for c in range(_cols):
 		for r in range(_rows):
@@ -614,7 +673,8 @@ func detonate_remaining_explosives() -> int:
 	var total_score: int = 0
 	for cell in to_detonate:
 		var special_type: TokenData.SpecialType = (_grid[cell.x][cell.y] as TokenData).special_type
-		total_score += _detonate_explosive(cell, _explosive_offsets(special_type))
+		var mult: float = multiplier_by_type.get(special_type, 1.0)
+		total_score += int(_detonate_explosive(cell, _explosive_offsets(special_type)) * mult)
 	if to_detonate.size() > 0:
 		petard_detonated.emit()
 	return total_score

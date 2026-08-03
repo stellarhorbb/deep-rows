@@ -4,6 +4,15 @@ class_name GameRules
 const COLS: int = 7
 const ROWS: int = 7
 
+## Profondeur maximale de la persistance entre manches (voir
+## GridManager.get_top_base_tokens) -- 1 par defaut, 2 avec le Sortilège
+## "Deux étages". Layout fixe (toujours COLS * CARRYOVER_MAX_DEPTH, meme si
+## le Sortilège n'est pas equipe) pour que l'encodage/decodage entre la fin
+## d'une manche (_on_round_won) et le debut de la suivante (_play_carryover_
+## intro) ne desynchronise jamais si le Sortilège est achete/vendu entre les
+## deux (au shop).
+const CARRYOVER_MAX_DEPTH: int = 2
+
 # Patterns — taille minimum
 const MIN_MATCH_SIZE: int = 3
 
@@ -48,10 +57,23 @@ const PETARD_A_MECHE_START_COUNTDOWN: int = 3  # 2 cases (gauche/droite), Uncomm
 const BOMBE_START_COUNTDOWN: int = 5           # 4 cases (haut/bas/gauche/droite), Rare
 const ARMAGEDDON_START_COUNTDOWN: int = 8      # 8 cases (carre 3x3 autour), Epic
 
+## Multiplicateurs de la famille "Décuple Pétard/Quintuple Bombe/Triple
+## Armageddon" (session "Vague 1") -- chaque Sortilège ne boost que le score
+## d'un seul type d'explosif, voir GridManager.tick_special_countdowns.
+const DECUPLE_PETARD_MULT: float = 10.0
+const QUINTUPLE_BOMBE_MULT: float = 5.0
+const TRIPLE_ARMAGEDDON_MULT: float = 3.0
+
 # Speciaux mobiles (session 22) — nombre de deplacements/croissances avant
 # disparition (voir GridManager.tick_mobile_specials).
 const CAVALIER_MOVES: int = 3
 const FROG_MOVES: int = 5
+
+## Siphon (session "Vague 3") : plafond fixe de bouchees (cases mangees
+## au-dessus/en-dessous), capture une fois a la pose -- empeche de le
+## nourrir indefiniment en re-droppant dans sa colonne. Voir SpecialEffects.
+## siphon_eat / GridManager.tick_mobile_specials.
+const SIPHON_MAX_EATS: int = 5
 const LIANE_GROWTH_TICKS: int = 3
 const CROW_IDLE_TICKS: int = 1
 
@@ -201,6 +223,13 @@ const MODIFIER_BOOST_MULT: float = 1.5
 const MODIFIER_DOUBLE_MULT: float = 2.0
 const MODIFIER_TRIPLE_MULT: float = 3.0
 
+## Special "Amplificateur" (session "Vague 2", revise) : double le score d'un
+## groupe qui touche une de ses 4 cases orthogonales -- reactif comme
+## Hypercube, pas un modifier de cellule plante a la pose (voir
+## CascadeResolver._adjacent_amplificateurs). Usage unique, se retire du jeu
+## des qu'il declenche.
+const AMPLIFICATEUR_MULT: float = 2.0
+
 # Modifiers exclusifs aux cases mystere (effet MULTI, voir MysteryCellEffects) —
 # jamais poses par un Sortilège, paliers au-dessus de MODIFIER_TRIPLE pour garder
 # un vrai "wow" propre a la surprise.
@@ -292,6 +321,16 @@ const ROULETTE_MULTI_VALUES: Array[float] = [1.2, 3.0, 10.0]  # index = palier
 ## c'est trop chaud a caler") : trop dur a timer precisement sur un coup unique.
 const ROULETTE_MULTI_DROPS: int = 3
 
+## Fenetre etendue (Sortilège "Fenêtre Longue") -- remplace ROULETTE_MULTI_DROPS
+## quand equipe, pour laisser plus de temps a un Multiplicateur d'etre
+## reellement rentabilise.
+const ROULETTE_MULTI_DROPS_EXTENDED: int = 5
+
+## Jauge de depart (Sortilège "Bon départ") -- la manche ne repart plus de 0,
+## economise environ 2-3 drops avant le premier declenchement possible. Voir
+## RouletteManager.bind_round.
+const ROULETTE_HEAD_START_GAUGE: int = 10
+
 ## Boost (session 25, remplace Frog dans le pool -- voir docs/gdd/manche/
 ## roulette-casino.md#ce-qui-a-été-écarté) : augmente la valeur d'UN jeton de
 ## base pris au hasard sur la grille, jamais retire/deplace donc zero risque
@@ -337,6 +376,14 @@ const MAXIMA_MIN_VALUE: int = 8
 const PRIME_SEQUENCE: Array[int] = [2, 3, 5, 7, 11]
 const PRIME_MIN_WINDOW: int = 3
 
+## Tiroir rare/signature (session 14/19, "Vague 1") — meme mecanique que
+## FIBONACCI_SEQUENCE/PRIME_SEQUENCE (SheetMatcher._find_sequence_matches),
+## mais une fenetre fixe unique de valeur repetee plutot qu'une suite. 777
+## demande 3 Fusions vers 7, 9999 en demande 4 vers 9 (proche du plafond
+## MAX_BUTTON_VALUE = 10) — signature de fin de run.
+const JACKPOT_777_SEQUENCE: Array[int] = [7, 7, 7]
+const JACKPOT_9999_SEQUENCE: Array[int] = [9, 9, 9, 9]
+
 ## Roll casino ajoute a la valeur du centre d'un Diamond Rock (session 15) —
 ## avec seulement DECK_ROCK_COUNT rocks dans tout le deck, ce pattern ne se
 ## declenche quasiment qu'une fois par run : le roll garantit un plancher
@@ -369,6 +416,17 @@ const LEGENDARY_SHEET_CHANCE: float = 0.03
 const ROYAL_SQUARE_ROLL_MIN: int = 1
 const ROYAL_SQUARE_ROLL_MAX: int = 12
 
+## Skull Line 4 (tiroir rare/signature, session "Vague 3") : les 4 cellules
+## sont des entity-skulls, sans valeur reelle -- tirage a palier (meme
+## principe que ROULETTE_RARITY_RATES/MYSTERY_RARITY_RATES) plutot qu'une
+## plage lineaire, pour un vrai coup de jackpot plutot qu'un chiffre plat.
+## 120 calcule contre ROULETTE_BOOST_VALUES (ratio x3/x3.3) plutot qu'a
+## l'instinct — verifie au jugement du user contre un scenario reel
+## (4 skulls du pattern + 3 autres sur la grille = x7, donc jusqu'a 840 sur
+## le palier legendaire, reste sous la cible manche 20 ~3000).
+const SKULL_LINE_VALUE_RATES: Array[float] = [0.55, 0.40, 0.05]
+const SKULL_LINE_VALUES: Array[int] = [12, 36, 120]
+
 ## Last Trick (Losange famille) : le centre (jamais requis par le match, voir
 ## SheetMatcher.find_diamonds) se transforme en jeton de cette valeur, AJOUTE
 ## DEFINITIVEMENT au pool possede (voir RunManager.add_button, appele par
@@ -382,6 +440,11 @@ const ROYAL_SQUARE_ROLL_MAX: int = 12
 ## chaque fois est too much).
 const LAST_TRICK_VALUE: int = 9
 const LAST_TRICK_TRIGGER_CHANCE: float = 0.25
+
+## Sortilège "Dernier dernier Souffle" (Va-tout, session "Vague 2") : au
+## Dernier Souffle, une fois le score final connu, tirage all-in sur tout le
+## score de la manche. Voir TurnController._on_resolution_complete.
+const VA_TOUT_WIN_CHANCE: float = 0.2
 
 ## Poids de tirage par rarete au shop (unitaires + packs), par item — plus il
 ## y a d'items dans un palier, plus ce palier occupe de place au total. Utilise
@@ -440,6 +503,13 @@ const DECK_BASE_COUNT: int = (
 ## juste a amplifier le score une fois un match resolu. Sans plafond elle
 ## scale sans limite au fil des fusions.
 const MAX_BUTTON_VALUE: int = 10
+
+## Valeur du jeton cree par Cristal/Diamant en convertissant un Rock (voir
+## SpecialEffects.execute_cristal_diamant) -- 9 et pas MAX_BUTTON_VALUE (10),
+## meme logique que Last Trick : un plafond volontairement sous le vrai max
+## merite par la Fusion.
+const CRISTAL_VALUE: int = 1
+const DIAMANT_VALUE: int = 9
 
 ## Chance qu'un bouton achete au shop (unitaire ou pack, voir ShopManager.
 ## _random_button) sorte directement a MAX_BUTTON_VALUE au lieu du tirage

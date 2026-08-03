@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SpecialItem" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_item.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+label = "AMPLIFICATEUR"
+description = "Met en valeur les 4 jetons qu'il touche : double le score d'une Partition qui se résout en touchant une de ces cases."
+price = 2
+rarity = 1
+special_type = 16

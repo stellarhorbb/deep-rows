@@ -15,6 +15,7 @@ extends Control
 @export var tilt_flash_color: Color = Color("f0e6c8")
 @export var tilt_duration: float = 0.7
 @export var tilt_angle_max: float = 0.3  # radians, ~17 degrees
+@export var swap_highlight_color: Color = Color("f0e6c8")
 
 var run_manager: RunManager = null
 
@@ -22,6 +23,11 @@ var _font: Font = null
 var _sell_buttons: Array[Button] = []
 var _flash_intensity: Dictionary = {}  # int (slot index) -> float 0..1
 var _tilt_angle: Dictionary = {}  # int (slot index) -> float (radians)
+
+## Reordonnancement (session "Vague 3", pour Miroir) : premier slot clique en
+## attente d'un second clic pour l'echanger. -1 = rien de selectionne. Voir
+## _gui_input/RunManager.swap_equipped_spells.
+var _selected_swap_index: int = -1
 
 
 func _ready() -> void:
@@ -93,6 +99,8 @@ func _draw() -> void:
 		var flash: float = _flash_intensity.get(i, 0.0) as float
 		if flash > 0.0:
 			bg = bg.lerp(tilt_flash_color, flash)
+		if i == _selected_swap_index:
+			bg = bg.lerp(swap_highlight_color, 0.6)
 
 		# Rotation de tilt (voir tilt_spell) : la carte penche puis revient a
 		# plat, en plus du flash de couleur — dessine en coordonnees locales
@@ -130,6 +138,9 @@ func _update_sell_button(i: int, x_pos: float, y_pos: float, is_filled: bool, sp
 
 
 func _on_spells_changed(_spells: Array[SpellData]) -> void:
+	# Une vente pendant qu'un slot est selectionne pour le swap decalerait
+	# les index -- plus sur de tout desselectionner.
+	_selected_swap_index = -1
 	queue_redraw()
 
 
@@ -189,6 +200,55 @@ func tilt_spell(spell_id: StringName) -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		tooltip_text = _tooltip_for_position(event.position)
+	elif event is InputEventMouseButton:
+		var mb: InputEventMouseButton = event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+			_on_slot_clicked(mb.position)
+
+
+## Reordonnancement au clic (session "Vague 3") : premier clic sur un slot
+## rempli le selectionne (surbrillance), un second clic sur un AUTRE slot
+## rempli echange les deux -- re-cliquer le meme slot annule la selection.
+## Volontairement en deux temps plutot qu'un drag-and-drop : le swap est une
+## action sans risque (contrairement a la vente), pas besoin de la proteger
+## comme le clic-vente d'avant (voir _create_sell_buttons).
+func _on_slot_clicked(pos: Vector2) -> void:
+	if run_manager == null:
+		return
+	var index: int = _slot_index_at_position(pos)
+	if index == -1:
+		return
+	if _selected_swap_index == -1:
+		_selected_swap_index = index
+	elif _selected_swap_index == index:
+		_selected_swap_index = -1
+	else:
+		run_manager.swap_equipped_spells(_selected_swap_index, index)
+		_selected_swap_index = -1
+	queue_redraw()
+
+
+## Meme layout que _spell_at_position, mais retourne l'index du slot (utilise
+## par _on_slot_clicked) -- -1 si hors zone ou slot vide.
+func _slot_index_at_position(pos: Vector2) -> int:
+	if run_manager == null:
+		return -1
+	var spells: Array[SpellData] = run_manager.get_equipped_spells()
+
+	var y_offset: float = header_font_size + header_gap
+	if pos.y < y_offset or pos.y > y_offset + slot_height:
+		return -1
+
+	var max_slots: int = run_manager.get_spell_slot_count()
+	var total_width: float = max_slots * slot_width + (max_slots - 1) * horizontal_gap
+	var start_x: float = (size.x - total_width) * 0.5
+
+	for i in range(max_slots):
+		var x: float = start_x + i * (slot_width + horizontal_gap)
+		if pos.x >= x and pos.x < x + slot_width:
+			return i if i < spells.size() else -1
+
+	return -1
 
 
 func _tooltip_for_position(pos: Vector2) -> String:

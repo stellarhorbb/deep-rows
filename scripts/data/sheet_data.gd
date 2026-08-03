@@ -10,7 +10,7 @@ extends Resource
 ## fois pose, meme si sheet_name ou label changent.
 @export var unlock_id: String = ""
 @export var shape: StringName = &""       # &"line" | &"square" | &"diamond" | &"plus" | &"cross" | &"ring" | &"t" | &"corners"
-@export var rule: StringName = &""        # &"family" | &"value" | &"suite" | &"rock" | &"rainbow" | &"fibonacci" | &"minima" | &"maxima" | &"prime"
+@export var rule: StringName = &""        # &"family" | &"value" | &"suite" | &"rock" | &"rainbow" | &"fibonacci" | &"minima" | &"maxima" | &"prime" | &"jackpot_777" | &"jackpot_9999" | &"faces" | &"royal_court"
 @export var min_size: int = 3             # 3 pour lignes, 4 pour carres (2x2 = 4 cells)
 @export var direction: StringName = &"any"  # &"horizontal" | &"diagonal" | &"any" (jamais &"vertical")
 @export var score_multiplier: float = 1.0   # Multiplicateur applique au score du groupe
@@ -61,6 +61,10 @@ func describe() -> String:
 		&"ring":    shape_desc = "Cadre 3x3 autour d'un centre"
 		&"t":       shape_desc = "Tétromino T, 4 jetons, orientation libre"
 		&"corners": shape_desc = "Les 2 coins inférieurs de la grille"
+		&"wedding": shape_desc = "2 cases adjacentes"
+		&"skull_line": shape_desc = "Ligne de 4+ jetons"
+		&"shadow_dance": shape_desc = "4 cases alternées"
+		&"black_hole": shape_desc = "Losange autour d'un trou"
 		_:          shape_desc = "Figure"
 
 	var rule_desc: String
@@ -74,6 +78,13 @@ func describe() -> String:
 		&"minima":    rule_desc = "toutes les valeurs ≤ %d" % GameRules.MINIMA_MAX_VALUE
 		&"maxima":    rule_desc = "toutes les valeurs ≥ %d" % GameRules.MAXIMA_MIN_VALUE
 		&"prime":     rule_desc = "suite de nombres premiers (2,3,5,7)"
+		&"jackpot_777":  rule_desc = "trois jetons de valeur 7"
+		&"jackpot_9999": rule_desc = "quatre jetons de valeur 9"
+		&"faces":        rule_desc = "Roi et Reine côte à côte"
+		&"royal_court":  rule_desc = "Valet, Chevalier, Reine, Roi alignés"
+		&"skull_line":   rule_desc = "4 jetons de l'entity"
+		&"shadow_dance": rule_desc = "alterne famille et entity"
+		&"black_hole":   rule_desc = "centre = un vrai trou"
 		_:         rule_desc = ""
 
 	var text: String = label
