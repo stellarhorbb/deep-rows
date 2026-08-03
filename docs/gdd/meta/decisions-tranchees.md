@@ -41,7 +41,7 @@ Le registre des décisions de design qui ne sont plus à rediscuter, sauf à l'e
 | Jeton scorant plusieurs Partitions | **Oui**, un même jeton peut valider plusieurs formes simultanément | Encourage les placements malins, cœur du plaisir |
 | Feedback figure non résolue (pas de Partition équipée) | **Pas de highlight** — l'absence de résolution est le signal | Ajouter un highlight pollue la lecture de la grille |
 | Taille de grille | **7×7** actuellement (`COLS`/`ROWS`), pas encore de choix de classe | Passée de 6×8 à 7×7 en session 12 pour équilibrer la densité de la grille cabossée |
-| [Grille cabossée](../grille/trous.md) | 5-8 trous aléatoires par manche, jamais en row 0, transparents à la gravité (contrairement à un Rock) | Casse la routine sans réintroduire un plateau plein façon Candy Crush (piste testée et abandonnée en session 12) |
+| [Grille cabossée](../grille/trous.md) | Fond marin (pics variables) + trous rouges par manche, transparents à la gravité (contrairement à un Rock) — génération revue session 26 | Casse la routine sans réintroduire un plateau plein façon Candy Crush (piste testée et abandonnée en session 12) |
 | [Sélection de Partition de départ](../partitions/principe.md) | 3 tirées au hasard dans tout le catalogue, le joueur en choisit **2, gratuites** — c'est ce qui tourne en jeu aujourd'hui. **Remplacement acté en session 19** : cet écran sera retiré au profit du [pack de démarrage déterministe](../progression/structure-run.md#choix-de-départ) (voir plus bas), pas encore implémenté | 1 seule s'est révélée trop punitive au playtest (entrée en jeu ruinée si elle ne matche jamais). Le tirage 3/2, lui, s'est révélé recommençable à volonté (pas un vrai choix), d'où le remplacement |
 | [Vente de Partitions/Sortilèges](../partitions/principe.md) | À tout moment, 50% du prix remboursé, aucun plancher | Respec toujours possible, façon Balatro |
 | [Formes de Partitions](../partitions/formes.md) | 7 primitives (session 13 : +Plus, +Cross, +Ring, +T — le veto initial sur le T levé) | Le T avait été banni faute d'identité visuelle claire ; retenu une fois qu'un vrai usage (tétromino, orientation libre) s'est dégagé |
@@ -114,7 +114,7 @@ Conçu en réaction à une comparaison avec Raccoin (coin-pusher roguelite) — 
 
 | Question | Décision | Raison |
 |---|---|---|
-| [Entity](../univers/personnages/entity.md) | [Jeton entity-skull](../jetons/entity-skull.md) tous les 6 tours | Perturbe sans jouer, brise le stacking pur |
+| [Entity](../univers/personnages/entity.md) | [Jeton entity-skull](../jetons/entity-skull.md), chance croissante par tour (5%+5%, session 26 — remplace l'ancien intervalle fixe) | Perturbe sans jouer, brise le stacking pur ; le rythme comptable tuait la tension |
 | Manches par zone | **Figé session 18** : 5 (`ROUNDS_PER_ZONE`) — 4 manches normales + 1 boss | Session 16 avait laissé le chiffre ouvert le temps d'ajouter le boss ; tranché une fois le [score cible](../manche/score-cible.md) recalibré dessus |
 | Zones par run | 4 (`ZONES_PER_RUN`), deviennent des **biomes** à forte identité (session 16) | **20 manches totales** (`ROUNDS_PER_ZONE × ZONES_PER_RUN`, figé session 18), remplace l'ancien format à 12 manches |
 | [Ordre des biomes](../progression/structure-run.md#biomes) | **Fixe**, jamais aléatoire (session 16) | Cohérent avec le pilier narratif "la descente" (zone 1 familière → zone finale totalement étrangère) — n'a de sens que si la position dans la séquence est stable. Modèle Hades : ordre macro fixe, contenu randomisé à l'intérieur |

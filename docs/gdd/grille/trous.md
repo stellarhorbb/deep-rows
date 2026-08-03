@@ -1,12 +1,24 @@
 # Grille cabossée (trous)
 
-Ajouté en session 12 pour casser la routine — chaque manche démarre légèrement différente, sans toucher au geste ni au moteur de résolution.
+Ajouté en session 12 pour casser la routine — chaque manche démarre légèrement différente, sans toucher au geste ni au moteur de résolution. Génération revue en session 26 (voir "Fond marin" ci-dessous) après un diagnostic de playtest : le scatter uniforme d'origine réglait le côté "grille plate" mais rien de la vraie cause du ressenti "chiant en début de manche" — voir [Persistance entre manches](../manche/persistance-entre-manches.md) pour l'autre moitié de la réponse.
 
-## Fonctionnement
+## Fonctionnement (session 26 — "fond marin")
 
-- **5 à 8 trous** générés aléatoirement sur la grille au tout début de chaque manche, avant le premier drop (`GameRules.ROUND_START_HOLES_MIN/MAX`)
-- **Jamais en row 0** — le sol reste toujours garanti dans chaque colonne, aucune colonne ne peut se retrouver totalement bouchée
-- Un trou peut apparaître n'importe où au-dessus (row 1, 2, 3…), potentiellement plusieurs par colonne
+Deux couches, générées dans cet ordre (`GridManager.generate_random_holes`) :
+
+1. **Le fond marin** — plusieurs pics indépendants (`GameRules.SEAFLOOR_PEAK_COUNT_MIN/MAX`, 2 à 4 par manche), chacun une pyramide en escalier ancrée sur une colonne au hasard : hauteur 1/2/3 tirée à taux fixe (`SEAFLOOR_PEAK_HEIGHT_RATES`, 45/35/20%), largeur de base 1/3/5 selon la hauteur. Pas forcément centrée — un pic ancré près d'un bord est naturellement "coupé", une partie de sa base sort du cadre.
+2. **Les trous rouges** — 2 à 4 en plus (`ROUND_START_RED_HOLES_MIN/MAX`), dispersés au hasard sur toute la grille, toujours en plus du fond marin, jamais en row 0.
+
+Le fond marin lui-même peut toucher row 0 (un pic "casse la surface" jusqu'en bas) — seuls les trous rouges respectent la règle "jamais row 0".
+
+## Historique des versions (session 26)
+
+Trois jets avant celui-ci, chacun rejeté par un vrai defaut trouve au playtest ou en discussion :
+1. **Marche aléatoire continue** (hauteur ±1 d'une colonne à l'autre) — pouvait dériver et laisser les 7 colonnes non-nulles en même temps, donnant un mur plein sur toute la rangée du bas (jamais vu dans les mockups de référence).
+2. **Tirage indépendant par colonne** (taux fixe par hauteur, sans corrélation entre colonnes) — réglait le mur plein mais donnait un relief trop diffus/uniforme, pas le "pic net" voulu.
+3. **Pic unique centré** — bien, mais toujours au même endroit (col 0) ou pas assez varié en position/taille selon le retour du user ("il faut que ça soit partout, milieu, gauche, droite, petit, plus grand").
+
+## Différence avec un Rock
 
 ## Différence avec un Rock
 
@@ -22,7 +34,7 @@ Diagnostic posé en playtest : la grille se vidait presque à chaque manche, ce 
 
 ## Statut
 
-Premiers jets (5-8 trous, jamais row 0) — intensité à retuner selon le ressenti. Pas encore de source supplémentaire (Sortilège, zone, Entity) qui ajouterait des trous — pourrait être une piste de contenu future.
+Fond marin + trous rouges validés au playtest session 26 (relief visible, plus varié que le scatter d'origine) — total et répartition exacte (nombre de pics, taux par hauteur) restent un premier jet à surveiller. Pas encore de source supplémentaire (Sortilège, zone, Entity) qui ajouterait des trous — pourrait être une piste de contenu future.
 
 ## Liens
 
@@ -30,3 +42,4 @@ Premiers jets (5-8 trous, jamais row 0) — intensité à retuner selon le resse
 - [Gravité et résolution](gravite-resolution.md)
 - [Rocks](../jetons/rocks.md)
 - [Spéciaux](../jetons/specials.md)
+- [Persistance entre manches](../manche/persistance-entre-manches.md)

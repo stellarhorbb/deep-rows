@@ -19,7 +19,7 @@ Le moment de vérité. Se déclenche **toujours** quand le [deck](deck.md) est v
 | Rocks | **Explosent** — créent des trous |
 | Résidus (fantômes posés) | **Explosent** — créent des trous |
 | Jetons entity-skull | **Survivent** — restent obstacles |
-| Boutons | Survivent mais ne scorent plus |
+| Boutons | Survivent mais ne scorent plus — voir [Persistance entre manches](persistance-entre-manches.md) pour ce qui leur arrive ensuite |
 
 ## Design intent
 
@@ -36,6 +36,7 @@ Les Cartes avec trigger `on_last_breath` (ex : [Bombe à retardement](../sortile
 ## Liens
 
 - [Déroulement](deroulement.md)
+- [Persistance entre manches](persistance-entre-manches.md)
 - [Score cible](score-cible.md)
 - [Rocks](../jetons/rocks.md)
 - [Sortilèges — triggers](../sortileges/triggers.md)

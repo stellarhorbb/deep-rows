@@ -2,7 +2,13 @@
 
 ## Avant le premier tour
 
-Au démarrage de chaque manche, la [grille cabossée](../grille/trous.md) génère 5 à 8 trous aléatoires (jamais en row 0) avant que le joueur ne joue son premier drop.
+Au démarrage de chaque manche, dans cet ordre (revu session 26) :
+
+1. La [grille cabossée](../grille/trous.md) génère le fond marin + les trous rouges
+2. La [persistance entre manches](persistance-entre-manches.md) fait retomber les jetons qui ont survécu à la manche précédente (animation de chute, gauche à droite)
+3. Les cases mystère apparaissent (en évitant trous ET jetons persistés), avec un petit effet de particules
+
+... avant que le joueur ne joue son premier drop.
 
 ## Les 5 étapes d'un tour
 
@@ -25,7 +31,7 @@ Signal `cascade_step_resolved(level, earned)` émis pour chaque niveau MATCH →
 Puis `turn_resolved(timeline)` → déclenche `on_turn_resolved`.
 
 ### 5. Jeton suivant
-[Entity](../univers/personnages/entity.md) : tous les 6 tours joueur, un [jeton entity-skull](../jetons/entity-skull.md) est lâché dans une colonne aléatoire non pleine.
+[Entity](../univers/personnages/entity.md) : chance croissante depuis le dernier drop (revu session 26, plus d'intervalle fixe) qu'un [jeton entity-skull](../jetons/entity-skull.md) soit lâché dans une colonne aléatoire non pleine.
 
 Puis retour à l'étape 1 pour le prochain jeton.
 
@@ -49,3 +55,4 @@ Deux façons de finir :
 - [Scoring](../partitions/scoring.md)
 - [Sortilèges — triggers](../sortileges/triggers.md)
 - [Grille cabossée (trous)](../grille/trous.md)
+- [Persistance entre manches](persistance-entre-manches.md)

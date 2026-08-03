@@ -32,7 +32,7 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
 
 ### [Grille](grille/)
 - [Format](grille/format.md) — 7×7, liée au biome traversé plutôt qu'un choix de départ (pas encore implémenté, revu session 16)
-- [Grille cabossée](grille/trous.md) — trous aléatoires par manche (session 12)
+- [Grille cabossée](grille/trous.md) — fond marin (pics variables) + trous rouges par manche (session 12, revu session 26)
 - [Gravité et résolution](grille/gravite-resolution.md) — cascades, chaîne d'événements
 - [Modifiers de cellules](grille/modifiers-cellules.md) — HALF / BOOST / DOUBLE / TRIPLE
 
@@ -58,6 +58,7 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
 - [Déroulement](manche/deroulement.md) — les étapes d'un tour
 - [Score cible](manche/score-cible.md) — courbe exponentielle, figée session 18
 - [Dernier Souffle](manche/dernier-souffle.md) — explosion rocks, cascade surprise
+- [Persistance entre manches](manche/persistance-entre-manches.md) — le bouton le plus haut de chaque colonne survit à la manche suivante (session 26)
 - [Axe casino — roulette et cases mystère](manche/roulette-casino.md) — jauge, seuil fixe 21, spéciaux réactifs (session 25 ; jauge + seuil + Planter codés, reste à faire : UI dédiée, Récolter, les autres prix, les spéciaux réactifs)
 
 ### [Sortilèges](sortileges/)

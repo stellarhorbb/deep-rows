@@ -16,11 +16,11 @@ Scope réaliste : une poignée de lignes marquantes, pas des centaines de dialog
 
 ## Mécanique — lâcher de jeton
 
-L'Entity place un [jeton entity-skull](../../jetons/entity-skull.md) dans une colonne aléatoire non pleine, **tous les 6 tours joueur** (`ENTITY_DROP_INTERVAL` dans `game_rules.gd`). Pas un jeton du deck — il arrive de l'extérieur.
+L'Entity place un [jeton entity-skull](../../jetons/entity-skull.md) dans une colonne aléatoire non pleine. Pas un jeton du deck — il arrive de l'extérieur. Chance croissante depuis le dernier drop (`GameRules.ENTITY_DROP_BASE_CHANCE`/`ENTITY_DROP_INCREMENT`, revu session 26) plutôt qu'un intervalle fixe — voir [Entity-skull](../../jetons/entity-skull.md#quand-il-apparaît-revu-session-26) pour le détail. Décision explicite : un rythme comptable au tour près ("je sais qu'un skull tombe dans exactement N tours") tuait la tension, contraire à l'esprit d'une menace qui doit rester incertaine.
 
 ## Perturbations futures
 
-L'Entity est le vecteur principal des perturbations qui montent en pression en zones avancées. **Annoncées en début de manche** — le joueur peut s'adapter, c'est un obstacle prévisible.
+L'Entity est le vecteur principal des perturbations qui montent en pression en zones avancées.
 
 ### Via la couche modifiers
 La plupart des perturbations passeront par les [modifiers de cellules](../../grille/modifiers-cellules.md) — l'Entity devient une source qui peuple `grid_modifiers` en début de manche (cases HALF, cases piégées, etc.).
