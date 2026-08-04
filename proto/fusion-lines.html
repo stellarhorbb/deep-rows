@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Deep Rows — Proto Fusion/Lignes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    color: #eee;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 20px;
+    gap: 30px;
+    flex-wrap: wrap;
+  }
+  #game-area { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+  canvas { cursor: pointer; border-radius: 8px; background: #16213e; }
+  #info { display: flex; gap: 20px; font-size: 18px; font-weight: bold; flex-wrap: wrap; justify-content: center; }
+  #info span { padding: 6px 14px; border-radius: 6px; background: #16213e; }
+  #next-token-area { display: flex; align-items: center; gap: 10px; }
+  #next-token-label { font-size: 13px; color: #888; letter-spacing: 1px; }
+  #next-token-canvas { background: #0f0f23; border-radius: 8px; }
+  #score-val { color: #e2b714; }
+  #target-val { color: #ff6b6b; }
+  #deck-val { color: #4ecdc4; }
+  #checkpoint-val { color: #b968f0; }
+  #message {
+    font-size: 22px;
+    font-weight: bold;
+    height: 32px;
+    text-align: center;
+  }
+  .win { color: #4ecdc4; }
+  .lose { color: #ff6b6b; }
+  .cascade { color: #e2b714; }
+  #controls { display: flex; gap: 10px; margin-top: 5px; }
+  button {
+    padding: 10px 18px;
+    font-size: 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #16213e;
+    color: #eee;
+    transition: background 0.2s;
+  }
+  button:hover { background: #22345c; }
+  #upgrades-panel {
+    width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  #upgrades-panel h2 { font-size: 16px; color: #888; margin-bottom: 4px; }
+  .owned-upgrade { font-size: 13px; background: #16213e; padding: 6px 10px; border-radius: 6px; color: #4ecdc4; }
+  #shop-overlay {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    background: #0f0f23;
+    border: 2px solid #b968f0;
+    border-radius: 10px;
+    padding: 24px;
+    max-width: 460px;
+  }
+  #shop-overlay.visible { display: flex; }
+  #shop-overlay h2 { color: #b968f0; }
+  .upgrade-choice {
+    background: #16213e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+  }
+  .upgrade-choice:hover { background: #22345c; border-color: #b968f0; }
+  .upgrade-choice .label { font-weight: bold; color: #f0e6c8; display: block; margin-bottom: 4px; }
+  .upgrade-choice .desc { font-size: 13px; color: #999; }
+  #rules {
+    max-width: 300px;
+    font-size: 13px;
+    color: #999;
+    line-height: 1.6;
+  }
+  #rules h2 { color: #888; font-size: 16px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div id="game-area">
+  <div id="info">
+    <span id="score-val">SCORE : 0</span>
+    <span id="target-val">CIBLE : 0</span>
+    <span id="deck-val">DECK : 0</span>
+    <span id="checkpoint-val">PALIER 1/5</span>
+  </div>
+  <div id="next-token-area">
+    <span id="next-token-label">PROCHAIN JETON</span>
+    <canvas id="next-token-canvas" width="60" height="60"></canvas>
+  </div>
+  <canvas id="grid-canvas"></canvas>
+  <div id="message"></div>
+  <div id="controls">
+    <button id="restart-btn">RECOMMENCER</button>
+  </div>
+  <div id="shop-overlay">
+    <h2>PALIER FRANCHI — CHOISIS UN BONUS</h2>
+    <div id="shop-choices"></div>
+  </div>
+</div>
+
+<div id="upgrades-panel">
+  <h2>BONUS ACQUIS</h2>
+  <div id="owned-upgrades-list"></div>
+</div>
+
+<div id="rules">
+  <h2>Règle testée</h2>
+  <p>
+  Deck presque uniquement des 1. Tu drop, la gravité fait tomber le jeton.
+  <br><br>
+  <b>Fusion</b> : tout groupe de 2+ jetons adjacents de même famille ET même valeur fusionne aussitôt en un jeton de valeur+1 — automatique, à chaque drop, sans condition. Les fusions peuvent enchaîner (cascade).
+  <br><br>
+  <b>Ligne</b> (le gros lot) : 3+ jetons alignés (ligne/colonne/diagonale) de même valeur ET même famille se nettoient et scorent gros.
+  <br><br>
+  <b>Rocks</b> (gris, ~12% du deck) : jamais de fusion, jamais dans une ligne — un poids mort qui tombe et bloque une case pour de bon.
+  <br><br>
+  <b>Trous</b> (noirs, fixes) : quelques cases de la grille ne se remplissent jamais, la gravité les ignore.
+  <br><br>
+  Aucun système de Tags/Partitions ici — tout marche tout le temps. La seule question : est-ce que ÇA, tout seul, est fun ?
+  </p>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const COLS = 6;
+const ROWS = 8;
+const CELL = 68;
+const PADDING = 10;
+const MAX_VALUE = 9;
+const DECK_SIZE = 44;
+const FAMILIES = [
+  { name: "BATONS", color: "#e0954f" },
+  { name: "COUPES", color: "#4ea1d3" },
+  { name: "EPEES", color: "#e05f5f" },
+  { name: "DENIERS", color: "#5fbf7f" },
+];
+const CHECKPOINTS = [40, 110, 220, 400, 650];
+// Retour user : FUSION_SCORE_BASE/LINE_SCORE_BASE etaient des constantes
+// arbitraires sans rapport avec ce qui se passe reellement sur la grille (et
+// une premiere tentative en 2^valeur s'est revelee illisible -- "2^5 = 32,
+// c'est quoi ce symbole ?"). Score final : nombre de jetons x leur valeur,
+// calculable de tete en regardant la grille. Le scaling vient des upgrades
+// du shop (voir UPGRADE_POOL), pas d'une formule de base compliquee.
+// Retune : teste a 3 (trop dur, ressenti pire), remis a 2.
+const FUSION_MIN_GROUP = 2;
+
+// Rocks (retour user : "plat" par manque de risque de placement -- deja
+// valide fun dans le proto minimal historique "stream + rocks + lignes").
+// Jeton sans famille/valeur, ne fusionne jamais, ne compte jamais dans une
+// ligne -- juste un poids mort qui tombe et bloque une case pour de bon.
+const ROCK_CHANCE = 0.12;
+
+// Fond marin (meme retour user) : quelques cases fixes de la grille sont
+// des trous -- jamais remplies, la gravite les ignore purement et simplement
+// (les jetons s'empilent en sautant par-dessus, jamais dans un trou).
+const HOLE_COUNT = 4;
+
+const UPGRADE_POOL = [
+  {
+    id: "fusion_plus",
+    label: "SURTENSION",
+    desc: "Chaque fusion gagne +1 valeur supplémentaire.",
+  },
+  {
+    id: "diagonales",
+    label: "DIAGONALES",
+    desc: "La fusion regarde aussi en diagonale, pas juste haut/bas/gauche/droite.",
+  },
+  {
+    id: "chaine_genereuse",
+    label: "CHAÎNE GÉNÉREUSE",
+    desc: "Le multiplicateur de cascade grimpe beaucoup plus vite.",
+  },
+  {
+    id: "lignes_courtes",
+    label: "LIGNES COURTES",
+    desc: "2 jetons alignés suffisent désormais (au lieu de 3).",
+  },
+  {
+    id: "deck_enrichi",
+    label: "DECK ENRICHI",
+    desc: "Les jetons restants du deck ont désormais une valeur minimum de 2.",
+  },
+  {
+    id: "ligne_doree",
+    label: "LIGNE DORÉE",
+    desc: "Le score des lignes complètes est doublé.",
+  },
+  {
+    id: "familles_libres",
+    label: "FAMILLES LIBRES",
+    desc: "La fusion ignore la famille — seule la valeur compte désormais.",
+  },
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let grid, deck, score, checkpointIndex, state, upgrades, ownedUpgradeIds, holes;
+
+function isHole(c, r) {
+  return holes.has(c + "," + r);
+}
+
+// Pioche HOLE_COUNT trous distincts, jamais sur la rangee du bas (r=0) --
+// sinon une colonne pourrait n'avoir litteralement aucune case atteignable.
+function generateHoles() {
+  const h = new Set();
+  while (h.size < HOLE_COUNT) {
+    const c = Math.floor(Math.random() * COLS);
+    const r = 1 + Math.floor(Math.random() * (ROWS - 1));
+    h.add(c + "," + r);
+  }
+  return h;
+}
+
+// Persistance entre "manches" (retour user : reprend directement la regle du
+// vrai jeu) -- declenchee a chaque palier atteint (voir checkProgress). Le
+// jeton le plus haut de chaque colonne survit et retombe en bas pour la
+// suite ; un Rock au sommet (ou une colonne vide) ne laisse rien persister,
+// meme jeton legitime plus bas -- couvrir un jeton le protege, comme dans le
+// vrai jeu. Regenere aussi le fond marin (nouveaux trous) pour que chaque
+// "manche" ait un terrain frais.
+function purgeGridKeepingTops() {
+  const carried = [];
+  for (let c = 0; c < COLS; c++) {
+    let top = null;
+    for (let r = ROWS - 1; r >= 0; r--) {
+      if (grid[c][r] !== null) { top = grid[c][r]; break; }
+    }
+    carried.push(top && top.kind === "base" ? top : null);
+  }
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) grid[c][r] = null;
+  }
+  holes = generateHoles();
+  for (let c = 0; c < COLS; c++) {
+    if (carried[c]) grid[c][0] = carried[c];
+  }
+}
+
+// Animation legere (retour user : "je sais pas ou ca tombe") -- purement
+// visuelle, la logique reste instantanee sur les donnees (resolveAll calcule
+// l'etat final d'un coup), ces variables ne font qu'habiller ce qui vient de
+// se passer. fallingToken bloque un nouveau clic pendant sa chute (evite de
+// lire un etat de grille incomplet). popEvents/clearEvents sont des bursts
+// affiches d'un coup a la fin de la resolution -- pas d'enchainement anime
+// pas-a-pas des cascades, juste un flash sur tout ce qui a bouge.
+const FALL_DURATION = 160;
+const POP_DURATION = 260;
+let fallingToken = null; // {col, targetRow, token, startTime}
+let popEvents = [];      // [{col, row, startTime}]
+let clearEvents = [];    // [{col, row, startTime}]
+
+// Bloque un nouveau drop pendant TOUTE la sequence (chute + cascade
+// complete), pas juste la chute -- sinon deux cascades peuvent tourner en
+// meme temps sur la meme grille si les clics arrivent plus vite que la
+// resolution ne se termine (trouve en testant des clics rapides).
+let isResolving = false;
+
+function freshUpgrades() {
+  return {
+    fusionPlus: false,
+    diagonales: false,
+    chaineGenereuse: false,
+    lignesCourtes: false,
+    deckEnrichi: false,
+    ligneDoree: false,
+    famillesLibres: false,
+  };
+}
+
+function initGame() {
+  grid = [];
+  for (let c = 0; c < COLS; c++) {
+    grid.push(new Array(ROWS).fill(null));
+  }
+  holes = generateHoles();
+  deck = buildDeck();
+  score = 0;
+  checkpointIndex = 0;
+  state = "playing";
+  upgrades = freshUpgrades();
+  ownedUpgradeIds = [];
+  isResolving = false;
+  fallingToken = null;
+  popEvents = [];
+  clearEvents = [];
+  setMessage("", "");
+  hideShop();
+  renderInfo();
+  renderOwnedUpgrades();
+  renderNextToken();
+  render();
+}
+
+function buildDeck() {
+  const d = [];
+  for (let i = 0; i < DECK_SIZE; i++) {
+    if (Math.random() < ROCK_CHANCE) {
+      d.push({ kind: "rock" });
+      continue;
+    }
+    const roll = Math.random();
+    let value = 1;
+    if (roll > 0.95) value = 3;
+    else if (roll > 0.75) value = 2;
+    const family = FAMILIES[Math.floor(Math.random() * FAMILIES.length)];
+    d.push({ kind: "base", family, value });
+  }
+  // shuffle
+  for (let i = d.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [d[i], d[j]] = [d[j], d[i]];
+  }
+  return d;
+}
+
+// ============================================================
+// CANVAS SETUP
+// ============================================================
+const canvas = document.getElementById("grid-canvas");
+canvas.width = COLS * CELL + PADDING * 2;
+canvas.height = ROWS * CELL + PADDING * 2;
+const ctx = canvas.getContext("2d");
+
+function cellCenter(col, row) {
+  // row 0 = bottom
+  const visualRow = ROWS - 1 - row;
+  return {
+    x: PADDING + col * CELL + CELL / 2,
+    y: PADDING + visualRow * CELL + CELL / 2,
+  };
+}
+
+function colFromX(x) {
+  const col = Math.floor((x - PADDING) / CELL);
+  if (col < 0 || col >= COLS) return -1;
+  return col;
+}
+
+canvas.addEventListener("click", (e) => {
+  if (state !== "playing") return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const col = colFromX(x);
+  if (col < 0) return;
+  dropToken(col);
+});
+
+function drawTokenOn(targetCtx, x, y, radius, token) {
+  targetCtx.beginPath();
+  targetCtx.arc(x, y, radius, 0, Math.PI * 2);
+  targetCtx.fillStyle = token.kind === "rock" ? "#4a4a58" : token.family.color;
+  targetCtx.fill();
+  if (token.kind === "rock") return; // pas de chiffre, pas de famille -- juste un poids mort
+  targetCtx.fillStyle = "#fff";
+  targetCtx.font = "bold " + Math.round(radius * 0.9) + "px sans-serif";
+  targetCtx.textAlign = "center";
+  targetCtx.textBaseline = "middle";
+  targetCtx.fillText(String(token.value), x, y + 1);
+}
+
+function drawToken(x, y, radius, token) {
+  drawTokenOn(ctx, x, y, radius, token);
+}
+
+function render() {
+  const now = performance.now();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // grid background -- les trous (fond marin) ressortent en noir plein,
+  // distincts des cases vides normales.
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      const { x, y } = cellCenter(c, r);
+      ctx.beginPath();
+      ctx.arc(x, y, CELL / 2 - 4, 0, Math.PI * 2);
+      ctx.fillStyle = isHole(c, r) ? "#000000" : "#0f0f23";
+      ctx.fill();
+    }
+  }
+  // flashs de ligne nettoyee (sous les jetons, courte duree)
+  clearEvents = clearEvents.filter((ev) => now - ev.startTime < POP_DURATION);
+  for (const ev of clearEvents) {
+    const progress = (now - ev.startTime) / POP_DURATION;
+    const { x, y } = cellCenter(ev.col, ev.row);
+    ctx.beginPath();
+    ctx.arc(x, y, (CELL / 2 - 6) * (1 + progress * 0.6), 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,255,255,${1 - progress})`;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+  // tokens (avec pop scale sur les fusions/lignes toutes fraiches)
+  popEvents = popEvents.filter((ev) => now - ev.startTime < POP_DURATION);
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      const token = grid[c][r];
+      if (!token) continue;
+      if (fallingToken && fallingToken.col === c && r === fallingToken.targetRow) continue;
+      const { x, y } = cellCenter(c, r);
+      const pop = popEvents.find((ev) => ev.col === c && ev.row === r);
+      let radius = CELL / 2 - 6;
+      if (pop) {
+        const progress = (now - pop.startTime) / POP_DURATION;
+        radius *= 1 + 0.35 * Math.sin(progress * Math.PI);
+      }
+      drawToken(x, y, radius, token);
+    }
+  }
+  // jeton en chute (au-dessus de la grille, tombe vers sa case d'atterrissage)
+  if (fallingToken) {
+    const progress = Math.min(1, (now - fallingToken.startTime) / FALL_DURATION);
+    const eased = 1 - Math.pow(1 - progress, 2);
+    const start = cellCenter(fallingToken.col, ROWS);
+    const end = cellCenter(fallingToken.col, fallingToken.targetRow);
+    const x = start.x;
+    const y = start.y + (end.y - start.y) * eased;
+    drawToken(x, y, CELL / 2 - 6, fallingToken.token);
+  }
+}
+
+// ============================================================
+// GAME LOGIC
+// ============================================================
+function landingRow(col) {
+  for (let r = 0; r < ROWS; r++) {
+    if (isHole(col, r)) continue; // jamais une case atterrissable
+    if (grid[col][r] === null) return r;
+  }
+  return -1;
+}
+
+// Applique les modificateurs de tirage (Deck Enrichi) a un jeton -- factorise
+// pour que l'apercu du prochain jeton (renderNextToken) montre exactement ce
+// qui sera pose, pas le jeton brut avant modificateur.
+function applyDrawModifiers(token) {
+  if (token.kind === "rock") return { kind: "rock" };
+  const t = { kind: "base", family: token.family, value: token.value };
+  if (upgrades.deckEnrichi && t.value < 2) t.value = 2;
+  return t;
+}
+
+function dropToken(col) {
+  if (deck.length === 0 || isResolving) return;
+  const row = landingRow(col);
+  if (row === -1) {
+    setMessage("COLONNE PLEINE", "lose");
+    return;
+  }
+  isResolving = true;
+  const token = applyDrawModifiers(deck.pop());
+  renderNextToken();
+  fallingToken = { col, targetRow: row, token, startTime: performance.now() };
+
+  setTimeout(() => {
+    grid[col][row] = token;
+    fallingToken = null;
+    stepResolution(col, 1, () => {
+      isResolving = false;
+      renderInfo(); // au cas ou le drop n'a declenche aucune fusion/ligne
+                     // (stepResolution ne l'appelle alors jamais lui-meme) --
+                     // sans ca le compteur de deck restait affiche a l'ancienne
+                     // valeur malgre un deck.pop() bien reel (trouve en testant).
+      checkProgress();
+    });
+  }, FALL_DURATION);
+}
+
+function neighbors4(c, r) {
+  return [[c - 1, r], [c + 1, r], [c, r - 1], [c, r + 1]];
+}
+function neighbors8(c, r) {
+  return [
+    [c - 1, r], [c + 1, r], [c, r - 1], [c, r + 1],
+    [c - 1, r - 1], [c - 1, r + 1], [c + 1, r - 1], [c + 1, r + 1],
+  ];
+}
+
+function inBounds(c, r) {
+  return c >= 0 && c < COLS && r >= 0 && r < ROWS;
+}
+
+function sameToken(a, b) {
+  if (!a || !b) return false;
+  if (a.kind === "rock" || b.kind === "rock") return false; // jamais de match, meme entre deux rocks
+  if (a.value !== b.value) return false;
+  if (upgrades.famillesLibres) return true;
+  return a.family.name === b.family.name;
+}
+
+// Delai entre deux etapes d'une cascade -- assez pour que le pop/flash de
+// l'etape precedente soit visible avant que la suivante ne demarre (retour
+// user : "sans animation on comprend pas ce qui s'est passe", tout se
+// resolvait instantanement en un seul burst avant). STEP_GAP est la pause
+// supplementaire apres la gravite, pour que l'etat "pose" soit lisible un
+// instant avant de checker la suite.
+const STEP_GAP = 140;
+
+// Une seule passe de fusion : detecte TOUS les groupes connectes (peuvent
+// etre plusieurs, independants, sur la grille en meme temps) et les resout
+// d'un coup -- seul l'ENCHAINEMENT entre plusieurs passes est etale dans le
+// temps par stepResolution, pas les fusions simultanees d'une meme passe.
+// anchorCol (retour user : "je sais pas ou ca tombe") -- si un groupe touche
+// la colonne du drop en cours, le resultat apparait dans CETTE colonne
+// plutot que sur une case arbitraire du groupe.
+function tryResolveFusions(anchorCol) {
+  const visited = new Set();
+  const neighborFn = upgrades.diagonales ? neighbors8 : neighbors4;
+  const positions = [];
+  let scoreGain = 0;
+
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      const key = c + "," + r;
+      if (visited.has(key)) continue;
+      const token = grid[c][r];
+      if (!token) continue;
+      const group = [];
+      const stack = [[c, r]];
+      visited.add(key);
+      while (stack.length > 0) {
+        const [cc, rr] = stack.pop();
+        group.push([cc, rr]);
+        for (const [nc, nr] of neighborFn(cc, rr)) {
+          if (!inBounds(nc, nr)) continue;
+          const nkey = nc + "," + nr;
+          if (visited.has(nkey)) continue;
+          if (sameToken(grid[nc][nr], token)) {
+            visited.add(nkey);
+            stack.push([nc, nr]);
+          }
+        }
+      }
+      if (group.length >= FUSION_MIN_GROUP) {
+        const anchorCells = anchorCol != null ? group.filter(([cc]) => cc === anchorCol) : [];
+        const candidates = anchorCells.length > 0 ? anchorCells : group;
+        let target = candidates[0];
+        for (const cell of candidates) if (cell[1] < target[1]) target = cell;
+        let newValue = token.value + 1;
+        if (upgrades.fusionPlus) newValue += 1;
+        newValue = Math.min(MAX_VALUE, newValue);
+        for (const [cc, rr] of group) grid[cc][rr] = null;
+        grid[target[0]][target[1]] = { kind: "base", family: token.family, value: newValue };
+        positions.push(target);
+        // Retour user : formule simple et calculable de tete -- nombre de
+        // jetons fusionnes x leur valeur d'origine. Le scaling vient des
+        // upgrades du shop (SURTENSION, CHAINE GENEREUSE...), pas d'une
+        // formule de base compliquee.
+        scoreGain += token.value * group.length;
+      }
+    }
+  }
+  return { found: positions.length > 0, positions, score: scoreGain };
+}
+
+// Une seule passe de lignes (voir tryResolveFusions ci-dessus pour le meme
+// principe applique aux fusions).
+function tryResolveLines(minLen) {
+  const toClear = new Set();
+  let lineScore = 0;
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      const token = grid[c][r];
+      if (!token) continue;
+      for (const [dc, dr] of DIRECTIONS) {
+        const line = [[c, r]];
+        let cc = c + dc, rr = r + dr;
+        while (inBounds(cc, rr) && sameToken(grid[cc][rr], token)) {
+          line.push([cc, rr]);
+          cc += dc; rr += dr;
+        }
+        if (line.length >= minLen) {
+          // Meme formule simple que la fusion : longueur x valeur. Calcule
+          // par ligne detectee (pas par case nettoyee au total) puisque deux
+          // lignes qui se chevauchent doivent chacune compter, meme si une
+          // case est partagee entre les deux.
+          lineScore += token.value * line.length;
+          for (const cell of line) toClear.add(cell[0] + "," + cell[1]);
+        }
+      }
+    }
+  }
+  const positions = [];
+  for (const key of toClear) {
+    const [c, r] = key.split(",").map(Number);
+    grid[c][r] = null;
+    positions.push([c, r]);
+  }
+  if (upgrades.ligneDoree) lineScore *= 2;
+  return { found: positions.length > 0, positions, score: lineScore };
+}
+
+// Orchestre la cascade etape par etape : une passe de fusion (ou, a defaut,
+// une passe de lignes) a la fois, chacune suivie d'une pause pour laisser le
+// pop/flash se voir, PUIS la gravite, PUIS une autre pause avant de checker
+// l'etape suivante. S'arrete (appelle onDone) quand une passe ne trouve plus
+// rien du tout -- c'est la ou l'ancienne resolveAll() rendait tout instantane.
+function stepResolution(anchorCol, iteration, onDone) {
+  const chainMult = upgrades.chaineGenereuse
+    ? 1 + (iteration - 1) * 1.0
+    : 1 + (iteration - 1) * 0.5;
+  const now = performance.now();
+
+  const fusion = tryResolveFusions(anchorCol);
+  if (fusion.found) {
+    score += Math.round(fusion.score * chainMult);
+    for (const [c, r] of fusion.positions) popEvents.push({ col: c, row: r, startTime: now });
+    renderInfo();
+    setTimeout(() => {
+      applyGravity();
+      setTimeout(() => stepResolution(anchorCol, iteration + 1, onDone), STEP_GAP);
+    }, POP_DURATION);
+    return;
+  }
+
+  const minLen = upgrades.lignesCourtes ? 2 : 3;
+  const lines = tryResolveLines(minLen);
+  if (lines.found) {
+    score += Math.round(lines.score * chainMult);
+    for (const [c, r] of lines.positions) clearEvents.push({ col: c, row: r, startTime: now });
+    renderInfo();
+    setTimeout(() => {
+      applyGravity();
+      setTimeout(() => stepResolution(anchorCol, iteration + 1, onDone), STEP_GAP);
+    }, POP_DURATION);
+    return;
+  }
+
+  onDone();
+}
+
+// Les trous ne sont jamais dans le tableau grid (ce sont des cases de
+// terrain, pas des jetons) -- la gravite se contente de sauter ces cases en
+// re-remplissant depuis le bas, les jetons s'empilent autour sans jamais y
+// atterrir.
+function applyGravity() {
+  for (let c = 0; c < COLS; c++) {
+    const tokens = [];
+    for (let r = 0; r < ROWS; r++) {
+      if (grid[c][r] !== null) tokens.push(grid[c][r]);
+      grid[c][r] = null;
+    }
+    let idx = 0;
+    for (let r = 0; r < ROWS && idx < tokens.length; r++) {
+      if (isHole(c, r)) continue;
+      grid[c][r] = tokens[idx++];
+    }
+  }
+}
+
+const DIRECTIONS = [
+  [1, 0], [0, 1], [1, 1], [1, -1],
+];
+
+// ============================================================
+// PROGRESSION / SHOP
+// ============================================================
+function checkProgress() {
+  const target = CHECKPOINTS[checkpointIndex] ?? Infinity;
+  if (score >= target) {
+    if (checkpointIndex >= CHECKPOINTS.length - 1) {
+      state = "won";
+      setMessage("TOUS LES PALIERS FRANCHIS !", "win");
+      return;
+    }
+    purgeGridKeepingTops();
+    render();
+    state = "shop";
+    showShop();
+    return;
+  }
+  if (deck.length === 0) {
+    state = "gameover";
+    setMessage("DECK VIDE — CIBLE PAS ATTEINTE", "lose");
+  }
+}
+
+function showShop() {
+  const container = document.getElementById("shop-choices");
+  container.innerHTML = "";
+  const available = UPGRADE_POOL.filter((u) => !ownedUpgradeIds.includes(u.id));
+  const pool = available.length >= 3 ? available : UPGRADE_POOL;
+  const picks = [];
+  const poolCopy = [...pool];
+  for (let i = 0; i < 3 && poolCopy.length > 0; i++) {
+    const idx = Math.floor(Math.random() * poolCopy.length);
+    picks.push(poolCopy.splice(idx, 1)[0]);
+  }
+  for (const upg of picks) {
+    const btn = document.createElement("div");
+    btn.className = "upgrade-choice";
+    btn.innerHTML = `<span class="label">${upg.label}</span><span class="desc">${upg.desc}</span>`;
+    btn.addEventListener("click", () => pickUpgrade(upg));
+    container.appendChild(btn);
+  }
+  document.getElementById("shop-overlay").classList.add("visible");
+}
+
+function hideShop() {
+  document.getElementById("shop-overlay").classList.remove("visible");
+}
+
+function pickUpgrade(upg) {
+  applyUpgrade(upg.id);
+  ownedUpgradeIds.push(upg.id);
+  checkpointIndex++;
+  hideShop();
+  renderOwnedUpgrades();
+  renderInfo();
+  renderNextToken();
+  if (checkpointIndex >= CHECKPOINTS.length) {
+    state = "won";
+    setMessage("TOUS LES PALIERS FRANCHIS !", "win");
+  } else {
+    state = "playing";
+    setMessage("PALIER " + (checkpointIndex + 1) + " !", "cascade");
+  }
+}
+
+function applyUpgrade(id) {
+  switch (id) {
+    case "fusion_plus": upgrades.fusionPlus = true; break;
+    case "diagonales": upgrades.diagonales = true; break;
+    case "chaine_genereuse": upgrades.chaineGenereuse = true; break;
+    case "lignes_courtes": upgrades.lignesCourtes = true; break;
+    case "deck_enrichi": upgrades.deckEnrichi = true; break;
+    case "ligne_doree": upgrades.ligneDoree = true; break;
+    case "familles_libres": upgrades.famillesLibres = true; break;
+  }
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+const nextCanvas = document.getElementById("next-token-canvas");
+const nextCtx = nextCanvas.getContext("2d");
+
+// Apercu du prochain jeton a tomber (deck.pop() tire depuis la fin du
+// tableau) -- indispensable pour viser une colonne en connaissance de cause,
+// sans ca le joueur clique a l'aveugle (retour user).
+function renderNextToken() {
+  nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+  if (deck.length === 0) return;
+  const token = applyDrawModifiers(deck[deck.length - 1]);
+  drawTokenOn(nextCtx, nextCanvas.width / 2, nextCanvas.height / 2, 26, token);
+}
+
+function renderInfo() {
+  document.getElementById("score-val").textContent = "SCORE : " + score;
+  const target = CHECKPOINTS[checkpointIndex] ?? CHECKPOINTS[CHECKPOINTS.length - 1];
+  document.getElementById("target-val").textContent = "CIBLE : " + target;
+  document.getElementById("deck-val").textContent = "DECK : " + deck.length;
+  document.getElementById("checkpoint-val").textContent =
+    "PALIER " + Math.min(checkpointIndex + 1, CHECKPOINTS.length) + "/" + CHECKPOINTS.length;
+}
+
+function renderOwnedUpgrades() {
+  const list = document.getElementById("owned-upgrades-list");
+  list.innerHTML = "";
+  if (ownedUpgradeIds.length === 0) {
+    list.innerHTML = '<div class="owned-upgrade" style="color:#666">Aucun encore</div>';
+    return;
+  }
+  for (const id of ownedUpgradeIds) {
+    const upg = UPGRADE_POOL.find((u) => u.id === id);
+    const div = document.createElement("div");
+    div.className = "owned-upgrade";
+    div.textContent = upg ? upg.label : id;
+    list.appendChild(div);
+  }
+}
+
+function setMessage(text, cls) {
+  const el = document.getElementById("message");
+  el.textContent = text;
+  el.className = cls || "";
+}
+
+document.getElementById("restart-btn").addEventListener("click", initGame);
+
+initGame();
+
+// Boucle continue pour interpoler la chute/le pop/le flash -- render() reste
+// par ailleurs appele directement apres chaque mutation (idempotent), cette
+// boucle sert uniquement a dessiner les etats intermediaires entre deux mutations.
+function loop() {
+  render();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>

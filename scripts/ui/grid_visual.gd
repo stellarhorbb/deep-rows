@@ -82,8 +82,12 @@ func _draw() -> void:
 			# attendant la DA (voir GridManager.mystery_cells_changed).
 			if _mystery_cells.has(Vector2i(c, r)):
 				draw_circle(center, cell_size / 2.0, mystery_color)
+				# Retour user (QoL) : glyphe agrandi, se detache maintenant du
+				# cercle de la case (deborde legerement) pour rester lisible au
+				# milieu d'une grille chargee -- avant, cell_size * 0.5 se
+				# fondait trop dans le fond marin/les autres marqueurs.
 				var glyph: String = "?"
-				var font_size: int = int(cell_size * 0.5)
+				var font_size: int = int(cell_size * 0.8)
 				var font: Font = _popup_font if _popup_font != null else ThemeDB.fallback_font
 				var text_size: Vector2 = font.get_string_size(glyph, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
 				draw_string(font, center - text_size / 2.0 + Vector2(0, text_size.y * 0.8), glyph, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, empty_cell_color)
@@ -132,11 +136,42 @@ func set_holes(holes: Dictionary) -> void:
 ## Particules (session 26) uniquement sur les cases vraiment nouvelles --
 ## ce signal refire aussi quand une case se declenche et disparait du
 ## dictionnaire, pas question de re-declencher un effet d'apparition dessus.
+## Round-start pose plusieurs cases a la fois (2-4, voir GameRules.ROUND_
+## START_MYSTERY_MIN/MAX) : celles-la se revelent en escalier gauche-a-droite
+## (retour user, QoL) plutot que toutes en meme temps -- un declenchement
+## normal (une seule case qui disparait du dictionnaire) reste instantane.
 func set_mystery_cells(cells: Array[Vector2i]) -> void:
+	var added: Array[Vector2i] = []
 	for cell in cells:
 		if not _mystery_cells.has(cell):
+			added.append(cell)
+	if added.size() <= 1:
+		for cell in added:
 			_spawn_mystery_particles(cell)
-	_mystery_cells = cells
+		_mystery_cells = cells
+		queue_redraw()
+		return
+	_reveal_mystery_cells_staggered(cells, added)
+
+
+func _reveal_mystery_cells_staggered(final_cells: Array[Vector2i], added: Array[Vector2i]) -> void:
+	var by_column: Dictionary = {}
+	for cell in added:
+		var col_list: Array = by_column.get(cell.x, [])
+		col_list.append(cell)
+		by_column[cell.x] = col_list
+	var columns: Array = by_column.keys()
+	columns.sort()
+
+	var revealed: Array[Vector2i] = _mystery_cells.duplicate()
+	for col in columns:
+		for cell in by_column[col]:
+			revealed.append(cell)
+			_spawn_mystery_particles(cell)
+		_mystery_cells = revealed.duplicate()
+		queue_redraw()
+		await get_tree().create_timer(GameRules.MYSTERY_REVEAL_STAGGER).timeout
+	_mystery_cells = final_cells
 	queue_redraw()
 
 

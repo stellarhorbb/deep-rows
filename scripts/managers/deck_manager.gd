@@ -138,6 +138,21 @@ func get_hold() -> TokenData:
 	return null
 
 
+## Malus de boss BOURRASQUE (voir TurnController.play_current_to, retune :
+## vise desormais le Hold plutot que le stream) : vide le premier slot de
+## hold non vide et retourne son jeton, null si le joueur ne hold rien --
+## laisse alors le malus silencieux ce tour-ci plutot que de piocher un
+## jeton de remplacement.
+func take_first_held() -> TokenData:
+	for i in range(_hold.size()):
+		if _hold[i] != null:
+			var token: TokenData = _hold[i]
+			_hold[i] = null
+			_emit_stream_updated()
+			return token
+	return null
+
+
 func get_preview() -> Array[TokenData]:
 	var preview: Array[TokenData] = []
 	for i in range(GameRules.PREVIEW_SIZE + preview_bonus):

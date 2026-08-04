@@ -1,15 +1,14 @@
-[gd_resource type="Resource" script_class="SheetData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SheetData" format=3 uid="uid://nc71yavevgcu"]
 
-[ext_resource type="Script" path="res://scripts/data/sheet_data.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://k37ydar6rjlo" path="res://scripts/data/sheet_data.gd" id="1_script"]
 
 [resource]
 script = ExtResource("1_script")
-unlock_id = "sheet:skull_line"
 sheet_name = &"skull_line"
+unlock_id = "sheet:skull_line"
 shape = &"skull_line"
 rule = &"skull_line"
 min_size = 4
-direction = &"any"
+is_legendary = true
 label = "SKULL LINE"
 price = 20
-is_legendary = true

@@ -355,8 +355,8 @@ func _is_action_applicable(tool: DeckToolData, tokens: Array[TokenData]) -> bool
 			return tokens[0].value + tokens[1].value <= GameRules.MAX_BUTTON_VALUE
 		DeckToolData.Action.REMOVE:
 			return true
-		DeckToolData.Action.FIX_FIGURE:
-			return tokens[0].value >= GameRules.MAX_BUTTON_VALUE and not tokens[0].locked
+		DeckToolData.Action.FIX_VALUE:
+			return not tokens[0].locked
 	return false
 
 
@@ -378,7 +378,7 @@ func _on_tool_action_pressed(tool: DeckToolData) -> void:
 			_run_manager.remove_button(_target_selected_indices[0])
 		DeckToolData.Action.FUSE:
 			_run_manager.fuse_buttons(_target_selected_indices[0], _target_selected_indices[1])
-		DeckToolData.Action.FIX_FIGURE:
+		DeckToolData.Action.FIX_VALUE:
 			_run_manager.lock_button(_target_selected_indices[0])
 	target_panel.visible = false
 

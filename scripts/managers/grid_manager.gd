@@ -106,20 +106,26 @@ func get_blocked_column() -> int:
 	return _blocked_column
 
 
-## Place un jeton basique ou rock sur la grille.
-func place_token(token: TokenData, col: int, _row: int) -> void:
+## Place un jeton basique ou rock sur la grille. Retourne la landing row
+## (utile pour TurnController.dropped_token_mutated, voir Pile ou Face), -1 si
+## le jeton n'a pas ete place (colonne pleine, ou special -- sa landing row
+## passe par special_landing plutot que la valeur de retour).
+func place_token(token: TokenData, col: int, _row: int) -> int:
 	if token.kind == TokenData.Kind.BASE or token.kind == TokenData.Kind.ROCK:
 		var landing_row: int = column_height(col)
 		if landing_row >= _rows:
-			return
+			return -1
 		_grid[col][landing_row] = token
 		token_placed.emit(col, landing_row, token)
 		_check_mystery_trigger(col, landing_row, token)
+		return landing_row
 
 	elif token.kind == TokenData.Kind.SPECIAL:
 		# Calculer la landing row pour l'animation de chute
 		var landing_row: int = _get_special_landing_row(token, col)
 		special_landing.emit(col, landing_row, token)
+
+	return -1
 
 
 ## Execute l'effet du special APRES l'animation de chute.
@@ -737,14 +743,16 @@ func get_cell(col: int, row: int) -> TokenData:
 ## remplace Frog session 25). Exclut les jetons deja a MAX_BUTTON_VALUE (10)
 ## ou au-dela (Figures, Valet+) -- retune session 25 : un Boost qui tombe sur
 ## un jeton deja plafonne ne fait rien de visible, gaspillage frustrant pour
-## le joueur. Retourne la cellule touchee, ou Vector2i(-1,-1) si aucun jeton
-## de base boostable n'est present sur la grille.
+## le joueur. Exclut aussi les jetons verrouilles (voir RunManager.lock_button,
+## action "Fixer") -- meme raison que RunManager.boost_random_button. Retourne
+## la cellule touchee, ou Vector2i(-1,-1) si aucun jeton de base boostable
+## n'est present sur la grille.
 func boost_random_token(amount: int) -> Vector2i:
 	var candidates: Array[Vector2i] = []
 	for c in range(_cols):
 		for r in range(_rows):
 			var token: TokenData = _grid[c][r]
-			if token != null and token.kind == TokenData.Kind.BASE and token.value < GameRules.MAX_BUTTON_VALUE:
+			if token != null and token.kind == TokenData.Kind.BASE and token.value < GameRules.MAX_BUTTON_VALUE and not token.locked:
 				candidates.append(Vector2i(c, r))
 	if candidates.is_empty():
 		return Vector2i(-1, -1)

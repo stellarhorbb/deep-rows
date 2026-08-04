@@ -21,7 +21,7 @@ enum Type {
 	CIEL_BAS,            # grille perd la rangee du haut pour la manche
 	COLONNE_MAUDITE,     # 1 colonne re-tiree au hasard, verrouillee jusqu'au prochain drop
 	GRANDE_FAIM,         # l'Entity lache un skull 2x plus frequemment
-	BOURRASQUE,          # 2 jetons du stream sont brules a chaque action
+	BOURRASQUE,          # le jeton tenu en Hold suit automatiquement chaque drop
 	MECHE_COURTE,        # les entity-skulls ont un countdown et explosent a 0
 	FAMILLE_TERNIE,      # une famille au hasard vaut 1 ticket pour la manche
 	PARTITION_TERNIE,    # une partition equipee au hasard vaut 1 ticket pour la manche
@@ -51,7 +51,7 @@ const DESCRIPTIONS: Dictionary = {
 	Type.CIEL_BAS: "La rangée du haut de la grille est bloquée pour toute la manche.",
 	Type.COLONNE_MAUDITE: "Une colonne verrouillée est re-tirée au hasard avant chaque drop.",
 	Type.GRANDE_FAIM: "L'Entity lâche un skull deux fois plus souvent.",
-	Type.BOURRASQUE: "Le jeton suivant du stream tombe automatiquement dans la même colonne, juste après le vôtre.",
+	Type.BOURRASQUE: "Le jeton tenu en Hold tombe automatiquement dans la même colonne, juste après le vôtre.",
 	Type.MECHE_COURTE: "Les entity-skulls explosent après %d tours, détruisant leurs deux voisins sans les scorer." % GameRules.MECHE_COURTE_START_COUNTDOWN,
 	Type.FAMILLE_TERNIE: "Les jetons de la famille ciblée ne rapportent qu'1 ticket ce tour.",
 	Type.PARTITION_TERNIE: "La Partition ciblée ne rapporte qu'1 ticket ce tour.",
@@ -113,7 +113,9 @@ func apply_for_round(round_number: int, run_manager: RunManager) -> int:
 		Type.COUR_ENDORMIE:
 			run_manager.set_figure_promotion_locked(true)
 		Type.ETAU:
-			etau_columns = _pick_distinct_columns(2)
+			# Les deux colonnes exterieures, jamais aleatoires (retune : "l'etau"
+			# doit serrer depuis les bords, pas depuis n'importe ou sur la grille).
+			etau_columns = [0, GameRules.COLS - 1]
 		Type.FAMILLE_TERNIE:
 			var family: TokenData.Family = TokenData.Family.values()[randi() % TokenData.Family.values().size()]
 			run_manager.set_score_capped_family(family)
@@ -147,14 +149,6 @@ func get_active_label() -> String:
 ## Vide si aucun malus actif.
 func get_active_description() -> String:
 	return DESCRIPTIONS.get(active_malus, "") as String
-
-
-func _pick_distinct_columns(count: int) -> Array[int]:
-	var pool: Array[int] = []
-	for c in range(GameRules.COLS):
-		pool.append(c)
-	pool.shuffle()
-	return pool.slice(0, count)
 
 
 ## Exclut les types deja tires cette run — relache le pool complet si tout a

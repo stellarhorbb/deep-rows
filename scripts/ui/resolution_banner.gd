@@ -37,6 +37,29 @@ extends Label
 @export var roll_spin_end_interval: float = 0.25
 @export var roll_result_duration: float = 0.7
 
+## Toutes les annonces (breakdown/cascade/combo/roll/mystere/roulette)
+## partagent ce meme Label. Sans serialisation, deux qui se declenchent sur le
+## meme drop (ex: le dernier jeton d'une Partition atterrit sur une case
+## mystere) se marchent dessus : le "visible = false" differe de la premiere
+## s'execute pendant que la seconde est en plein milieu de sa sequence,
+## la rendant invisible (bug remonte au playtest). Verrou cooperatif simple
+## plutot qu'une vraie file — pas de vraie race possible entre le while et le
+## _locked = true qui suit (GDScript est single-threaded, aucun yield entre
+## les deux) — et un tour ne genere jamais assez d'annonces pour que l'ordre
+## d'arrivee ait besoin d'etre garanti au-dela du FIFO naturel.
+var _locked: bool = false
+
+
+func _acquire_lock() -> void:
+	while _locked:
+		await get_tree().process_frame
+	_locked = true
+
+
+func _release_lock() -> void:
+	_locked = false
+
+
 var _base_font_size: int = 0
 
 ## Valeurs actuellement affichees dans le duo (avant l'etape en cours),
@@ -85,6 +108,7 @@ func _ready() -> void:
 ## qu'afficher sa decomposition. Le multi de cascade reste hors de ce calcul,
 ## affiche a part par play_cascade_announcement (voir GridVisual).
 func play_breakdown(breakdown: Dictionary, final_score: int, spells_ui: SpellsUI) -> void:
+	await _acquire_lock()
 	var label: String = breakdown.get("label", "") as String
 	var raw_value: int = breakdown.get("raw_value", 0) as int
 	var base_mult: float = breakdown.get("base_mult", 1.0) as float
@@ -153,6 +177,7 @@ func play_breakdown(breakdown: Dictionary, final_score: int, spells_ui: SpellsUI
 
 	visible = false
 	_hide_breakdown_children()
+	_release_lock()
 
 
 ## Annonce dediee a une cascade (2+ resolutions chainees dans le meme tour,
@@ -161,6 +186,7 @@ func play_breakdown(breakdown: Dictionary, final_score: int, spells_ui: SpellsUI
 ## n'apparait plus dans le MULTI generique de play_breakdown — il a son
 ## propre temps fort ici, plus spectaculaire.
 func play_cascade_announcement(mult: float) -> void:
+	await _acquire_lock()
 	visible = true
 	_hide_breakdown_children()
 	remove_theme_font_size_override("font_size")
@@ -175,6 +201,7 @@ func play_cascade_announcement(mult: float) -> void:
 
 	await get_tree().create_timer(cascade_duration).timeout
 	visible = false
+	_release_lock()
 
 
 ## Annonce dediee a un "Double Partition" (CascadeResolver.resolve —
@@ -184,6 +211,7 @@ func play_cascade_announcement(mult: float) -> void:
 ## meme principe que play_cascade_announcement, son propre temps fort plutot
 ## que noye dans un MULTI generique.
 func play_combo_announcement(mult: float) -> void:
+	await _acquire_lock()
 	visible = true
 	_hide_breakdown_children()
 	remove_theme_font_size_override("font_size")
@@ -198,6 +226,7 @@ func play_combo_announcement(mult: float) -> void:
 
 	await get_tree().create_timer(combo_duration).timeout
 	visible = false
+	_release_lock()
 
 
 ## Petite roulette casino avant un Diamond Rock (CascadeResolver._score_group —
@@ -206,6 +235,7 @@ func play_combo_announcement(mult: float) -> void:
 ## resolver avant meme cette animation, jamais rerolle ici : ceci n'est qu'un
 ## reveal, le score est fige en amont.
 func play_roll_announcement(result: int, min_value: int, max_value: int) -> void:
+	await _acquire_lock()
 	visible = true
 	_hide_breakdown_children()
 	remove_theme_font_size_override("font_size")
@@ -227,6 +257,7 @@ func play_roll_announcement(result: int, min_value: int, max_value: int) -> void
 
 	await get_tree().create_timer(roll_result_duration).timeout
 	visible = false
+	_release_lock()
 
 
 ## Jauge de roulette pleine (session 25, RouletteManager.roulette_triggered) --
@@ -237,6 +268,7 @@ func play_roll_announcement(result: int, min_value: int, max_value: int) -> void
 ## est deja tire par RouletteManager avant l'appel, voir RouletteRewards) --
 ## deux familles possibles, Multiplicateur ou Frog.
 func play_prize_spin_announcement(flavor_pool: Array[String], landed_label: String, landed_description: String = "") -> void:
+	await _acquire_lock()
 	visible = true
 	_hide_breakdown_children()
 	remove_theme_font_size_override("font_size")
@@ -263,6 +295,7 @@ func play_prize_spin_announcement(flavor_pool: Array[String], landed_label: Stri
 	await get_tree().create_timer(mystery_duration).timeout
 	visible = false
 	subtitle.visible = false
+	_release_lock()
 
 
 ## Case mystere revelee (session 24, voir TurnController.mystery_cell_resolved) —
@@ -270,6 +303,7 @@ func play_prize_spin_announcement(flavor_pool: Array[String], landed_label: Stri
 ## en dehors de toute resolution de Partition (retour de playtest : le
 ## message_display discret ne suffisait pas, passait inapercu).
 func play_mystery_announcement(label: String, description: String = "") -> void:
+	await _acquire_lock()
 	visible = true
 	_hide_breakdown_children()
 	remove_theme_font_size_override("font_size")
@@ -288,6 +322,7 @@ func play_mystery_announcement(label: String, description: String = "") -> void:
 	await get_tree().create_timer(mystery_duration).timeout
 	visible = false
 	subtitle.visible = false
+	_release_lock()
 
 
 ## Anime tickets_value en comptant de sa valeur actuelle jusqu'a target, au

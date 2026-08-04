@@ -531,16 +531,25 @@ func _on_va_tout_resolved(final_score: int, won_gamble: bool) -> void:
 
 
 ## Sortilège "Pile ou Face" (session "Vague 2") : bug remonte en playtest
-## ("trigger jamais") -- en fait deux bugs de feedback superposes, pas un
-## echec de la logique elle-meme. 1) TurnController.dropped_token_mutated
-## ne se declenchait jamais faute de signal dedie (spell_triggered de
-## SpellManager ne s'emet que si des mouches ont bouge, jamais le cas ici).
-## 2) meme une fois le signal cable, sync_sprites()/refresh() ne rafraichit
-## jamais le contenu d'un sprite deja cree (seulement sa presence) -- il
-## fallait rebuild_sprites() (meme fonction que _on_petard_detonated/_on_
-## mobile_specials_ticked pour la meme raison).
-func _on_dropped_token_mutated() -> void:
-	grid_visual.rebuild_sprites()
+## ("trigger jamais", puis "je ne vois jamais le +5") -- deux passes de
+## feedback superposees, pas un echec de la logique elle-meme. 1) TurnController.
+## dropped_token_mutated ne se declenchait jamais faute de signal dedie
+## (spell_triggered de SpellManager ne s'emet que si des mouches ont bouge,
+## jamais le cas ici). 2) rebuild_sprites() rafraichissait bien le sprite mais
+## sans aucun highlight -- +5 sur un chiffre deja affiche est invisible au
+## milieu d'une grille chargee, contrairement au Rock (sprite different, sans
+## ambiguite). Reutilise maintenant le meme langage visuel que le Boost de la
+## roulette (GridVisual.animate_boost, flash dore) pour le cas +5 valeur --
+## le Rock garde un simple replace_sprite, deja suffisant.
+func _on_dropped_token_mutated(col: int, row: int) -> void:
+	var token: TokenData = grid_manager.get_cell(col, row)
+	if token == null:
+		return
+	var cell: Vector2i = Vector2i(col, row)
+	if token.kind == TokenData.Kind.BASE:
+		await grid_visual.animate_boost(cell, token)
+	else:
+		grid_visual.replace_sprite(cell, token)
 	spells_ui.tilt_spell(&"pile_ou_face")
 
 
@@ -556,14 +565,15 @@ func _on_mobile_specials_scored(amount: int) -> void:
 
 
 ## Case mystere revelee (voir TurnController.mystery_cell_resolved) : message
-## + animation du compteur si score_delta != 0 (meme raison que petard_scored/
-## mobile_specials_scored ci-dessus). FAMILY_SHUFFLE/TELEPORT ont en plus
-## besoin d'un refresh visuel — le jeton a mute ou change de case sans passer
-## par un event de CascadeResolver, rien d'autre ne previent le sprite.
-func _on_mystery_cell_resolved(col: int, row: int, effect: MysteryCellEffects.Type, score_delta: int) -> void:
+## + refresh du label de cible si target_delta != 0 (SCORE_UP/SCORE_DOWN
+## deplacent desormais la cible, pas le score actuel — voir ScoreManager.
+## adjust_target). FAMILY_SHUFFLE/TELEPORT ont en plus besoin d'un refresh
+## visuel — le jeton a mute ou change de case sans passer par un event de
+## CascadeResolver, rien d'autre ne previent le sprite.
+func _on_mystery_cell_resolved(col: int, row: int, effect: MysteryCellEffects.Type, target_delta: int) -> void:
 	grid_visual.play_mystery_announcement(MysteryCellEffects.LABELS[effect] as String, MysteryCellEffects.DESCRIPTIONS[effect] as String)
-	if score_delta != 0:
-		_animate_score_to(_displayed_score + score_delta)
+	if target_delta != 0:
+		_update_score_display()
 
 	match effect:
 		MysteryCellEffects.Type.FAMILY_SHUFFLE:

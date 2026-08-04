@@ -5,7 +5,7 @@ class_name DeckToolData
 extends Resource
 
 enum Rarity { COMMON, UNCOMMON, RARE, EPIC }
-enum Action { INCREASE, DECREASE, CHANGE_FAMILY, SPLIT, FUSE, REMOVE, FIX_FIGURE }
+enum Action { INCREASE, DECREASE, CHANGE_FAMILY, SPLIT, FUSE, REMOVE, FIX_VALUE }
 
 @export var id: StringName = &""
 @export var label: String = ""

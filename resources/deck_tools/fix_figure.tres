@@ -6,6 +6,6 @@
 script = ExtResource("1_script")
 id = &"fix_figure"
 label = "FIXER"
-description = "Verrouille une figure (Valet+) contre toute promotion future, même si elle rescore"
+description = "Verrouille un jeton contre toute mutation future de sa valeur (promotion, Boost de la roulette...)"
 rarity = 1
 action = 6

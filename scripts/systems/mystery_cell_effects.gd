@@ -12,8 +12,8 @@ class_name MysteryCellEffects
 extends RefCounted
 
 enum Type {
-	SCORE_UP,          # +10% du score actuel de la manche
-	SCORE_DOWN,        # -10% du score actuel de la manche
+	SCORE_UP,          # cible de score -10% (retune : sur le score actuel, un tirage tot en manche donnait un delta de 0% de rien)
+	SCORE_DOWN,        # cible de score +10%
 	FLIES_UP_SMALL,    # +1 mouche
 	FLIES_UP_BIG,      # +5 mouches
 	FLIES_DOWN_SMALL,  # -1 mouche
@@ -29,8 +29,8 @@ enum Type {
 }
 
 const LABELS: Dictionary = {
-	Type.SCORE_UP: "BONUS SCORE +10%",
-	Type.SCORE_DOWN: "MALUS SCORE -10%",
+	Type.SCORE_UP: "BONUS CIBLE -10%",
+	Type.SCORE_DOWN: "MALUS CIBLE +10%",
 	Type.FLIES_UP_SMALL: "MOUCHE TROUVEE",
 	Type.FLIES_UP_BIG: "TRESOR DE MOUCHES",
 	Type.FLIES_DOWN_SMALL: "MOUCHE PERDUE",
@@ -46,8 +46,8 @@ const LABELS: Dictionary = {
 }
 
 const DESCRIPTIONS: Dictionary = {
-	Type.SCORE_UP: "Augmente le score actuel de %d%%." % int(GameRules.MYSTERY_SCORE_PERCENT * 100),
-	Type.SCORE_DOWN: "Diminue le score actuel de %d%%." % int(GameRules.MYSTERY_SCORE_PERCENT * 100),
+	Type.SCORE_UP: "Diminue la cible de score de %d%%." % int(GameRules.MYSTERY_SCORE_PERCENT * 100),
+	Type.SCORE_DOWN: "Augmente la cible de score de %d%%." % int(GameRules.MYSTERY_SCORE_PERCENT * 100),
 	Type.FLIES_UP_SMALL: "Gagne %d mouche." % GameRules.MYSTERY_FLIES_SMALL,
 	Type.FLIES_UP_BIG: "Gagne %d mouches." % GameRules.MYSTERY_FLIES_BIG_GAIN,
 	Type.FLIES_DOWN_SMALL: "Perd %d mouche." % GameRules.MYSTERY_FLIES_SMALL,

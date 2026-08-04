@@ -680,15 +680,21 @@ func promote_matching_button(family: TokenData.Family, value: int) -> bool:
 	return false
 
 
-## Action "Fixer" des Des a coudre : verrouille une figure (Valet+) contre
-## toute promotion future par le score. Gratuit en ressources autres que le
-## Des a coudre lui-meme — pas un achat direct de progression, juste un choix
-## de timing sur un chemin qui reste entierement gagne par le jeu.
+## Action "Fixer" des Des a coudre : verrouille un jeton contre toute mutation
+## future de sa valeur -- promotion en figure par le score (voir
+## promote_matching_button), ou Boost de la roulette (voir boost_random_button/
+## GridManager.boost_random_token). Retune : initialement borne aux figures
+## (Valet+), elargi suite a un retour playtest -- un jeton normal patiemment
+## amene a une valeur precise (ex: 7 pour la Partition 777 via Augmenter) peut
+## se faire muter par un Boost aleatoire, ruinant un travail delibere sans
+## aucun moyen de s'en proteger. Gratuit en ressources autres que le Des a
+## coudre lui-meme — pas un achat direct de progression, juste un choix de
+## timing/protection sur un chemin qui reste entierement gagne par le joueur.
 func lock_button(index: int) -> bool:
 	if index < 0 or index >= _button_pool.size():
 		return false
 	var token: TokenData = _button_pool[index]
-	if token.value < GameRules.MAX_BUTTON_VALUE or token.locked:
+	if token.kind != TokenData.Kind.BASE or token.locked:
 		return false
 	var locked_copy: TokenData = TokenData.make_base(token.family, token.value)
 	locked_copy.locked = true
@@ -942,12 +948,15 @@ func add_button(family: TokenData.Family, value: int) -> void:
 ## contraire a sa raison d'etre (voir docs/logs/Session 25.md). Exclut les
 ## boutons deja a MAX_BUTTON_VALUE (10) ou au-dela (Figures, Valet+) -- meme
 ## raison que GridManager.boost_random_token, en pire ici puisque l'effet
-## gaspille serait definitivement perdu (pas juste ce tour-ci). Ne fait rien
-## si le pool est vide ou n'a plus aucun candidat boostable.
+## gaspille serait definitivement perdu (pas juste ce tour-ci). Exclut aussi
+## les boutons verrouilles (voir lock_button, action "Fixer") -- un jeton
+## amene a une valeur precise pour une Partition comme 777 ne doit jamais se
+## faire muter par surprise. Ne fait rien si le pool est vide ou n'a plus
+## aucun candidat boostable.
 func boost_random_button(amount: int) -> void:
 	var candidates: Array[int] = []
 	for i in range(_button_pool.size()):
-		if _button_pool[i].kind == TokenData.Kind.BASE and _button_pool[i].value < GameRules.MAX_BUTTON_VALUE:
+		if _button_pool[i].kind == TokenData.Kind.BASE and _button_pool[i].value < GameRules.MAX_BUTTON_VALUE and not _button_pool[i].locked:
 			candidates.append(i)
 	if candidates.is_empty():
 		return

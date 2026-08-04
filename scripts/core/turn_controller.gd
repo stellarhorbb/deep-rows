@@ -39,20 +39,22 @@ signal comete_scored(amount: int)
 ## pose a ete mute en place (valeur ou kind) -- rien d'autre dans le jeu ne
 ## mute le jeton dropped lui-meme pendant on_token_drop, donc une diff avant/
 ## apres suffit a detecter le declenchement sans coupler TurnController a un
-## id de Sortilège precis. Le visuel doit reconstruire le sprite concerne
-## (voir GameScene._on_dropped_token_mutated) : sync_sprites/refresh ne
-## rafraichissent jamais le contenu d'un sprite deja cree, seulement sa
-## presence.
-signal dropped_token_mutated()
+## id de Sortilège precis. Emis seulement une fois l'animation de chute
+## terminee (apres drop_animated), pas au moment du drop -- le joueur doit
+## voir le jeton atterrir avant de voir sa valeur changer, meme langage
+## visuel que le Boost de la roulette (voir GameScene._on_dropped_token_
+## mutated / GridVisual.animate_boost).
+signal dropped_token_mutated(col: int, row: int)
 ## Emis quand un special "mangeur/scoreur" (Cavalier, Frog, Liane) mange un
 ## jeton en se deplacant/grandissant — meme raison que petard_scored, en
 ## dehors de la banniere de resolution normale (voir tick_mobile_specials).
 signal mobile_specials_scored(amount: int)
 ## Case mystere revelee et resolue (voir GridManager.mystery_cell_triggered /
 ## _on_mystery_cell_triggered) — le visuel affiche un message et, si
-## score_delta != 0, anime le compteur (meme raison que petard_scored/
-## mobile_specials_scored : en dehors de la banniere de resolution normale).
-signal mystery_cell_resolved(col: int, row: int, effect: MysteryCellEffects.Type, score_delta: int)
+## target_delta != 0 (SCORE_UP/SCORE_DOWN, retune : deplacent la cible plutot
+## que le score actuel, voir ScoreManager.adjust_target), rafraichit le label
+## de cible.
+signal mystery_cell_resolved(col: int, row: int, effect: MysteryCellEffects.Type, target_delta: int)
 
 ## Hooks consommes par SpellManager (dispatch vers les SpellEffect equipes).
 signal round_started()
@@ -190,19 +192,18 @@ func play_current_to(col: int, row: int) -> void:
 	deck_manager.consume_current()
 	await _drop_token(token, col)
 
-	# Malus de boss BOURRASQUE (voir BossMalusManager) : le jeton suivant du
-	# stream tombe automatiquement dans la meme colonne, juste au-dessus,
-	# avant toute resolution. S'il n'y a plus de place, il reste simplement
-	# current pour le prochain tour (pas de perte de jeton). Special au sens
-	# stream uniquement -- n'a pas de sens pour un tour venu de l'inventaire
-	# (voir play_special_from_inventory), donc reste ici plutot que dans le
-	# pipeline commun _resolve_turn.
+	# Malus de boss BOURRASQUE (voir BossMalusManager, DeckManager.
+	# take_first_held) : le jeton tenu en Hold (premier slot non vide) tombe
+	# automatiquement dans la meme colonne, juste au-dessus -- silencieux si
+	# rien n'est tenu, ou si la colonne est deja pleine (pas de perte de
+	# jeton, il reste en Hold). Special au sens stream uniquement -- n'a pas
+	# de sens pour un tour venu de l'inventaire (voir play_special_from_
+	# inventory), donc reste ici plutot que dans le pipeline commun _resolve_turn.
 	if boss_malus_manager.active_malus == BossMalusManager.Type.BOURRASQUE:
-		deck_manager.advance_stream()
-		var bonus_token: TokenData = deck_manager.get_current()
-		if bonus_token != null and grid_manager.can_play_token(bonus_token, col, 0):
-			deck_manager.consume_current()
-			await _drop_token(bonus_token, col)
+		var held_token: TokenData = deck_manager.get_hold()
+		if held_token != null and grid_manager.can_play_token(held_token, col, 0):
+			deck_manager.take_first_held()
+			await _drop_token(held_token, col)
 
 	await _resolve_turn()
 
@@ -279,14 +280,16 @@ func _resolve_turn() -> void:
 ## Factorise pour que BOURRASQUE puisse rejouer la meme sequence sur un 2e
 ## jeton dans la meme colonne (voir play_current_to).
 func _drop_token(token: TokenData, col: int) -> void:
-	grid_manager.place_token(token, col, 0)
+	var landing_row: int = grid_manager.place_token(token, col, 0)
 	var pre_value: int = token.value
 	var pre_kind: TokenData.Kind = token.kind
 	token_dropped.emit(token, col, 0)
-	if token.value != pre_value or token.kind != pre_kind:
-		dropped_token_mutated.emit()
+	var mutated: bool = token.value != pre_value or token.kind != pre_kind
 
 	await drop_animated
+
+	if mutated and landing_row >= 0:
+		dropped_token_mutated.emit(col, landing_row)
 
 	# Pour les specials : executer l'effet apres la chute, attendre l'animation
 	# d'impact. Retire de l'inventaire AVANT cet appel desormais (voir
@@ -334,19 +337,19 @@ func get_state() -> State:
 
 
 ## Applique l'effet reel d'une case mystere revelee (voir GridManager.
-## mystery_cell_triggered/MysteryCellEffects) — score/mouches/trous/famille/
-## teleport/multi. Rejoue le meme calcul "% du score actuel" que decrit au
-## user (ex: 100/250 -> 110/250), voir GameRules.MYSTERY_SCORE_PERCENT.
+## mystery_cell_triggered/MysteryCellEffects) — cible/mouches/trous/famille/
+## teleport/multi. SCORE_UP/SCORE_DOWN deplacent la cible de %, pas le score
+## actuel (retune : un tirage tot en manche, score encore a 0, donnait un
+## delta de 0% de rien), voir GameRules.MYSTERY_SCORE_PERCENT.
 func _on_mystery_cell_triggered(col: int, row: int, effect: MysteryCellEffects.Type, _token: TokenData) -> void:
-	var score_delta: int = 0
+	var target_delta: int = 0
 	match effect:
 		MysteryCellEffects.Type.SCORE_UP:
-			score_delta = int(round(score_manager.get_score() * GameRules.MYSTERY_SCORE_PERCENT))
-			score_manager.add_score(score_delta)
+			target_delta = -int(round(score_manager.get_target() * GameRules.MYSTERY_SCORE_PERCENT))
+			score_manager.adjust_target(target_delta)
 		MysteryCellEffects.Type.SCORE_DOWN:
-			score_delta = int(round(score_manager.get_score() * GameRules.MYSTERY_SCORE_PERCENT))
-			score_manager.subtract_score(score_delta)
-			score_delta = -score_delta
+			target_delta = int(round(score_manager.get_target() * GameRules.MYSTERY_SCORE_PERCENT))
+			score_manager.adjust_target(target_delta)
 		MysteryCellEffects.Type.FLIES_UP_SMALL:
 			run_manager.add_flies(GameRules.MYSTERY_FLIES_SMALL)
 		MysteryCellEffects.Type.FLIES_UP_BIG:
@@ -374,7 +377,7 @@ func _on_mystery_cell_triggered(col: int, row: int, effect: MysteryCellEffects.T
 		MysteryCellEffects.Type.JACKPOT_MULTI_X10:
 			run_manager.add_grid_modifier(Vector2i(col, row), GameRules.MODIFIER_MYSTERY_X10)
 			run_manager.notify_grid_modifiers_ready()
-	mystery_cell_resolved.emit(col, row, effect, score_delta)
+	mystery_cell_resolved.emit(col, row, effect, target_delta)
 
 
 func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> void:

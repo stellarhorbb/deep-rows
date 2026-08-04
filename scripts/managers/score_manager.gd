@@ -37,6 +37,17 @@ func subtract_score(amount: int) -> void:
 	score_changed.emit(_score, -clamped)
 
 
+## Case mystere SCORE_UP/SCORE_DOWN (voir MysteryCellEffects) : deplace la
+## cible plutot que le score actuel -- un tirage tot en manche (score encore
+## a 0) donnait sinon un delta de 0% de rien. Plancher a 1 pour ne jamais
+## tomber a 0/negatif (target_reached serait alors garanti sans le moindre
+## coup joue). Si la cible tombe sous le score deja acquis, is_target_reached
+## bascule a true naturellement -- deja poll par TurnController apres chaque
+## resolution, rien de plus a cabler.
+func adjust_target(delta: int) -> void:
+	_target = maxi(_target + delta, 1)
+
+
 func get_score() -> int:
 	return _score
 

@@ -13,9 +13,12 @@ enum SpecialType { NONE, FANTOME, BOMBE, MAREE, ENCLUME, PETARD_A_MECHE, CAVALIE
 
 var kind: Kind = Kind.BASE
 var family: Family = Family.BATONS
-## Fige une figure (Valet+) contre toute promotion future, meme si elle
-## rescore (voir RunManager.lock_button, action "Fixer" des Des a coudre).
-## Sans effet sur une valeur normale (< MAX_BUTTON_VALUE).
+## Fige la valeur d'un jeton contre toute mutation future -- promotion en
+## figure meme s'il rescore, ou Boost de la roulette (voir RunManager.
+## lock_button, action "Fixer" des Des a coudre). Marche aussi bien sur une
+## figure (Valet+) que sur une valeur normale (retune : initialement limite
+## aux figures, elargi suite a un retour playtest sur le Boost qui pouvait
+## ruiner une valeur precise construite au dé a coudre).
 var locked: bool = false
 var value: int = 1
 var special_type: SpecialType = SpecialType.NONE

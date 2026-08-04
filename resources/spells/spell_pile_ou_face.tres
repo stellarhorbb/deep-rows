@@ -1,14 +1,14 @@
-[gd_resource type="Resource" script_class="SpellData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SpellData" format=3 uid="uid://ct01hjfwk5bj"]
 
-[ext_resource type="Script" path="res://scripts/data/spell_data.gd" id="1_data"]
-[ext_resource type="Script" path="res://scripts/spells/effect_pile_ou_face.gd" id="2_effect"]
+[ext_resource type="Script" uid="uid://ct80ym651ovo7" path="res://scripts/data/spell_data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://baseiuuvm50b6" path="res://scripts/spells/effect_pile_ou_face.gd" id="2_effect"]
 
 [resource]
 script = ExtResource("1_data")
 id = &"pile_ou_face"
 label = "PILE OU FACE"
 description = "Au drop, 10% de chance : pile +5 de valeur, face devient un Rock pour la manche"
-trigger = &"on_token_drop"
 price = 6
 rarity = 2
+trigger = &"on_token_drop"
 effect_script = ExtResource("2_effect")

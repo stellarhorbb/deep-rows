@@ -259,6 +259,12 @@ const MODIFIER_BORD_A_BORD_MULT: float = 1.2
 const ROUND_START_MYSTERY_MIN: int = 2
 const ROUND_START_MYSTERY_MAX: int = 4
 
+## QoL (retour user) : les "?" de round-start apparaissent en escalier
+## gauche a droite plutot que toutes en meme temps, meme langage visuel que
+## GameScene._play_carryover_intro (jetons persistes). Delai entre chaque
+## colonne concernee, pas entre chaque case individuelle.
+const MYSTERY_REVEAL_STAGGER: float = 0.12
+
 ## Taux fixe par palier (Commun/Rare/Jackpot), meme principe que
 ## SPELL_RARITY_RATES : le taux se fixe par palier, pas par item — avoir plus
 ## d'items en Rare rend juste ce palier plus varie, pas plus frequent.

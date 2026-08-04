@@ -1,15 +1,13 @@
-[gd_resource type="Resource" script_class="SheetData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SheetData" format=3 uid="uid://ciwb68ww3vjss"]
 
-[ext_resource type="Script" path="res://scripts/data/sheet_data.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://k37ydar6rjlo" path="res://scripts/data/sheet_data.gd" id="1_script"]
 
 [resource]
 script = ExtResource("1_script")
-unlock_id = "sheet:jackpot_777"
 sheet_name = &"jackpot_777"
+unlock_id = "sheet:jackpot_777"
 shape = &"line"
 rule = &"jackpot_777"
-min_size = 3
-direction = &"any"
-score_multiplier = 1.5
+score_multiplier = 7.0
 label = "777"
 price = 6
