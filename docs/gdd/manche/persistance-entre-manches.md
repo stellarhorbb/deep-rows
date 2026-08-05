@@ -4,7 +4,7 @@ Ajouté en session 26. Le [bouton](../jetons/boutons.md) qui occupe la case la p
 
 ## Le problème posé
 
-Diagnostic creusé sur deux jours de discussion (comparaison à Cursed Words/CloverPit/Dogpile/Bills Must Be Paid) : les 5 à 10 premiers drops de chaque manche se sentaient "scolaires" — aucun système existant (résolution de [Partition](../partitions/principe.md), [roulette](../manche/roulette-casino.md), [cases mystère](../grille/modifiers-cellules.md)) ne peut mathématiquement se déclencher tant qu'il n'y a pas de matière assemblée sur la grille. Round-start est le cas extrême d'une asymétrie plus générale : une résolution efface plusieurs cases d'un coup, le remplissage n'en ajoute qu'une par tour.
+Diagnostic creusé sur deux jours de discussion (comparaison à Cursed Words/CloverPit/Dogpile/Bills Must Be Paid) : les 5 à 10 premiers drops de chaque manche se sentaient "scolaires" — aucun système existant (résolution de [Partition](../partitions/principe.md), [roulette — depuis remplacée par la Colonne Convoitée](colonne-convoitee.md), [cases mystère](../grille/modifiers-cellules.md)) ne peut mathématiquement se déclencher tant qu'il n'y a pas de matière assemblée sur la grille. Round-start est le cas extrême d'une asymétrie plus générale : une résolution efface plusieurs cases d'un coup, le remplissage n'en ajoute qu'une par tour.
 
 ## Pistes essayées et écartées avant celle-ci
 

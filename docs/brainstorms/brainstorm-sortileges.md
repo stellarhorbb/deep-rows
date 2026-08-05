@@ -195,12 +195,12 @@ Idee du user : "si l'Entity aligne 3 skulls, on declenche la roulette" — meme 
 
 En discutant de la demande "reordonner les Sortilèges equipes" (voir `questions-ouvertes.md`), on a verifie qu'aucun Sortilège actuel n'a de vrai interet a etre reordonne — les seuls cas ou l'ordre compte aujourd'hui sont des collisions accidentelles sur la meme cle (`rule_multiplier`, `value_bonus_multiplier`, qui ecrasent au lieu de cumuler), pas un design intentionnel.
 
-Le vrai potentiel : des Sortilèges qui referencent explicitement leur position, façon **Blueprint/Brainstorm** de Balatro — un Sortilège qui copie l'effet du Sortilège equipe juste a cote de lui (ou le premier/dernier du rang). Exemples a explorer :
-- **"Miroir"** : copie l'effet du Sortilège equipe immediatement a droite
-- **"Echo"** : double l'effet du Sortilège equipe immediatement a gauche
-- **"Chef de file"** : le premier Sortilège du rang voit son effet applique deux fois
+Le vrai potentiel : des Sortilèges qui referencent explicitement leur position, façon **Blueprint/Brainstorm** de Balatro — un Sortilège qui copie l'effet du Sortilège equipe juste a cote de lui (ou le premier/dernier du rang). Exemples explores :
+- **"Miroir"** — **IMPLEMENTE** (voir `sortileges-implementes.md`) : copie la contribution du Sortilège equipe immediatement a GAUCHE (pas a droite comme envisage ici), via `RunManager.mirror_spell_contribution`. Occupe donc deja la case que ce brainstorm reservait au concept "Echo" ci-dessous.
+- ~~"Echo" : double l'effet du Sortilège equipe immediatement a gauche~~ — nom reutilise en session 27 pour un Sortilège totalement different (probabiliste : 15% de chance qu'une Partition qui score se retrigger), voir specs Google Sheet. Le concept positionnel d'origine reste libre si jamais repris sous un autre nom.
+- **"Chef de file"** : le premier Sortilège du rang voit son effet applique deux fois — toujours a l'etat d'idee, pas implemente.
 
-Ca transforme le reordonnancement en vrai axe de build ("je mets mon meilleur Sortilège en position 1, puis Miroir juste apres pour le dupliquer") plutot qu'un outil de rangement accessoire. Necessite que `SpellManager._dispatch` expose la position/les voisins d'un Sortilège a son propre `SpellEffect.apply()` — pas cable aujourd'hui (chaque Sortilège ne voit que l'event et le RunManager, pas les autres Sortilèges equipes ni sa propre position dans le tableau).
+Ca transforme le reordonnancement en vrai axe de build ("je mets mon meilleur Sortilège en position 1, puis Miroir juste apres pour le dupliquer") plutot qu'un outil de rangement accessoire. L'infrastructure necessaire (position/voisins d'un Sortilège expose a `SpellEffect.apply()`) a ete cablee entre-temps pour Miroir — reutilisable telle quelle pour "Chef de file" si repris.
 
 ---
 

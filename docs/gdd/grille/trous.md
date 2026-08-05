@@ -20,8 +20,6 @@ Trois jets avant celui-ci, chacun rejeté par un vrai defaut trouve au playtest 
 
 ## Différence avec un Rock
 
-## Différence avec un Rock
-
 C'est la distinction importante : un [Rock](../jetons/rocks.md) **bloque et sert d'appui** (les jetons peuvent atterrir dessus, il occupe une case). Un trou fait l'inverse : **transparent à la gravité**, un jeton qui tombe le traverse sans jamais pouvoir s'y arrêter. Visuellement, un trou est une case foncée distincte des cases vides normales.
 
 ## Impact sur la gravité et les spéciaux
@@ -36,6 +34,30 @@ Diagnostic posé en playtest : la grille se vidait presque à chaque manche, ce 
 
 Fond marin + trous rouges validés au playtest session 26 (relief visible, plus varié que le scatter d'origine) — total et répartition exacte (nombre de pics, taux par hauteur) restent un premier jet à surveiller. Pas encore de source supplémentaire (Sortilège, zone, Entity) qui ajouterait des trous — pourrait être une piste de contenu future.
 
+## Cases mystère
+
+Codées en session 24 (`MysteryCellEffects`), posées au début de chaque manche (`GameRules.ROUND_START_MYSTERY_MIN/MAX`, 2 à 4), en dernier dans l'ordre de génération pour éviter les cases déjà occupées par le fond marin/les jetons persistés. Cases "?" visibles-mais-inconnues, effet caché révélé quand un jeton atterrit dessus, paliers de rareté Commun/Rare/Jackpot (`GameRules.MYSTERY_RARITY_RATES` = 55/40/5%).
+
+**Catalogue recentré sur la grille/le jeton (session 27)** — retire les effets purement économiques (cible de score, mouches) diagnostiqués comme détachés du geste, voir [Colonne Convoitée](../manche/colonne-convoitee.md#ce-qui-a-été-écarté) pour le même diagnostic appliqué à la roulette. Ratio bonus/malus pondéré par palier visé à ~70/30 — volontairement généreux pour que chasser une case mystère reste un vrai attrait, jamais une pièce de monnaie neutre :
+
+| Palier | Effet | Bonus/Malus | Description |
+|---|---|---|---|
+| Commun | Valeur +1 | Bonus | Augmente la valeur du jeton posé |
+| Commun | Trou rebouché | Bonus | Comble un trou existant ailleurs |
+| Commun | Valeur -1 | Malus | Diminue la valeur du jeton posé (plancher `TOKEN_MIN_VALUE`) |
+| Rare | Verrou | Bonus | Verrouille le jeton posé contre toute mutation future |
+| Rare | Fusion spontanée | Bonus | Fusionne le jeton posé avec un voisin adjacent (même formule que la Fusion du deck) |
+| Rare | Pierre libérée | Bonus | Convertit un Rock adjacent en jeton de base |
+| Rare | Multiplicateur ×2 | Bonus | Pose un modifier ×2 permanent sur la case |
+| Rare | Multiplicateur ×5 | Bonus | Pose un modifier ×5 permanent sur la case |
+| Rare | Pétrification | Malus | Un Rock surgit **sous** le jeton posé, qui remonte d'une case — le jeton lui-même n'est jamais muté |
+| Rare | Modifier ×0.5 | Malus | Pose un modifier ×0.5 permanent sur la case |
+| Jackpot | Multiplicateur ×10 | Bonus | Toujours bonus — pas de "jackpot malus", n'aurait aucun sens pour le joueur |
+
+**Retirés du pool (session 27)** : Mutation de famille et Téléportation — retour direct du user en playtest, jamais appréciées : elles reviennent sur une décision de placement déjà prise (le jeton posé change d'identité ou de position après coup) plutôt que d'ajouter un obstacle avec lequel composer. Pétrification et Modifier ×0.5 gardés/préférés précisément parce qu'ils ne touchent jamais à ce qui a été décidé — un Rock ou un malus de case, pas une remise en cause du jeton lui-même.
+
+**Désamorçage par l'Entity (session 27)** — un skull qui atterrit sur une case mystère non révélée la désamorce au lieu de la déclencher, voir [Colonne Convoitée](../manche/colonne-convoitee.md#cases-mystère-et-désamorçage).
+
 ## Liens
 
 - [Format de la grille](format.md)
@@ -43,3 +65,4 @@ Fond marin + trous rouges validés au playtest session 26 (relief visible, plus 
 - [Rocks](../jetons/rocks.md)
 - [Spéciaux](../jetons/specials.md)
 - [Persistance entre manches](../manche/persistance-entre-manches.md)
+- [Colonne Convoitée](../manche/colonne-convoitee.md)

@@ -59,12 +59,12 @@ Un roguelite où le joueur drop des boutons dans une grille verticale (style pui
 - [Score cible](manche/score-cible.md) — courbe exponentielle, figée session 18
 - [Dernier Souffle](manche/dernier-souffle.md) — explosion rocks, cascade surprise
 - [Persistance entre manches](manche/persistance-entre-manches.md) — le bouton le plus haut de chaque colonne survit à la manche suivante (session 26)
-- [Axe casino — roulette et cases mystère](manche/roulette-casino.md) — jauge, seuil fixe 21, spéciaux réactifs (session 25 ; jauge + seuil + Planter codés, reste à faire : UI dédiée, Récolter, les autres prix, les spéciaux réactifs)
+- [Colonne Convoitée](manche/colonne-convoitee.md) — corruption ambiante + pari sur le geste, remplace la roulette (session 27)
 
 ### [Sortilèges](sortileges/)
 - [Principe](sortileges/principe.md) — 5 slots, passifs permanents
 - [Triggers](sortileges/triggers.md) — les 12 triggers et leurs events
-- [Sortilèges implémentés](sortileges/sortileges-implementes.md) — 49 actifs, 1 dormant
+- [Sortilèges implémentés](sortileges/sortileges-implementes.md) — 55 actifs, 1 dormant
 - [Rareté](sortileges/rarete.md) — common → legendary
 - [Feedback visuel](sortileges/feedback-visuel.md) — à faire (HOB-12)
 
