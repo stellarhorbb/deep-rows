@@ -7,7 +7,7 @@
 script = ExtResource("1_data")
 id = &"fenetre_longue"
 label = "FENÊTRE LONGUE"
-description = "Le Multiplicateur de roulette reste actif 5 tours au lieu de 3"
+description = "Le Multiplicateur de la Colonne Convoitée reste actif 5 tours au lieu de 3"
 trigger = &"on_round_start"
 price = 5
 rarity = 2

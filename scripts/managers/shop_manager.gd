@@ -134,9 +134,7 @@ const SPELL_PATHS: Array[String] = [
 	"res://resources/spells/spell_dresseur_fou.tres",
 	"res://resources/spells/spell_souffle_obscur.tres",
 	"res://resources/spells/spell_favoritisme.tres",
-	"res://resources/spells/spell_bon_depart.tres",
 	"res://resources/spells/spell_fenetre_longue.tres",
-	"res://resources/spells/spell_jamais_1_sans_2.tres",
 	"res://resources/spells/spell_deux_etages.tres",
 	"res://resources/spells/spell_vestige.tres",
 	"res://resources/spells/spell_decuple_petard.tres",
@@ -146,6 +144,8 @@ const SPELL_PATHS: Array[String] = [
 	"res://resources/spells/spell_pile_ou_face.tres",
 	"res://resources/spells/spell_dernier_dernier_souffle.tres",
 	"res://resources/spells/spell_miroir.tres",
+	"res://resources/spells/spell_echo.tres",
+	"res://resources/spells/spell_quitte_ou_double.tres",
 ]
 
 ## Outils de deck achetables (DeckToolData) — voir docs/brainstorms/brainstorm-outils-deck.md.

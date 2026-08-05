@@ -15,11 +15,20 @@ signal blocked_column_changed(col: int)
 ## "?" dessus, rien de plus. Une case qui se declenche disparait de ce dict.
 signal mystery_cells_changed(pending_cells: Array[Vector2i])
 ## Emis quand un jeton/rock/special atterrit sur une case mystere non encore
-## revelee — TurnController applique l'effet reel (score/mouches/trou/
-## famille/teleport/multi), voir _on_mystery_cell_triggered. `token` est le
-## jeton qui vient de declencher, pour les effets qui le concernent
-## directement (FAMILY_SHUFFLE, TELEPORT).
+## revelee — TurnController applique l'effet reel (valeur/verrou/fusion/
+## pierre liberee/petrification/trou/multi), voir _on_mystery_cell_triggered.
+## `token` est le jeton qui vient de declencher, present pour compatibilite
+## de signature mais les effets qui le concernent le re-recuperent via
+## get_cell(col, row) plutot que ce parametre directement.
 signal mystery_cell_triggered(col: int, row: int, effect: MysteryCellEffects.Type, token: TokenData)
+## Emis quand un ENTITY (skull) atterrit sur une case mystere non encore
+## revelee (session 27) -- au lieu de declencher l'effet normalement (voir
+## mystery_cell_triggered), la corruption la desamorce : la case est
+## consommee mais l'effet n'est JAMAIS applique. Evite qu'un skull ne
+## distribue accidentellement un bonus (deja arrive avant ce fix), et
+## respecte l'esprit "systemes independants" pose pour roulette/mystere en
+## session 25 -- la corruption ne doit jamais accidentellement recompenser.
+signal mystery_cell_defused(col: int, row: int, effect: MysteryCellEffects.Type)
 ## Emis quand un special mobile a deplace/reorganise silencieusement des
 ## jetons sur la grille (voir tick_mobile_specials) — contrairement a
 ## Fantome/Enclume/Maree (execute_special -> special_executed), ce
@@ -106,12 +115,20 @@ func get_blocked_column() -> int:
 	return _blocked_column
 
 
-## Place un jeton basique ou rock sur la grille. Retourne la landing row
-## (utile pour TurnController.dropped_token_mutated, voir Pile ou Face), -1 si
-## le jeton n'a pas ete place (colonne pleine, ou special -- sa landing row
-## passe par special_landing plutot que la valeur de retour).
+## Place un jeton basique, rock ou entity-skull sur la grille. Retourne la
+## landing row (utile pour TurnController.dropped_token_mutated, voir Pile ou
+## Face), -1 si le jeton n'a pas ete place (colonne pleine, ou special -- sa
+## landing row passe par special_landing plutot que la valeur de retour).
+## ENTITY inclus depuis session 27 (voir EntityManager.
+## roll_cursed_column_corruption) : le skull de corruption d'une Colonne
+## Convoitée passe par TurnController._drop_token comme un jeton normal
+## (animation de chute + notify_drop_complete), plutot que par
+## place_token_direct + animation manuelle (reserve a la corruption ambiante
+## post-tour, voir GameScene._on_turn_resolved -- sans ce cas ENTITY ici,
+## token_placed n'etait jamais emis et l'appelant restait bloque sur
+## "await drop_animated" pour toujours).
 func place_token(token: TokenData, col: int, _row: int) -> int:
-	if token.kind == TokenData.Kind.BASE or token.kind == TokenData.Kind.ROCK:
+	if token.kind == TokenData.Kind.BASE or token.kind == TokenData.Kind.ROCK or token.kind == TokenData.Kind.ENTITY:
 		var landing_row: int = column_height(col)
 		if landing_row >= _rows:
 			return -1
@@ -388,23 +405,10 @@ func _check_mystery_trigger(col: int, row: int, token: TokenData) -> void:
 	var effect: MysteryCellEffects.Type = _mystery_cells[cell] as MysteryCellEffects.Type
 	_mystery_cells.erase(cell)
 	_notify_mystery_cells_changed()
-	mystery_cell_triggered.emit(col, row, effect, token)
-
-
-## Effet HOLE_ADD (voir MysteryCellEffects) : ajoute un trou sur une case
-## actuellement vide, ni trou ni mystere. Ne fait rien si aucune case libre
-## (grille pleine) — pas de fallback force.
-func add_random_hole() -> void:
-	var candidates: Array[Vector2i] = []
-	for c in range(_cols):
-		for r in range(_rows):
-			var cell: Vector2i = Vector2i(c, r)
-			if _holes.has(cell) or _mystery_cells.has(cell) or _grid[c][r] != null:
-				continue
-			candidates.append(cell)
-	if candidates.is_empty():
+	if token.kind == TokenData.Kind.ENTITY:
+		mystery_cell_defused.emit(col, row, effect)
 		return
-	add_holes([candidates.pick_random()])
+	mystery_cell_triggered.emit(col, row, effect, token)
 
 
 ## Effet HOLE_REMOVE (voir MysteryCellEffects) : comble un trou existant
@@ -417,52 +421,92 @@ func remove_random_hole() -> void:
 	holes_changed.emit(_holes.duplicate())
 
 
-## Effet FAMILY_SHUFFLE (voir MysteryCellEffects) : mute la famille du jeton
-## qui a declenche la case, uniquement s'il est scorable (BASE) — un Rock ou
-## un Special n'a pas de famille pertinente, l'effet est alors simplement
-## perdu plutot que de forcer un resultat sans le jeton d'origine.
-func randomize_token_family(col: int, row: int) -> void:
+## Effets VALUE_UP/VALUE_DOWN (voir MysteryCellEffects) : mute la valeur du
+## jeton qui a declenche la case de `delta`, plafonnee entre TOKEN_MIN_VALUE
+## et MAX_BUTTON_VALUE. No-op silencieux sur un jeton non-BASE.
+func nudge_token_value(col: int, row: int, delta: int) -> void:
 	var token: TokenData = get_cell(col, row)
 	if token == null or token.kind != TokenData.Kind.BASE:
 		return
-	var choices: Array[TokenData.Family] = []
-	for f in TokenData.Family.values():
-		if f != token.family:
-			choices.append(f as TokenData.Family)
-	token.family = choices.pick_random()
+	token.value = clampi(token.value + delta, GameRules.TOKEN_MIN_VALUE, GameRules.MAX_BUTTON_VALUE)
 
 
-## Effet TELEPORT (voir MysteryCellEffects) : deplace le jeton qui a
-## declenche la case vers une colonne aleatoire, retasse la colonne
-## d'origine (GravitySystem) pour combler le vide laisse. Scope a BASE/ROCK
-## (voir randomize_token_family pour le meme raisonnement) — un Special
-## mobile/pose garde une logique de position trop specifique pour etre
-## deplace sans risque ici. Retourne la colonne de destination, -1 si aucune
-## colonne n'avait de place libre (jeton laisse sur place).
-func move_token_to_random_column(from_col: int, from_row: int) -> int:
-	var token: TokenData = get_cell(from_col, from_row)
-	if token == null or (token.kind != TokenData.Kind.BASE and token.kind != TokenData.Kind.ROCK):
-		return -1
+## Effet LOCK "Verrou" (voir MysteryCellEffects) : verrouille le jeton qui a
+## declenche la case contre toute mutation future -- meme flag que l'action
+## Fixer des Des a coudre (voir RunManager.lock_button). No-op silencieux sur
+## un jeton non-BASE.
+func lock_token(col: int, row: int) -> void:
+	var token: TokenData = get_cell(col, row)
+	if token == null or token.kind != TokenData.Kind.BASE:
+		return
+	token.locked = true
 
-	# Verifie qu'une colonne de destination a de la place AVANT de toucher a
-	# quoi que ce soit — sinon le retrait + la compaction de la colonne
-	# d'origine (juste apres) rendrait tout rollback ambigu (une case peut
-	# avoir ete comblee entre-temps par un jeton tombe d'au-dessus).
-	var order: Array = range(_cols)
-	order.shuffle()
-	var dest_col: int = -1
-	for c in order:
-		if column_height(c) < _rows:
-			dest_col = c
-			break
-	if dest_col == -1:
-		return -1
 
-	_grid[from_col][from_row] = null
+## Effet FUSION "Fusion spontanee" (voir MysteryCellEffects) : fusionne le
+## jeton qui a declenche la case avec un voisin BASE adjacent (4 directions),
+## meme formule que RunManager.fuse_buttons (valeur = somme plafonnee a
+## MAX_BUTTON_VALUE, famille tiree au hasard entre les deux). Le voisin est
+## retire puis la colonne retassee (GravitySystem). No-op silencieux si aucun
+## voisin BASE a portee.
+func fuse_with_neighbor(col: int, row: int) -> void:
+	var token: TokenData = get_cell(col, row)
+	if token == null or token.kind != TokenData.Kind.BASE:
+		return
+	var neighbor_cell: Vector2i = _find_neighbor(col, row, TokenData.Kind.BASE)
+	if neighbor_cell.x < 0:
+		return
+	var neighbor: TokenData = _grid[neighbor_cell.x][neighbor_cell.y]
+	token.family = token.family if randi() % 2 == 0 else neighbor.family
+	token.value = mini(token.value + neighbor.value, GameRules.MAX_BUTTON_VALUE)
+	_grid[neighbor_cell.x][neighbor_cell.y] = null
 	GravitySystem.apply(_grid, _cols, _rows, _holes)
-	var landing_row: int = column_height(dest_col)
-	_grid[dest_col][landing_row] = token
-	return dest_col
+
+
+## Effet ROCK_FREED "Pierre liberee" (voir MysteryCellEffects) : convertit un
+## Rock adjacent (4 directions) en jeton de base frais (famille aleatoire,
+## valeur GameRules.MYSTERY_ROCK_FREED_VALUE) -- conversion en place, aucune
+## gravite a retasser (le Rock occupait deja cette case). No-op silencieux si
+## aucun Rock a portee.
+func free_adjacent_rock(col: int, row: int) -> void:
+	var rock_cell: Vector2i = _find_neighbor(col, row, TokenData.Kind.ROCK)
+	if rock_cell.x < 0:
+		return
+	var family: TokenData.Family = TokenData.Family.values().pick_random()
+	_grid[rock_cell.x][rock_cell.y] = TokenData.make_base(family, GameRules.MYSTERY_ROCK_FREED_VALUE)
+
+
+## Effet PETRIFICATION (voir MysteryCellEffects) : un Rock surgit SOUS le
+## jeton qui a declenche la case -- le jeton lui-meme n'est jamais mute (voir
+## discussion de design, session 27 : contrairement a une mutation/
+## teleportation qui reviendrait sur le choix du joueur, ceci ajoute un
+## obstacle de terrain sans jamais toucher a ce qu'il a decide de poser),
+## juste pousse d'une row plus haut. Fizzle silencieux si aucune place au-
+## dessus (colonne pleine ou trou) -- meme discipline que free_adjacent_rock.
+func petrify_below(col: int, row: int) -> void:
+	var token: TokenData = get_cell(col, row)
+	if token == null:
+		return
+	var above: int = row + 1
+	if above >= _rows or _holes.has(Vector2i(col, above)) or _grid[col][above] != null:
+		return
+	_grid[col][above] = token
+	_grid[col][row] = TokenData.make_rock()
+
+
+## Cherche un voisin direct (4 directions, ordre randomise) du type demande.
+## Retourne Vector2i(-1,-1) si aucun trouve.
+func _find_neighbor(col: int, row: int, kind: TokenData.Kind) -> Vector2i:
+	var offsets: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	offsets.shuffle()
+	for offset in offsets:
+		var c: int = col + offset.x
+		var r: int = row + offset.y
+		if c < 0 or c >= _cols or r < 0 or r >= _rows:
+			continue
+		var neighbor: TokenData = _grid[c][r]
+		if neighbor != null and neighbor.kind == kind:
+			return Vector2i(c, r)
+	return Vector2i(-1, -1)
 
 
 ## Malus de boss MÈCHE COURTE (voir BossMalusManager) : decompte le countdown
@@ -760,6 +804,30 @@ func boost_random_token(amount: int) -> Vector2i:
 	var token: TokenData = _grid[cell.x][cell.y]
 	token.value = mini(token.value + amount, GameRules.MAX_BUTTON_VALUE)
 	return cell
+
+
+## Bouton d'urgence "Shake" (session 27, remplace le remelange invisible du
+## stream, jamais utilise en playtest -- "il n'a rien de tres spectaculaire")
+## : shuffle physique de tous les jetons de base actuellement sur la grille.
+## Meme footprint de cellules (aucune gravite a retasser) -- seul QUEL jeton
+## est OU change, holes/rocks/entity-skulls jamais touches (obstacles
+## structurels, les deplacer ne debloquerait rien). Les jetons verrouilles
+## restent fixes eux aussi -- meme logique que la protection Fixer contre le
+## Boost (voir GridManager.boost_random_token) : un joueur qui a verrouille un
+## jeton l'a fait pour une raison precise, un shuffle ne doit pas ruiner un
+## placement deja soigne sans aucun recours.
+func shuffle_base_tokens() -> void:
+	var cells: Array[Vector2i] = []
+	var tokens: Array[TokenData] = []
+	for c in range(_cols):
+		for r in range(_rows):
+			var token: TokenData = _grid[c][r]
+			if token != null and token.kind == TokenData.Kind.BASE and not token.locked:
+				cells.append(Vector2i(c, r))
+				tokens.append(token)
+	tokens.shuffle()
+	for i in range(cells.size()):
+		_grid[cells[i].x][cells[i].y] = tokens[i]
 
 
 ## Dernier Souffle : supprime les residus ET les rocks, laisse les jetons de base en place.

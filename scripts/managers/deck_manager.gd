@@ -3,7 +3,6 @@ extends Node
 
 signal deck_built(size: int)
 signal stream_updated(current: TokenData, hold: Array[TokenData], preview: Array[TokenData])
-signal shaken()
 
 ## Nombre de slots de hold pour la manche — 1 par defaut, augmentable par
 ## Sortilège (ex: "Benediction", +1 slot). Pose par TurnController.start_round
@@ -199,33 +198,6 @@ func force_hold_to_current() -> void:
 	_current = _hold[slot]
 	_hold[slot] = null
 	_emit_stream_updated()
-
-
-## "Shake" (bouton d'urgence, charge limitee par run -- voir RunManager.
-## spend_shake_charge) : remelange ce qui reste a jouer cette manche --
-## current + pioche -- sans jamais changer la composition (get_
-## remaining_tokens(), donc l'Inspecteur de deck, n'est pas affecte). Inclure
-## le current est deliberement : c'est souvent lui le vrai point de blocage
-## (jeton injouable en main), pas l'ordre du reste de la pioche. Le Hold reste
-## intact (retire du melange en session 23, playtest : un special mis de cote
-## expres s'y faisait perdre au hasard, contraire au but du slot).
-func shake() -> void:
-	var had_current: bool = _current != null
-
-	var pool: Array[TokenData] = _deck.duplicate()
-	if _current != null:
-		pool.append(_current)
-	pool.shuffle()
-
-	_current = null
-	if had_current and pool.size() > 0:
-		_current = pool.pop_back()
-
-	_deck = pool
-
-	shaken.emit()
-	_emit_stream_updated()
-
 
 func _shuffle() -> void:
 	for i in range(_deck.size() - 1, 0, -1):

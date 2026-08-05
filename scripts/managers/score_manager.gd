@@ -26,26 +26,15 @@ func add_score(amount: int) -> void:
 		target_reached.emit(_score, _target)
 
 
-## Case mystere SCORE_DOWN (voir MysteryCellEffects) : seul malus capable de
-## retirer du score actuel de la manche. Plafonne a 0 plutot que de basculer
-## en negatif — aucun autre systeme du jeu ne s'attend a un score negatif.
+## Sortilège "Dernier dernier Souffle" (Va-tout) : mise le score de la manche
+## sur un tirage final. Plafonne a 0 plutot que de basculer en negatif —
+## aucun autre systeme du jeu ne s'attend a un score negatif.
 func subtract_score(amount: int) -> void:
 	if amount <= 0:
 		return
 	var clamped: int = mini(amount, _score)
 	_score -= clamped
 	score_changed.emit(_score, -clamped)
-
-
-## Case mystere SCORE_UP/SCORE_DOWN (voir MysteryCellEffects) : deplace la
-## cible plutot que le score actuel -- un tirage tot en manche (score encore
-## a 0) donnait sinon un delta de 0% de rien. Plancher a 1 pour ne jamais
-## tomber a 0/negatif (target_reached serait alors garanti sans le moindre
-## coup joue). Si la cible tombe sous le score deja acquis, is_target_reached
-## bascule a true naturellement -- deja poll par TurnController apres chaque
-## resolution, rien de plus a cabler.
-func adjust_target(delta: int) -> void:
-	_target = maxi(_target + delta, 1)
 
 
 func get_score() -> int:

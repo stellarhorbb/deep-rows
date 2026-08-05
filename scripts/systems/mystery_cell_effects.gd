@@ -1,76 +1,76 @@
-## Catalogue des effets de case mystere (session 24, axe casino) — voir
-## GridManager.generate_random_mystery_cells/mystery_cell_triggered et
-## TurnController._on_mystery_cell_triggered pour la pose/le declenchement.
-## Meme esprit que BossMalusManager : un enum + un pool + un taux fixe par
-## palier (GameRules.MYSTERY_RARITY_RATES), pas par item (voir _draw_spell_
-## queued dans ShopManager pour le meme principe applique aux Sortilèges).
+## Catalogue des effets de case mystere. Recentre sur la grille/le jeton en
+## session 27 (retire les effets economiques -- mouches/cible -- diagnostiques
+## comme detaches du geste, voir docs/brainstorms/brainstorm-geste-central.md
+## et le log de session pour l'echange complet). Ratio bonus/malus pondere
+## par palier vise ~70/30 -- volontairement genereux pour que chasser une
+## case mystere reste un vrai attrait, jamais une pièce de monnaie neutre.
+## Le Jackpot reste TOUJOURS bonus (jamais de "jackpot malus", ca n'a aucun
+## sens pour un joueur).
 ##
-## "Fixe le jeton (ignore gravite)" volontairement absent du premier jet —
-## seul effet qui toucherait GravitySystem, laisse de cote le temps de voir
-## si le concept accroche (voir log de session).
+## Malus retenus : uniquement ceux qui n'annulent jamais une decision de
+## placement deja prise (contrairement a Mutation de famille/Teleportation,
+## retirees du pool -- le retour du user est net : "j'ai jamais aime tomber
+## dessus", parce que ca revient sur un choix deja fait plutot que d'ajouter
+## un obstacle avec lequel composer). Petrification en particulier ne mute
+## JAMAIS le jeton du joueur -- voir GridManager.petrify_below.
+##
+## Meme esprit que BossMalusManager : un enum + un pool + un taux fixe par
+## palier (GameRules.MYSTERY_RARITY_RATES), pas par item.
 class_name MysteryCellEffects
 extends RefCounted
 
 enum Type {
-	SCORE_UP,          # cible de score -10% (retune : sur le score actuel, un tirage tot en manche donnait un delta de 0% de rien)
-	SCORE_DOWN,        # cible de score +10%
-	FLIES_UP_SMALL,    # +1 mouche
-	FLIES_UP_BIG,      # +5 mouches
-	FLIES_DOWN_SMALL,  # -1 mouche
-	FLIES_DOWN_BIG,    # -2 mouches (retune session 25, etait -5)
-	HOLE_ADD,          # ajoute un trou ailleurs sur la grille
-	HOLE_REMOVE,       # bouche un trou existant ailleurs
-	FAMILY_SHUFFLE,    # change le jeton pose en une autre famille aleatoire
-	TELEPORT,          # teleporte le jeton pose dans une colonne aleatoire
+	VALUE_UP,          # +1 valeur sur le jeton pose
+	HOLE_REMOVE,       # comble un trou existant ailleurs sur la grille
+	VALUE_DOWN,        # -1 valeur sur le jeton pose (plancher TOKEN_MIN_VALUE)
+	LOCK,              # verrouille le jeton pose contre toute mutation future
+	FUSION,            # fusionne le jeton pose avec un voisin adjacent
+	ROCK_FREED,        # convertit un Rock adjacent en jeton de base
 	MULTI_X2,          # pose un modifier x2 permanent sur la case
 	MULTI_X5,          # pose un modifier x5 permanent sur la case
-	JACKPOT_FLIES,     # +20 mouches
+	PETRIFICATION,     # un Rock apparait SOUS le jeton pose, qui monte d'une row
+	MODIFIER_HALF,     # pose un modifier x0.5 permanent sur la case
 	JACKPOT_MULTI_X10, # pose un modifier x10 permanent sur la case
 }
 
 const LABELS: Dictionary = {
-	Type.SCORE_UP: "BONUS CIBLE -10%",
-	Type.SCORE_DOWN: "MALUS CIBLE +10%",
-	Type.FLIES_UP_SMALL: "MOUCHE TROUVEE",
-	Type.FLIES_UP_BIG: "TRESOR DE MOUCHES",
-	Type.FLIES_DOWN_SMALL: "MOUCHE PERDUE",
-	Type.FLIES_DOWN_BIG: "PIEGE A MOUCHES",
-	Type.HOLE_ADD: "TROU EN PLUS",
+	Type.VALUE_UP: "VALEUR EN HAUSSE",
 	Type.HOLE_REMOVE: "TROU REBOUCHE",
-	Type.FAMILY_SHUFFLE: "MUTATION TEMPORAIRE",
-	Type.TELEPORT: "TELEPORTATION",
+	Type.VALUE_DOWN: "VALEUR EN BAISSE",
+	Type.LOCK: "JETON VERROUILLE",
+	Type.FUSION: "FUSION SPONTANEE",
+	Type.ROCK_FREED: "PIERRE LIBEREE",
 	Type.MULTI_X2: "MULTIPLICATEUR x2",
 	Type.MULTI_X5: "MULTIPLICATEUR x5",
-	Type.JACKPOT_FLIES: "JACKPOT DE MOUCHES",
+	Type.PETRIFICATION: "PETRIFICATION",
+	Type.MODIFIER_HALF: "MODIFICATEUR x0.5",
 	Type.JACKPOT_MULTI_X10: "JACKPOT DE MULTI",
 }
 
 const DESCRIPTIONS: Dictionary = {
-	Type.SCORE_UP: "Diminue la cible de score de %d%%." % int(GameRules.MYSTERY_SCORE_PERCENT * 100),
-	Type.SCORE_DOWN: "Augmente la cible de score de %d%%." % int(GameRules.MYSTERY_SCORE_PERCENT * 100),
-	Type.FLIES_UP_SMALL: "Gagne %d mouche." % GameRules.MYSTERY_FLIES_SMALL,
-	Type.FLIES_UP_BIG: "Gagne %d mouches." % GameRules.MYSTERY_FLIES_BIG_GAIN,
-	Type.FLIES_DOWN_SMALL: "Perd %d mouche." % GameRules.MYSTERY_FLIES_SMALL,
-	Type.FLIES_DOWN_BIG: "Perd %d mouches." % GameRules.MYSTERY_FLIES_BIG_LOSS,
-	Type.HOLE_ADD: "Ouvre un trou ailleurs sur la grille.",
+	Type.VALUE_UP: "Augmente la valeur du jeton pose de %d." % GameRules.MYSTERY_VALUE_DELTA,
 	Type.HOLE_REMOVE: "Comble un trou existant ailleurs.",
-	Type.FAMILY_SHUFFLE: "Le jeton change de famille au hasard.",
-	Type.TELEPORT: "Le jeton est teleporte dans une colonne au hasard.",
+	Type.VALUE_DOWN: "Diminue la valeur du jeton pose de %d." % GameRules.MYSTERY_VALUE_DELTA,
+	Type.LOCK: "Verrouille le jeton pose contre toute mutation future.",
+	Type.FUSION: "Fusionne le jeton pose avec un voisin adjacent.",
+	Type.ROCK_FREED: "Un Rock adjacent devient un jeton de base.",
 	Type.MULTI_X2: "Cette case multiplie desormais tout pattern qui la traverse par x2.",
 	Type.MULTI_X5: "Cette case multiplie desormais tout pattern qui la traverse par x5.",
-	Type.JACKPOT_FLIES: "Gagne %d mouches !" % GameRules.MYSTERY_JACKPOT_FLIES,
+	Type.PETRIFICATION: "Un Rock surgit sous le jeton pose, qui remonte d'une case.",
+	Type.MODIFIER_HALF: "Cette case divise desormais tout pattern qui la traverse par 2.",
 	Type.JACKPOT_MULTI_X10: "Cette case multiplie desormais tout pattern qui la traverse par x10 !",
 }
 
 ## Index = palier (0 Commun, 1 Rare, 2 Jackpot), meme indexation que
-## GameRules.MYSTERY_RARITY_RATES.
+## GameRules.MYSTERY_RARITY_RATES. Repartition bonus/malus par palier :
+## Commun 2B/1M, Rare 5B/2M, Jackpot 1B/0M -- ratio global pondere ~70/30.
 const TIERS: Array[Array] = [
-	[Type.SCORE_UP, Type.SCORE_DOWN, Type.FLIES_UP_SMALL, Type.FLIES_DOWN_SMALL],
+	[Type.VALUE_UP, Type.HOLE_REMOVE, Type.VALUE_DOWN],
 	[
-		Type.FLIES_UP_BIG, Type.FLIES_DOWN_BIG, Type.HOLE_ADD, Type.HOLE_REMOVE,
-		Type.FAMILY_SHUFFLE, Type.TELEPORT, Type.MULTI_X2, Type.MULTI_X5,
+		Type.LOCK, Type.FUSION, Type.ROCK_FREED, Type.MULTI_X2, Type.MULTI_X5,
+		Type.PETRIFICATION, Type.MODIFIER_HALF,
 	],
-	[Type.JACKPOT_FLIES, Type.JACKPOT_MULTI_X10],
+	[Type.JACKPOT_MULTI_X10],
 ]
 
 

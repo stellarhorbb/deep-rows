@@ -289,6 +289,8 @@ func build_context() -> RunContext:
 	ctx.score_capped_sheet_name = _score_capped_sheet_name
 	ctx.mobiles_never_expire = has_spell(&"dresseur_fou")
 	ctx.rock_wildcard_family = has_spell(&"pierre_de_famille")
+	ctx.has_echo = has_spell(&"echo")
+	ctx.has_quitte_ou_double = has_spell(&"quitte_ou_double")
 	_active_context = ctx
 	return ctx
 
@@ -769,9 +771,9 @@ func get_shake_charges() -> int:
 	return _shake_charges
 
 
-## Consomme une charge de Shake (voir DeckManager.shake). Retourne false sans
-## rien faire si plus aucune charge -- au consommateur (TurnController) de
-## n'appeler deck_manager.shake() que si ceci retourne true.
+## Consomme une charge de Shake (voir GridManager.shuffle_base_tokens).
+## Retourne false sans rien faire si plus aucune charge -- au consommateur
+## (TurnController) de n'appeler shuffle_base_tokens() que si ceci retourne true.
 func spend_shake_charge() -> bool:
 	if _shake_charges <= 0:
 		return false

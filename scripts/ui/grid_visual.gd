@@ -12,6 +12,7 @@ signal group_score_revealed(amount: int)
 @export var hole_color: Color = Color("2a2a38")
 @export var mystery_color: Color = Color("4a3f6b")  # violet fonce, placeholder
 @export var blocked_column_color: Color = Color(0.15, 0.15, 0.15, 0.5)
+@export var cursed_column_color: Color = Color(0.55, 0.1, 0.15, 0.4)  # Colonne Convoitée (placeholder), voir EntityManager
 @export var entity_blink_interval: float = 0.3  # jetons a countdown (MÈCHE COURTE, PETARD_A_MECHE), voir _setup_countdown_sprite
 @export var residue_color: Color = Color("b8b3d6")
 @export var modifier_border_width: float = 6.0
@@ -51,6 +52,8 @@ var _grid_modifiers: Dictionary = {}  # Vector2i -> Array[StringName]
 var _holes: Dictionary = {}  # Vector2i -> true
 var _mystery_cells: Array[Vector2i] = []  # cases encore cachees, voir GridManager
 var _blocked_column: int = -1  # COLONNE MAUDITE, voir GridManager
+var _cursed_column: int = -1  # Colonne Convoitée, voir EntityManager
+var _cursed_column_chance: float = 0.0  # % de corruption affiche sur la Colonne Convoitée
 var _is_animating: bool = false
 var _popup_font: Font = null
 
@@ -78,6 +81,18 @@ func _draw() -> void:
 			draw_circle(center, cell_size / 2.0, hole_color if is_hole else empty_cell_color)
 			if c == _blocked_column:
 				draw_circle(center, cell_size / 2.0, blocked_column_color)
+			# Colonne Convoitée (placeholder, voir EntityManager) : pari
+			# delibere, donc le risque est AFFICHE (contrairement au risque
+			# ambiant, qui reste cache) -- % dessine une seule fois, sur la
+			# case du haut de la colonne, meme pattern que le glyphe "?".
+			if c == _cursed_column:
+				draw_circle(center, cell_size / 2.0, cursed_column_color)
+				if visual_row == 0:
+					var pct_text: String = "%d%%" % int(round(_cursed_column_chance * 100.0))
+					var pct_font_size: int = int(cell_size * 0.32)
+					var pct_font: Font = _popup_font if _popup_font != null else ThemeDB.fallback_font
+					var pct_text_size: Vector2 = pct_font.get_string_size(pct_text, HORIZONTAL_ALIGNMENT_CENTER, -1, pct_font_size)
+					draw_string(pct_font, center - pct_text_size / 2.0 + Vector2(0, pct_text_size.y * 0.8), pct_text, HORIZONTAL_ALIGNMENT_CENTER, -1, pct_font_size, empty_cell_color)
 			# Case mystere : visible-mais-inconnue, simple marqueur "?" en
 			# attendant la DA (voir GridManager.mystery_cells_changed).
 			if _mystery_cells.has(Vector2i(c, r)):
@@ -87,7 +102,7 @@ func _draw() -> void:
 				# milieu d'une grille chargee -- avant, cell_size * 0.5 se
 				# fondait trop dans le fond marin/les autres marqueurs.
 				var glyph: String = "?"
-				var font_size: int = int(cell_size * 0.8)
+				var font_size: int = int(cell_size * 0.6)
 				var font: Font = _popup_font if _popup_font != null else ThemeDB.fallback_font
 				var text_size: Vector2 = font.get_string_size(glyph, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
 				draw_string(font, center - text_size / 2.0 + Vector2(0, text_size.y * 0.8), glyph, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, empty_cell_color)
@@ -203,6 +218,13 @@ func set_blocked_column(col: int) -> void:
 	queue_redraw()
 
 
+## Appele par game_scene quand EntityManager emet cursed_column_changed.
+func set_cursed_column(col: int, skull_chance: float) -> void:
+	_cursed_column = col
+	_cursed_column_chance = skull_chance
+	queue_redraw()
+
+
 ## Synchronise les sprites avec l'etat logique de la grille.
 func sync_sprites() -> void:
 	# Supprimer les sprites orphelins
@@ -234,11 +256,12 @@ func replace_sprite(cell: Vector2i, token: TokenData) -> void:
 	_create_sprite(cell, token)
 
 
-## Prix "Boost" de la roulette (session 25, GameRules.ROULETTE_BOOST_VALUES) :
-## flash dore (meme couleur que _animate_upgrade, meme langage visuel pour
-## "la valeur d'un jeton vient de monter") puis replace_sprite pour refleter
-## la nouvelle valeur deja appliquee cote logique (voir GridManager.
-## boost_random_token, appele avant ce highlight).
+## Prix "Boost" de la Colonne Convoitée (session 25 sous la roulette, retarget
+## session 27, voir GameRules.CURSED_COLUMN_BOOST_VALUES) : flash dore (meme
+## couleur que _animate_upgrade, meme langage visuel pour "la valeur d'un
+## jeton vient de monter") puis replace_sprite pour refleter la nouvelle
+## valeur deja appliquee cote logique (voir EntityManager._apply_boost,
+## appele avant ce highlight).
 func animate_boost(cell: Vector2i, token: TokenData) -> void:
 	if _token_sprites.has(cell):
 		(_token_sprites[cell] as Sprite2D).modulate = Color(2.5, 2.0, 0.4, 1.0)
@@ -315,11 +338,10 @@ func play_mystery_announcement(label: String, description: String = "") -> void:
 	resolution_banner.play_mystery_announcement(label, description)
 
 
-## Jauge de roulette pleine (voir GameScene._on_roulette_triggered) --
-## contrairement a play_mystery_announcement ci-dessus, l'appelant a besoin
-## d'attendre la fin reelle de l'annonce (pour prevenir RouletteManager.
-## notify_banner_done avant de lacher un Frog gagne), donc await ici plutot
-## que fire-and-forget.
+## Recompense Colonne Convoitée tiree (voir GameScene._on_reward_triggered) --
+## contrairement a play_mystery_announcement ci-dessus, l'appelant attend la
+## fin reelle de l'annonce avant de continuer, donc await ici plutot que
+## fire-and-forget.
 func play_prize_spin_announcement(flavor_pool: Array[String], landed_label: String, landed_description: String = "") -> void:
 	await resolution_banner.play_prize_spin_announcement(flavor_pool, landed_label, landed_description)
 

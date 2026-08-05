@@ -50,11 +50,13 @@ signal dropped_token_mutated(col: int, row: int)
 ## dehors de la banniere de resolution normale (voir tick_mobile_specials).
 signal mobile_specials_scored(amount: int)
 ## Case mystere revelee et resolue (voir GridManager.mystery_cell_triggered /
-## _on_mystery_cell_triggered) — le visuel affiche un message et, si
-## target_delta != 0 (SCORE_UP/SCORE_DOWN, retune : deplacent la cible plutot
-## que le score actuel, voir ScoreManager.adjust_target), rafraichit le label
-## de cible.
-signal mystery_cell_resolved(col: int, row: int, effect: MysteryCellEffects.Type, target_delta: int)
+## _on_mystery_cell_triggered) — le visuel affiche un message et met a jour
+## la grille selon l'effet (voir GameScene._on_mystery_cell_resolved).
+signal mystery_cell_resolved(col: int, row: int, effect: MysteryCellEffects.Type)
+## Case mystere desamorcee par un skull (voir GridManager.mystery_cell_
+## defused, session 27) — simple relais, aucun effet applique (voir
+## GameScene._on_mystery_cell_defused pour l'annonce "raté").
+signal mystery_cell_defused(col: int, row: int, effect: MysteryCellEffects.Type)
 
 ## Hooks consommes par SpellManager (dispatch vers les SpellEffect equipes).
 signal round_started()
@@ -100,11 +102,13 @@ var _current_turn_from_stream: bool = true
 @export var sheet_manager: SheetManager
 @export var run_manager: RunManager
 @export var boss_malus_manager: BossMalusManager
+@export var entity_manager: EntityManager
 
 
 func _ready() -> void:
 	grid_manager.resolution_complete.connect(_on_resolution_complete)
 	grid_manager.mystery_cell_triggered.connect(_on_mystery_cell_triggered)
+	grid_manager.mystery_cell_defused.connect(_on_mystery_cell_defused)
 
 
 func start_round(round_number: int) -> void:
@@ -143,6 +147,10 @@ func start_round(round_number: int) -> void:
 			grid_manager.add_holes(ciel_bas_cells)
 
 	_reroll_colonne_maudite()
+
+	# Colonne Convoitée (voir EntityManager) : premiere tirage de la manche,
+	# re-tiree ensuite a chaque tour resolu (meme timing que la ligne au-dessus).
+	entity_manager.reroll_cursed_column()
 
 	# Suite dans finish_round_start(), appelee par GameScene une fois l'intro
 	# visuelle des jetons persistes terminee (voir GameScene._start_round).
@@ -189,8 +197,33 @@ func play_current_to(col: int, row: int) -> void:
 
 	_current_turn_from_stream = true
 	_state = State.DROPPING
+
+	var on_cursed_column: bool = col == entity_manager.get_cursed_column()
+
+	# Colonne Convoitée (session 27, voir EntityManager) : seul le pari
+	# delibere sur cette colonne peut saboter le drop lui-meme -- la
+	# corruption ambiante ne touche plus le geste du joueur, elle retombe sur
+	# une colonne aleatoire apres coup (voir _on_turn_resolved dans
+	# GameScene). Le jeton vise n'est JAMAIS consomme : un skull tombe a sa
+	# place, le jeton reste en tete de stream pour retenter. Uniquement pour
+	# un jeton de base -- rocks/speciaux ne sont jamais corrompus.
+	if on_cursed_column and token.kind == TokenData.Kind.BASE and entity_manager.roll_cursed_column_corruption():
+		var skull: TokenData = TokenData.make_entity()
+		if boss_malus_manager.active_malus == BossMalusManager.Type.MECHE_COURTE:
+			skull.countdown = GameRules.MECHE_COURTE_START_COUNTDOWN
+		await _drop_token(skull, col)
+		await _resolve_turn()
+		return
+
 	deck_manager.consume_current()
-	await _drop_token(token, col)
+	var landing_row: int = await _drop_token(token, col)
+
+	# Colonne Convoitée : le drop a echappe a la corruption -- recompense
+	# ciblee sur CE jeton, deja pose sur `landing_row` (Multiplicateur des
+	# prochains tours, ou Boost immediat de sa valeur AVANT resolution, pour
+	# qu'il puisse completer/upgrader un pattern sur ce meme tour).
+	if on_cursed_column and token.kind == TokenData.Kind.BASE and landing_row >= 0:
+		entity_manager.roll_reward(Vector2i(col, landing_row), token)
 
 	# Malus de boss BOURRASQUE (voir BossMalusManager, DeckManager.
 	# take_first_held) : le jeton tenu en Hold (premier slot non vide) tombe
@@ -278,8 +311,11 @@ func _resolve_turn() -> void:
 ## Place un jeton (logique + animation + effet special) et attend que
 ## l'animation de chute (et l'effet special, le cas echeant) soit terminee.
 ## Factorise pour que BOURRASQUE puisse rejouer la meme sequence sur un 2e
-## jeton dans la meme colonne (voir play_current_to).
-func _drop_token(token: TokenData, col: int) -> void:
+## jeton dans la meme colonne (voir play_current_to). Retourne la row
+## d'atterrissage (-1 si le jeton n'a pas pu etre place) -- voir Colonne
+## Convoitée dans play_current_to, qui a besoin de la cellule exacte pour
+## cibler sa recompense.
+func _drop_token(token: TokenData, col: int) -> int:
 	var landing_row: int = grid_manager.place_token(token, col, 0)
 	var pre_value: int = token.value
 	var pre_kind: TokenData.Kind = token.kind
@@ -302,6 +338,8 @@ func _drop_token(token: TokenData, col: int) -> void:
 			comete_scored.emit(special_score)
 		await special_effect_done
 
+	return landing_row
+
 
 func notify_drop_complete() -> void:
 	drop_animated.emit()
@@ -317,8 +355,9 @@ func request_hold(slot_index: int = -1) -> void:
 	deck_manager.do_hold(slot_index)
 
 
-## Bouton d'urgence "Shake" (voir GameRules.SHAKE_CHARGES_DEFAULT) : remelange
-## current + pioche, le Hold reste intact (voir DeckManager.shake). Ne fait rien si aucune
+## Bouton d'urgence "Shake" (voir GameRules.SHAKE_CHARGES_DEFAULT, session 27 :
+## shuffle physique de la grille, voir GridManager.shuffle_base_tokens --
+## remplace l'ancien remelange invisible du stream). Ne fait rien si aucune
 ## charge restante -- l'UI se base sur run_manager.shake_charges_changed pour
 ## se desactiver, mais on regarde quand meme la charge reelle ici, seule
 ## source de verite.
@@ -328,7 +367,7 @@ func request_shake() -> void:
 	if run_manager.is_shake_locked():
 		return
 	if run_manager.spend_shake_charge():
-		deck_manager.shake()
+		grid_manager.shuffle_base_tokens()
 		shake_used.emit()
 
 
@@ -337,47 +376,45 @@ func get_state() -> State:
 
 
 ## Applique l'effet reel d'une case mystere revelee (voir GridManager.
-## mystery_cell_triggered/MysteryCellEffects) — cible/mouches/trous/famille/
-## teleport/multi. SCORE_UP/SCORE_DOWN deplacent la cible de %, pas le score
-## actuel (retune : un tirage tot en manche, score encore a 0, donnait un
-## delta de 0% de rien), voir GameRules.MYSTERY_SCORE_PERCENT.
+## mystery_cell_triggered/MysteryCellEffects) -- catalogue recentre sur la
+## grille/le jeton en session 27, plus aucun effet ne touche la cible/les
+## mouches (voir GameRules pour l'historique des constantes retirees).
 func _on_mystery_cell_triggered(col: int, row: int, effect: MysteryCellEffects.Type, _token: TokenData) -> void:
-	var target_delta: int = 0
 	match effect:
-		MysteryCellEffects.Type.SCORE_UP:
-			target_delta = -int(round(score_manager.get_target() * GameRules.MYSTERY_SCORE_PERCENT))
-			score_manager.adjust_target(target_delta)
-		MysteryCellEffects.Type.SCORE_DOWN:
-			target_delta = int(round(score_manager.get_target() * GameRules.MYSTERY_SCORE_PERCENT))
-			score_manager.adjust_target(target_delta)
-		MysteryCellEffects.Type.FLIES_UP_SMALL:
-			run_manager.add_flies(GameRules.MYSTERY_FLIES_SMALL)
-		MysteryCellEffects.Type.FLIES_UP_BIG:
-			run_manager.add_flies(GameRules.MYSTERY_FLIES_BIG_GAIN)
-		MysteryCellEffects.Type.FLIES_DOWN_SMALL:
-			run_manager.spend_flies(mini(GameRules.MYSTERY_FLIES_SMALL, run_manager.get_flies()))
-		MysteryCellEffects.Type.FLIES_DOWN_BIG:
-			run_manager.spend_flies(mini(GameRules.MYSTERY_FLIES_BIG_LOSS, run_manager.get_flies()))
-		MysteryCellEffects.Type.HOLE_ADD:
-			grid_manager.add_random_hole()
+		MysteryCellEffects.Type.VALUE_UP:
+			grid_manager.nudge_token_value(col, row, GameRules.MYSTERY_VALUE_DELTA)
 		MysteryCellEffects.Type.HOLE_REMOVE:
 			grid_manager.remove_random_hole()
-		MysteryCellEffects.Type.FAMILY_SHUFFLE:
-			grid_manager.randomize_token_family(col, row)
-		MysteryCellEffects.Type.TELEPORT:
-			grid_manager.move_token_to_random_column(col, row)
+		MysteryCellEffects.Type.VALUE_DOWN:
+			grid_manager.nudge_token_value(col, row, -GameRules.MYSTERY_VALUE_DELTA)
+		MysteryCellEffects.Type.LOCK:
+			grid_manager.lock_token(col, row)
+		MysteryCellEffects.Type.FUSION:
+			grid_manager.fuse_with_neighbor(col, row)
+		MysteryCellEffects.Type.ROCK_FREED:
+			grid_manager.free_adjacent_rock(col, row)
 		MysteryCellEffects.Type.MULTI_X2:
 			run_manager.add_grid_modifier(Vector2i(col, row), GameRules.MODIFIER_MYSTERY_X2)
 			run_manager.notify_grid_modifiers_ready()
 		MysteryCellEffects.Type.MULTI_X5:
 			run_manager.add_grid_modifier(Vector2i(col, row), GameRules.MODIFIER_MYSTERY_X5)
 			run_manager.notify_grid_modifiers_ready()
-		MysteryCellEffects.Type.JACKPOT_FLIES:
-			run_manager.add_flies(GameRules.MYSTERY_JACKPOT_FLIES)
+		MysteryCellEffects.Type.PETRIFICATION:
+			grid_manager.petrify_below(col, row)
+		MysteryCellEffects.Type.MODIFIER_HALF:
+			run_manager.add_grid_modifier(Vector2i(col, row), GameRules.MODIFIER_HALF)
+			run_manager.notify_grid_modifiers_ready()
 		MysteryCellEffects.Type.JACKPOT_MULTI_X10:
 			run_manager.add_grid_modifier(Vector2i(col, row), GameRules.MODIFIER_MYSTERY_X10)
 			run_manager.notify_grid_modifiers_ready()
-	mystery_cell_resolved.emit(col, row, effect, target_delta)
+	mystery_cell_resolved.emit(col, row, effect)
+
+
+## Un skull vient de desamorcer une case mystere (voir GridManager.
+## mystery_cell_defused) -- aucun effet a appliquer, juste relayer pour
+## l'annonce visuelle "raté" (voir GameScene._on_mystery_cell_defused).
+func _on_mystery_cell_defused(col: int, row: int, effect: MysteryCellEffects.Type) -> void:
+	mystery_cell_defused.emit(col, row, effect)
 
 
 func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> void:
@@ -438,6 +475,7 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 		_pre_pass_timeline = []
 
 	if not _pre_pass or score_manager.is_target_reached():
+		entity_manager.tick_multi(full_timeline)
 		turn_resolved.emit(full_timeline)
 
 	if score_manager.is_target_reached():
@@ -517,6 +555,10 @@ func _on_resolution_complete(timeline: Array[Dictionary], total_score: int) -> v
 	# Malus de boss COLONNE MAUDITE : re-tiree avant le check de coup legal
 	# pour que celui-ci reflete la colonne que le joueur va reellement affronter.
 	_reroll_colonne_maudite()
+
+	# Colonne Convoitée (voir EntityManager) : re-tiree a chaque tour, meme
+	# timing que ci-dessus -- un nouveau pari a chaque coup, pas de "banking".
+	entity_manager.reroll_cursed_column()
 
 	# Grille pleine, deck pas vide : aucun coup legal possible (sauf un
 	# Fantome en main/hold, qui peut cibler une colonne pleine). Sans lui, le

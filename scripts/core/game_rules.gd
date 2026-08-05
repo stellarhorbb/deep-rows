@@ -270,16 +270,16 @@ const MYSTERY_REVEAL_STAGGER: float = 0.12
 ## d'items en Rare rend juste ce palier plus varie, pas plus frequent.
 const MYSTERY_RARITY_RATES: Array[float] = [0.55, 0.40, 0.05]
 
-# Effets "score actuel" (multiplicatif) et mouches, voir MysteryCellEffects.
-const MYSTERY_SCORE_PERCENT: float = 0.10
-const MYSTERY_FLIES_SMALL: int = 1
-# Separes en session 25 (retune equilibrage, "Piège à mouches" -5 -> -2) --
-# avant, un seul MYSTERY_FLIES_BIG servait aux deux sens (+5/-5), donc
-# adoucir la perte aurait aussi nerf le gain "Trésor de mouches" sans que ce
-# soit demande.
-const MYSTERY_FLIES_BIG_GAIN: int = 5
-const MYSTERY_FLIES_BIG_LOSS: int = 2
-const MYSTERY_JACKPOT_FLIES: int = 20
+## Catalogue recentre sur la grille/le jeton (session 27, retire les effets
+## purement economiques -- mouches/cible -- voir docs/brainstorms/brainstorm-
+## geste-central.md). Valeur+/Valeur- : delta applique au jeton qui declenche
+## la case, voir MysteryCellEffects/GridManager.nudge_token_value.
+const MYSTERY_VALUE_DELTA: int = 1
+
+## Pierre libérée (voir GridManager.free_adjacent_rock) : valeur du jeton de
+## base qui remplace le Rock adjacent converti -- basse par design, c'est
+## l'espace regagne qui est la vraie recompense, pas la valeur du jeton.
+const MYSTERY_ROCK_FREED_VALUE: int = 1
 
 # Entity
 ## Drop de skull (session 26, remplace l'ancien intervalle fixe) : chance qui
@@ -296,58 +296,66 @@ const MYSTERY_JACKPOT_FLIES: int = 20
 const ENTITY_DROP_BASE_CHANCE: float = 0.05
 const ENTITY_DROP_INCREMENT: float = 0.05
 
-## Axe casino (session 25) -- jauge qui accumule la valeur brute des jetons
-## poses (voir RouletteManager), fixe pour toute la run, PAS un ratio de la
-## valeur du deck de la manche -- delibere pour ne pas amortir le snowball
-## d'un bon build en fin de run (voir docs/gdd/manche/roulette-casino.md).
-## 21 choisi pour qu'aucun jeton seul, meme un Roi (FACE_CARD_VALUES max =
-## 20, voir plus bas), ne puisse declencher la roulette a lui seul -- toujours
-## au moins 2 drops.
-const ROULETTE_THRESHOLD: int = 21
+## Colonne Convoitée (remplace l'axe casino "roulette" de session 25, nom
+## placeholder) -- bonus AJOUTE a la chance ambiante du moment (pas un taux
+## fixe independant, voir EntityManager.corruption_chance) quand le joueur
+## choisit de droper dans la colonne signalee par EntityManager.
+## reroll_cursed_column -- sinon un ambiant deja monte haut (longue serie
+## sans skull) finirait par depasser le risque affiche sur la colonne, qui
+## doit pourtant rester la pire option. Le risque total est affiche
+## (contrairement au risque ambiant, qui reste cache) puisque c'est un pari
+## delibere, pas une menace de fond -- voir docs/brainstorms/brainstorm-geste-
+## central.md. Multiplie par EntityManager.drop_chance_multiplier comme
+## l'ambiant (malus de boss GRANDE FAIM), plafonne a 100%. Au niveau de base
+## (ambiant 5%), ca retombe sur 35% -- meme premiere impression qu'avant.
+const CURSED_COLUMN_SKULL_BONUS: float = 0.30
 
-## Pool de recompenses de la roulette (session 25) -- deux familles seulement
-## (Multiplicateur / Boost, ce dernier ayant remplace Frog qui cassait trop
-## souvent des Partitions en cours), volontairement reduit apres plusieurs
-## tentatives plus larges (voir docs/gdd/manche/roulette-casino.md) : la
-## rarete ne change jamais la mecanique, juste son ampleur ("juste le
-## nombre"). Meme principe a taux fixe par palier que MYSTERY_RARITY_RATES,
-## catalogue totalement independant -- voir RouletteRewards.
-const ROULETTE_RARITY_RATES: Array[float] = [0.55, 0.40, 0.05]  # Commun/Rare/Legendaire
+## Pool de recompenses de la Colonne Convoitée quand le drop echappe a la
+## corruption (deux familles seulement, Multiplicateur / Boost -- meme
+## catalogue que l'ancienne roulette, juste retarget sur le geste). Meme
+## principe a taux fixe par palier que MYSTERY_RARITY_RATES -- voir
+## CursedColumnRewards.
+const CURSED_COLUMN_RARITY_RATES: Array[float] = [0.55, 0.40, 0.05]  # Commun/Rare/Legendaire
+
+## Contrepoids au risque (session 27, retour user) : plus le % de corruption
+## affiche sur la Colonne Convoitée est haut, plus le palier Legendaire est
+## probable en retour -- voir CursedColumnRewards.roll_tier/_scaled_rates.
+## Multiplicatif sur le taux de base (5%) : x1 a risque nul, jusqu'a x4 (20%)
+## a 100% de risque. A 80% de risque (exemple concret du user), ca donne
+## ~x3.4 -- proche du "3x" evoque a l'oral. Sans ca, une colonne a haut risque
+## n'offre aucune contrepartie et devient juste une case a fuir des qu'elle
+## depasse un seuil de confort personnel.
+const CURSED_COLUMN_JACKPOT_MULTIPLIER_MAX: float = 4.0
 
 ## Multiplicateur applique aux prochains drops apres le declenchement (jamais
-## celui qui declenche la roulette) -- voir RouletteManager. Fixe, pas de roll
-## dans une fourchette : "ce sera memorable" (choix du user pour le palier
-## Legendaire).
-const ROULETTE_MULTI_VALUES: Array[float] = [1.2, 3.0, 10.0]  # index = palier
+## celui qui declenche) -- voir EntityManager. Fixe, pas de roll dans une
+## fourchette : "ce sera memorable" (choix du user pour le palier Legendaire).
+const CURSED_COLUMN_MULTI_VALUES: Array[float] = [1.2, 3.0, 10.0]  # index = palier
 
 ## Delai MAXIMUM (en drops) pour se servir du multiplicateur avant qu'il
-## n'expire -- pas une duree garantie, voir RouletteManager._on_turn_resolved :
-## des qu'un tour scoré en profite, il s'efface immediatement. 1 seul drop en
+## n'expire -- pas une duree garantie, voir EntityManager.tick_multi : des
+## qu'un tour scoré en profite, il s'efface immediatement. 1 seul drop en
 ## premier jet (session 25), remonte a 3 apres retour de playtest ("un coup
 ## c'est trop chaud a caler") : trop dur a timer precisement sur un coup unique.
-const ROULETTE_MULTI_DROPS: int = 3
+const CURSED_COLUMN_MULTI_DROPS: int = 3
 
-## Fenetre etendue (Sortilège "Fenêtre Longue") -- remplace ROULETTE_MULTI_DROPS
-## quand equipe, pour laisser plus de temps a un Multiplicateur d'etre
-## reellement rentabilise.
-const ROULETTE_MULTI_DROPS_EXTENDED: int = 5
+## Fenetre etendue (Sortilège "Fenêtre Longue") -- remplace CURSED_COLUMN_
+## MULTI_DROPS quand equipe, pour laisser plus de temps a un Multiplicateur
+## d'etre reellement rentabilise.
+const CURSED_COLUMN_MULTI_DROPS_EXTENDED: int = 5
 
-## Jauge de depart (Sortilège "Bon départ") -- la manche ne repart plus de 0,
-## economise environ 2-3 drops avant le premier declenchement possible. Voir
-## RouletteManager.bind_round.
-const ROULETTE_HEAD_START_GAUGE: int = 10
-
-## Boost (session 25, remplace Frog dans le pool -- voir docs/gdd/manche/
-## roulette-casino.md#ce-qui-a-été-écarté) : augmente la valeur d'UN jeton de
-## base pris au hasard sur la grille, jamais retire/deplace donc zero risque
-## sur les Partitions/patterns en cours. L'ampleur (pas le nombre, toujours 1
-## jeton) varie par palier -- meme forme que ROULETTE_MULTI_VALUES (1.2/3/10)
-## pour rester coherent visuellement dans le pool. Plafonne a
-## MAX_BUTTON_VALUE (10, voir GridManager.boost_random_token) : les figures
-## restent exclusivement accessibles par le score reel, jamais offertes
-## gratuitement -- +10 sur le palier Legendaire revient donc toujours a fixer
-## la valeur pile a 10, peu importe le point de depart.
-const ROULETTE_BOOST_VALUES: Array[int] = [1, 3, 10]  # Commun/Rare/Legendaire
+## Boost (session 25, remplace Frog dans le pool a l'epoque de la roulette) --
+## augmente directement la valeur du jeton que le joueur vient de droper dans
+## la Colonne Convoitée (mutation immediate, meme langage visuel que Pile ou
+## Face -- voir TurnController.play_current_to). Cible desormais TOUJOURS ce
+## jeton precis, jamais un jeton aleatoire ailleurs sur la grille (ancien
+## defaut de la roulette identifie en session 27). L'ampleur varie par palier
+## -- meme forme que CURSED_COLUMN_MULTI_VALUES (1.2/3/10) pour rester
+## coherent visuellement dans le pool. Plafonne a MAX_BUTTON_VALUE (10) :
+## les figures restent exclusivement accessibles par le score reel, jamais
+## offertes gratuitement -- +10 sur le palier Legendaire revient donc
+## toujours a fixer la valeur pile a 10, peu importe le point de depart.
+const CURSED_COLUMN_BOOST_VALUES: Array[int] = [1, 3, 10]  # Commun/Rare/Legendaire
 
 # Valeurs des jetons de base
 const TOKEN_MIN_VALUE: int = 1
@@ -422,11 +430,21 @@ const LEGENDARY_SHEET_CHANCE: float = 0.03
 const ROYAL_SQUARE_ROLL_MIN: int = 1
 const ROYAL_SQUARE_ROLL_MAX: int = 12
 
+## Sortilège "Echo" (session 27) : chance qu'un groupe qui score se retrigger
+## (score double) -- voir RunContext.has_echo/CascadeResolver.
+## _apply_score_gambles.
+const ECHO_RETRIGGER_CHANCE: float = 0.15
+
+## Sortilège "Quitte ou Double" (session 27) : chaque groupe qui score joue ce
+## coin-flip -- double si <, remis a zero sinon. Toujours 50/50 par design
+## (voir Sheet), constante quand meme pour respecter "zero magic number".
+const QUITTE_OU_DOUBLE_CHANCE: float = 0.5
+
 ## Skull Line 4 (tiroir rare/signature, session "Vague 3") : les 4 cellules
 ## sont des entity-skulls, sans valeur reelle -- tirage a palier (meme
-## principe que ROULETTE_RARITY_RATES/MYSTERY_RARITY_RATES) plutot qu'une
+## principe que CURSED_COLUMN_RARITY_RATES/MYSTERY_RARITY_RATES) plutot qu'une
 ## plage lineaire, pour un vrai coup de jackpot plutot qu'un chiffre plat.
-## 120 calcule contre ROULETTE_BOOST_VALUES (ratio x3/x3.3) plutot qu'a
+## 120 calcule contre CURSED_COLUMN_BOOST_VALUES (ratio x3/x3.3) plutot qu'a
 ## l'instinct — verifie au jugement du user contre un scenario reel
 ## (4 skulls du pattern + 3 autres sur la grille = x7, donc jusqu'a 840 sur
 ## le palier legendaire, reste sous la cible manche 20 ~3000).

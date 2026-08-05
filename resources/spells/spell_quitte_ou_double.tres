@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SpellData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/spell_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/spells/effect_quitte_ou_double.gd" id="2_effect"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"quitte_ou_double"
+label = "QUITTE OU DOUBLE"
+description = "Une Partition qui score déclenche un pile ou face : 50% double, 50% remet à zéro"
+price = 7
+rarity = 3
+trigger = &"on_round_start"
+effect_script = ExtResource("2_effect")

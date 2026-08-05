@@ -18,19 +18,17 @@ extends Node2D
 @onready var zone_label: Label = $ZoneLabel
 @onready var background: ColorRect = $Background
 @onready var flies_label: Label = $SaltLabel
-@onready var roulette_gauge: ProgressBar = $RouletteGauge
-@onready var roulette_gauge_label: Label = $RouletteGaugeLabel
-@onready var roulette_multi_label: Label = $RouletteMultiLabel
+@onready var cursed_column_multi_label: Label = $CursedColumnMultiLabel
 @onready var shake_button: Button = $ShakeButton
 @onready var debug_win_button: Button = $DebugWinButton
 
-## Boucle du pulse "heartbeat" de RouletteMultiLabel -- voir _on_multi_status_changed.
+## Boucle du pulse "heartbeat" de CursedColumnMultiLabel -- voir _on_multi_status_changed.
 var _multi_pulse_tween: Tween = null
 
-## Resultat de la roulette mis en attente le temps que le score de CE drop
-## s'affiche -- voir _on_roulette_triggered/_play_roulette_announcement.
+## Recompense de la Colonne Convoitée mise en attente le temps que le score
+## de CE drop s'affiche -- voir _on_reward_triggered/_play_reward_announcement.
 ## {} = rien en attente.
-var _pending_roulette_announcement: Dictionary = {}
+var _pending_reward_announcement: Dictionary = {}
 
 # --- UI persistante, portee par le Shell (voir scripts/core/shell.gd) ---
 var sheets_ui: SheetsUI
@@ -93,15 +91,15 @@ func _create_managers() -> void:
 
 	entity_manager = EntityManager.new()
 	entity_manager.name = "EntityManager"
+	entity_manager.run_manager = RunService.run_manager
 	add_child(entity_manager)
+	turn_controller.entity_manager = entity_manager
 
 	# Branche les sortilèges sur les hooks de la manche.
 	RunService.spell_manager.bind_round(turn_controller)
-	RunService.roulette_manager.bind_round(turn_controller)
-	RunService.roulette_manager.roulette_triggered.connect(_on_roulette_triggered)
-	RunService.roulette_manager.gauge_changed.connect(_on_roulette_gauge_changed)
-	RunService.roulette_manager.multi_status_changed.connect(_on_multi_status_changed)
-	RunService.roulette_manager.token_boosted.connect(_on_token_boosted)
+	entity_manager.reward_triggered.connect(_on_reward_triggered)
+	entity_manager.multi_status_changed.connect(_on_multi_status_changed)
+	entity_manager.token_boosted.connect(_on_token_boosted)
 
 
 func _wire_references() -> void:
@@ -110,6 +108,7 @@ func _wire_references() -> void:
 	grid_visual.resolution_banner = resolution_banner
 	grid_visual.setup()
 	grid_hover.grid_manager = grid_manager
+	grid_hover.entity_manager = entity_manager
 	stream_ui.deck_manager = deck_manager
 	stream_ui.setup()
 	# sheets_ui / spells_ui / special_inventory_ui sont cables au run_manager
@@ -146,12 +145,15 @@ func _wire_signals() -> void:
 	grid_manager.petard_detonated.connect(_on_petard_detonated)
 	grid_manager.holes_changed.connect(grid_visual.set_holes)
 	grid_manager.blocked_column_changed.connect(grid_visual.set_blocked_column)
+	entity_manager.cursed_column_changed.connect(grid_visual.set_cursed_column)
 	grid_manager.mystery_cells_changed.connect(grid_visual.set_mystery_cells)
 	turn_controller.mystery_cell_resolved.connect(_on_mystery_cell_resolved)
+	turn_controller.mystery_cell_defused.connect(_on_mystery_cell_defused)
 	RunService.run_manager.flies_changed.connect(_on_flies_changed)
 	RunService.run_manager.grid_modifiers_changed.connect(grid_visual.set_grid_modifiers)
 	RunService.run_manager.shake_charges_changed.connect(_on_shake_charges_changed)
 	shake_button.pressed.connect(_on_shake_pressed)
+	turn_controller.shake_used.connect(_on_shake_used)
 	debug_win_button.pressed.connect(_on_debug_win_pressed)
 
 
@@ -193,7 +195,6 @@ func _start_round() -> void:
 
 	_on_flies_changed(RunService.run_manager.get_flies())
 	_on_shake_charges_changed(RunService.run_manager.get_shake_charges())
-	_on_roulette_gauge_changed(RunService.roulette_manager.get_gauge(), GameRules.ROULETTE_THRESHOLD)
 	grid_visual.refresh()
 	stream_ui.queue_redraw()
 
@@ -266,6 +267,14 @@ func _on_shake_pressed() -> void:
 	turn_controller.request_shake()
 
 
+## Shake declenche (session 27, shuffle physique de la grille — voir
+## GridManager.shuffle_base_tokens) : refresh visuel complet, meme pattern
+## que les autres mutations de grille hors pipeline de resolution normal
+## (Fusion/Pierre liberee/Petrification, voir _on_mystery_cell_resolved).
+func _on_shake_used() -> void:
+	grid_visual.rebuild_sprites()
+
+
 ## DEBUG : complete le score jusqu'a la cible de la manche courante, sans
 ## passer par une resolution de cascade. Ne declare pas la victoire tout de
 ## suite (ScoreManager.target_reached n'est ecoute nulle part, voir
@@ -295,24 +304,26 @@ func _on_turn_resolved(timeline: Array[Dictionary]) -> void:
 		await grid_visual.play_timeline(timeline)
 	grid_visual.refresh()
 
-	# Annonce de la roulette (le cas echeant) mise en attente par
-	# _on_roulette_triggered -- jouee ICI, apres le score, jamais avant
-	# (retour playtest session 25 : la roulette peut se declencher sur le
-	# meme drop qui vient de scorer une grosse Partition ; l'annoncer avant
+	# Annonce de la Colonne Convoitée (le cas echeant) mise en attente par
+	# _on_reward_triggered -- jouee ICI, apres le score, jamais avant (meme
+	# raison que l'ancienne roulette : le declenchement peut avoir lieu sur
+	# le meme drop qui vient de scorer une grosse Partition ; l'annoncer avant
 	# donnait l'impression trompeuse qu'elle beneficiait a CE score, alors
-	# que le Multi/Boost ne s'applique qu'au(x) prochain(s) drop(s). Ordre
-	# fixe et stable, meme si plusieurs systemes se declenchent sur un
-	# meme drop : cases mystere (deja resolues avant, synchrone au moment
-	# du drop) -> score -> roulette).
-	if not _pending_roulette_announcement.is_empty():
-		var pending: Dictionary = _pending_roulette_announcement
-		_pending_roulette_announcement = {}
-		await _play_roulette_announcement(pending["tier"], pending["family"], pending["amount"])
+	# que le Multi/Boost ne s'applique qu'au(x) prochain(s) drop(s) -- sauf le
+	# Boost, deja applique et visible avant meme la resolution, voir
+	# TurnController.play_current_to).
+	if not _pending_reward_announcement.is_empty():
+		var pending: Dictionary = _pending_reward_announcement
+		_pending_reward_announcement = {}
+		await _play_reward_announcement(pending["tier"], pending["family"], pending["amount"])
 
 	var meche_courte_active: bool = RunService.boss_malus_manager.active_malus == BossMalusManager.Type.MECHE_COURTE
 
-	# Entity : chance croissante de lacher un skull depuis le dernier drop
-	# (session 26, voir EntityManager.on_turn_resolved)
+	# Corruption ambiante (restauree apres playtest session 27 -- voir le
+	# commentaire de classe d'EntityManager) : chance croissante de lacher un
+	# skull dans une colonne ALEATOIRE, totalement independante du geste du
+	# joueur -- contrairement a la Colonne Convoitée, qui reste geree dans
+	# TurnController.play_current_to.
 	var entity_col: int = entity_manager.on_turn_resolved()
 	if entity_col >= 0:
 		var entity_token: TokenData = TokenData.make_entity()
@@ -564,93 +575,103 @@ func _on_mobile_specials_scored(amount: int) -> void:
 	_animate_score_to(_displayed_score + amount)
 
 
-## Case mystere revelee (voir TurnController.mystery_cell_resolved) : message
-## + refresh du label de cible si target_delta != 0 (SCORE_UP/SCORE_DOWN
-## deplacent desormais la cible, pas le score actuel — voir ScoreManager.
-## adjust_target). FAMILY_SHUFFLE/TELEPORT ont en plus besoin d'un refresh
-## visuel — le jeton a mute ou change de case sans passer par un event de
-## CascadeResolver, rien d'autre ne previent le sprite.
-func _on_mystery_cell_resolved(col: int, row: int, effect: MysteryCellEffects.Type, target_delta: int) -> void:
+## Case mystere revelee (voir TurnController.mystery_cell_resolved) : message,
+## et pour les effets qui mutent/deplacent un jeton (Valeur+/-, Verrou,
+## Fusion, Pierre liberee, Petrification), refresh visuel explicite — rien
+## d'autre ne previent le sprite, ces mutations ne passent pas par un event
+## de CascadeResolver.
+func _on_mystery_cell_resolved(col: int, row: int, effect: MysteryCellEffects.Type) -> void:
 	grid_visual.play_mystery_announcement(MysteryCellEffects.LABELS[effect] as String, MysteryCellEffects.DESCRIPTIONS[effect] as String)
-	if target_delta != 0:
-		_update_score_display()
 
 	match effect:
-		MysteryCellEffects.Type.FAMILY_SHUFFLE:
+		MysteryCellEffects.Type.VALUE_UP, MysteryCellEffects.Type.VALUE_DOWN, MysteryCellEffects.Type.LOCK:
 			var token: TokenData = grid_manager.get_cell(col, row)
 			if token != null:
 				grid_visual.replace_sprite(Vector2i(col, row), token)
-		MysteryCellEffects.Type.TELEPORT:
+		MysteryCellEffects.Type.FUSION, MysteryCellEffects.Type.ROCK_FREED, MysteryCellEffects.Type.PETRIFICATION:
 			grid_visual.rebuild_sprites()
 
 
-## Noms affiches pendant le defile de la roulette (voir _on_roulette_triggered)
-## -- purement cosmetique, les deux vraies familles (RouletteRewards.Family)
-## sont ce qui atterrit reellement.
-const _ROULETTE_FLAVOR_POOL: Array[String] = ["MULTIPLICATEUR", "BOOST"]
+## Un skull vient de desamorcer une case mystere (voir TurnController.
+## mystery_cell_defused, session 27) -- jamais applique, juste revele ce qui
+## a ete rate (retour user : donne du poids a la perte sans info exploitable,
+## puisque c'est deja trop tard pour agir). _col/_row ignores : rien a
+## rafraichir sur la grille, contrairement a _on_mystery_cell_resolved.
+func _on_mystery_cell_defused(_col: int, _row: int, effect: MysteryCellEffects.Type) -> void:
+	var missed_label: String = MysteryCellEffects.LABELS[effect] as String
+	grid_visual.play_mystery_announcement("CASE DÉSAMORCÉE", "C'était : " + missed_label)
 
 
-## Jauge casino pleine (RouletteManager.roulette_triggered, session 25) --
-## tirage deja resolu cote manager (tier/family/amount). Ne joue PAS l'annonce
-## tout de suite (le signal arrive tot, avant meme l'animation de chute) --
-## mise en attente ici, jouee par _on_turn_resolved APRES le score de ce
-## drop (retour playtest : annoncer la roulette avant le score donnait
-## l'impression fausse qu'elle beneficiait a ce score-la, alors que le
-## Multi/Boost ne s'applique qu'aux prochains drops).
-func _on_roulette_triggered(tier: RouletteRewards.Tier, family: RouletteRewards.Family, amount: float) -> void:
-	_pending_roulette_announcement = {"tier": tier, "family": family, "amount": amount}
+## Noms affiches pendant le defile de la Colonne Convoitée (voir
+## _on_reward_triggered) -- purement cosmetique, les deux vraies familles
+## (CursedColumnRewards.Family) sont ce qui atterrit reellement.
+const _REWARD_FLAVOR_POOL: Array[String] = ["MULTIPLICATEUR", "BOOST"]
 
 
-## Affiche reellement l'annonce de la roulette -- voir _on_roulette_triggered
-## pour pourquoi c'est separe et appele en differe par _on_turn_resolved. Ne
-## pas reutiliser le label "ROULETTE" : deja pris par play_roll_announcement
-## (roll du Diamond Rock). Attend la fin de l'annonce avant de prevenir
-## RouletteManager (notify_banner_done) -- sinon le popup et le highlight
-## d'un Boost gagne se chevauchent visuellement.
-func _play_roulette_announcement(tier: RouletteRewards.Tier, family: RouletteRewards.Family, amount: float) -> void:
+## Recompense de la Colonne Convoitée tiree (EntityManager.reward_triggered,
+## session 27) -- tirage deja resolu cote manager (tier/family/amount), signal
+## emis APRES l'animation de chute mais AVANT _resolve_turn() (voir
+## TurnController.play_current_to). Les deux familles ne se comportent PAS
+## pareil : le Multi ne beneficie jamais au score de ce tour (applique aux
+## PROCHAINS drops uniquement) -- differe donc son annonce jusqu'apres le
+## score (_on_turn_resolved), meme raison que l'ancienne roulette : annoncer
+## avant donnerait l'impression fausse que ca a joue sur ce score-la. Le
+## Boost, lui, EST responsable du score qui va suivre (valeur mutee avant
+## resolution, expres) -- l'annoncer tout de suite plutot que de differer,
+## sinon le joueur voit le score deja gonfle avant de comprendre pourquoi
+## (retour user, teste en session 27). Le verrou cooperatif de
+## ResolutionBanner (_acquire_lock/_release_lock) garantit que cette annonce
+## se termine avant que le breakdown de score ne commence, meme si les deux
+## sont demandes a des moments differents.
+func _on_reward_triggered(tier: CursedColumnRewards.Tier, family: CursedColumnRewards.Family, amount: float) -> void:
+	if family == CursedColumnRewards.Family.BOOST:
+		await _play_reward_announcement(tier, family, amount)
+		return
+	_pending_reward_announcement = {"tier": tier, "family": family, "amount": amount}
+
+
+## Affiche reellement l'annonce -- voir _on_reward_triggered pour pourquoi
+## c'est separe et appele en differe par _on_turn_resolved. Ne pas reutiliser
+## le label "ROULETTE" : deja pris par play_roll_announcement (roll du
+## Diamond Rock).
+func _play_reward_announcement(tier: CursedColumnRewards.Tier, family: CursedColumnRewards.Family, amount: float) -> void:
 	var landed_label: String
-	var landed_description: String = RouletteRewards.tier_label(tier)
+	var landed_description: String = CursedColumnRewards.tier_label(tier)
 	match family:
-		RouletteRewards.Family.MULTI:
+		CursedColumnRewards.Family.MULTI:
 			landed_label = "MULTIPLICATEUR x%s" % String.num(amount, 1)
-		RouletteRewards.Family.BOOST:
+		CursedColumnRewards.Family.BOOST:
 			landed_label = "BOOST +%d !" % int(amount)
 		_:
 			landed_label = ""
-	await grid_visual.play_prize_spin_announcement(_ROULETTE_FLAVOR_POOL, landed_label, landed_description)
-	RunService.roulette_manager.notify_banner_done()
+	await grid_visual.play_prize_spin_announcement(_REWARD_FLAVOR_POOL, landed_label, landed_description)
 
 
-## Boost de la roulette applique (RouletteManager.token_boosted, session 25) --
-## joue le highlight sur la case concernee (GridVisual.animate_boost).
+## Boost de la Colonne Convoitée applique (EntityManager.token_boosted,
+## session 27) -- joue le highlight sur la case concernee, deja mutee AVANT
+## resolution (voir TurnController.play_current_to).
 func _on_token_boosted(cell: Vector2i, token: TokenData) -> void:
 	await grid_visual.animate_boost(cell, token)
 
 
-func _on_roulette_gauge_changed(current: int, threshold: int) -> void:
-	roulette_gauge.max_value = threshold
-	roulette_gauge.value = current
-	roulette_gauge_label.text = "%d/%d" % [current, threshold]
-
-
-## Multiplicateur roulette pret pour le prochain drop (RouletteManager.
-## multi_status_changed, session 25) -- pulse en boucle façon heartbeat tant
+## Multiplicateur Colonne Convoitée pret pour le prochain drop (EntityManager.
+## multi_status_changed, session 27) -- pulse en boucle façon heartbeat tant
 ## qu'actif, disparait des que le drop attendu s'est resolu (score ou non,
-## voir RouletteManager._on_turn_resolved) : le joueur voit disparaitre le
-## bonus meme s'il n'a servi a rien, pas de fausse promesse silencieuse.
+## voir EntityManager.tick_multi) : le joueur voit disparaitre le bonus meme
+## s'il n'a servi a rien, pas de fausse promesse silencieuse.
 func _on_multi_status_changed(active: bool, value: float) -> void:
 	if _multi_pulse_tween != null:
 		_multi_pulse_tween.kill()
 		_multi_pulse_tween = null
 	if not active:
-		roulette_multi_label.visible = false
+		cursed_column_multi_label.visible = false
 		return
-	roulette_multi_label.visible = true
-	roulette_multi_label.text = "MULTI x%s" % String.num(value, 1)
-	roulette_multi_label.scale = Vector2.ONE
+	cursed_column_multi_label.visible = true
+	cursed_column_multi_label.text = "MULTI x%s" % String.num(value, 1)
+	cursed_column_multi_label.scale = Vector2.ONE
 	_multi_pulse_tween = create_tween().set_loops()
-	_multi_pulse_tween.tween_property(roulette_multi_label, "scale", Vector2(1.15, 1.15), 0.4).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
-	_multi_pulse_tween.tween_property(roulette_multi_label, "scale", Vector2.ONE, 0.4).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	_multi_pulse_tween.tween_property(cursed_column_multi_label, "scale", Vector2(1.15, 1.15), 0.4).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	_multi_pulse_tween.tween_property(cursed_column_multi_label, "scale", Vector2.ONE, 0.4).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 
 
 func _animate_score_to(target: int) -> void:

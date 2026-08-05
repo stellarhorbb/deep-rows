@@ -520,7 +520,7 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 			(group["score_breakdown"] as Dictionary)["roll"] = rock_roll
 			(group["score_breakdown"] as Dictionary)["roll_min"] = GameRules.DIAMOND_ROCK_ROLL_MIN
 			(group["score_breakdown"] as Dictionary)["roll_max"] = GameRules.DIAMOND_ROCK_ROLL_MAX
-		return int(base_value * sheet_mult * cascade_mult * diamond_grid_mult * rule_mult * level_mult * global_mult * diamond_value_bonus_mult * scaling_mult * sheet_bonus_mult)
+		return _apply_score_gambles(int(base_value * sheet_mult * cascade_mult * diamond_grid_mult * rule_mult * level_mult * global_mult * diamond_value_bonus_mult * scaling_mult * sheet_bonus_mult), context)
 
 	var raw_value: int = 0
 	for cell in group["cells"]:
@@ -584,7 +584,23 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		(group["score_breakdown"] as Dictionary)["roll"] = skull_line_roll
 		(group["score_breakdown"] as Dictionary)["roll_min"] = GameRules.SKULL_LINE_VALUES[0]
 		(group["score_breakdown"] as Dictionary)["roll_max"] = GameRules.SKULL_LINE_VALUES[GameRules.SKULL_LINE_VALUES.size() - 1]
-	return int(value_sum * shape_mult * cascade_mult * grid_mult * rule_mult * level_mult * global_mult * value_bonus_mult * scaling_mult * sheet_bonus_mult)
+	return _apply_score_gambles(int(value_sum * shape_mult * cascade_mult * grid_mult * rule_mult * level_mult * global_mult * value_bonus_mult * scaling_mult * sheet_bonus_mult), context)
+
+
+## Sortilèges "Quitte ou Double" et "Echo" (session 27) : deux paris
+## independants appliques au score FINAL d'un groupe, dans cet ordre precis.
+## Quitte ou Double d'abord (double ou remet a zero) puis Echo (chance de
+## retrigger ce qui reste) -- si Quitte ou Double vient de tout remettre a
+## zero, Echo n'a plus rien a doubler, coherent sans code special. Les deux
+## sont des flags simples sur RunContext (voir has_echo/has_quitte_ou_double),
+## pas des canaux par source : un seul exemplaire de chaque peut etre equipe.
+func _apply_score_gambles(score: int, context: RunContext) -> int:
+	var result: int = score
+	if context.has_quitte_ou_double:
+		result = result * 2 if randf() < GameRules.QUITTE_OU_DOUBLE_CHANCE else 0
+	if context.has_echo and randf() < GameRules.ECHO_RETRIGGER_CHANCE:
+		result *= 2
+	return result
 
 
 ## Somme des valeurs des jetons scorables (kind BASE) sur la ligne du bas

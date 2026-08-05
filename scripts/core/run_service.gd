@@ -9,7 +9,6 @@ var run_manager: RunManager
 var shop_manager: ShopManager
 var spell_manager: SpellManager
 var boss_malus_manager: BossMalusManager
-var roulette_manager: RouletteManager
 var current_round: int = 1
 var game_flow: GameFlow = GameFlow.PLAYING
 
@@ -39,11 +38,6 @@ func _ready() -> void:
 	boss_malus_manager.name = "BossMalusManager"
 	add_child(boss_malus_manager)
 
-	roulette_manager = RouletteManager.new()
-	roulette_manager.name = "RouletteManager"
-	roulette_manager.run_manager = run_manager
-	add_child(roulette_manager)
-
 
 ## Appele par la game scene au premier demarrage. Init si pas deja fait.
 func ensure_run_started() -> void:
@@ -55,7 +49,6 @@ func start_new_run() -> void:
 	run_manager.init_run()
 	boss_malus_manager.reset_run()
 	shop_manager.reset_run()
-	roulette_manager.reset_run()
 	current_round = 1
 	game_flow = GameFlow.PLAYING
 	_run_initialized = true

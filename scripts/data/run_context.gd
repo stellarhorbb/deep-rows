@@ -145,6 +145,18 @@ extends Resource
 @export var score_capped_family: int = -1
 @export var score_capped_sheet_name: StringName = &""
 
+# Sortilège "Echo" (Sheet, session 27) : vrai si equipe — chaque groupe qui
+# score a GameRules.ECHO_RETRIGGER_CHANCE de se retrigger (score double).
+# Simple flag, meme convention que mobiles_never_expire/rock_wildcard_family
+# ci-dessus. Lu par CascadeResolver._apply_score_gambles.
+@export var has_echo: bool = false
+
+# Sortilège "Quitte ou Double" (session 27) : vrai si equipe — chaque groupe
+# qui score joue GameRules.QUITTE_OU_DOUBLE_CHANCE a pile ou face : double ou
+# remis a zero. Simple flag, meme convention. Lu par CascadeResolver.
+# _apply_score_gambles, applique AVANT Echo (voir ce fichier pour l'ordre).
+@export var has_quitte_ou_double: bool = false
+
 
 ## --- Combinaison des contributions --------------------------------------
 ## Chaque canal "keyed" ou "flat" a une seule methode qui sait le combiner —

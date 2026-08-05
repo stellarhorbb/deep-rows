@@ -1,8 +1,9 @@
 ## Sortilège "Fenêtre Longue" : la fenêtre de délai pour profiter d'un
-## Multiplicateur de roulette passe de GameRules.ROULETTE_MULTI_DROPS (3) à
-## GameRules.ROULETTE_MULTI_DROPS_EXTENDED (5). Comme Favoritisme/Bon départ,
-## son effet ne passe pas par apply() -- RouletteManager._on_turn_resolved
-## vérifie directement has_spell(&"fenetre_longue").
+## Multiplicateur de la Colonne Convoitée passe de GameRules.CURSED_COLUMN_
+## MULTI_DROPS (3) à CURSED_COLUMN_MULTI_DROPS_EXTENDED (5, session 27,
+## remplace la roulette). Comme Favoritisme, son effet ne passe pas par
+## apply() -- EntityManager._activate_multi vérifie directement
+## has_spell(&"fenetre_longue").
 ## Trigger : on_round_start (non utilisé, voir ci-dessus)
 extends SpellEffect
 
