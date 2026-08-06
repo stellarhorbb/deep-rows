@@ -809,13 +809,18 @@ func equip_sheet(sheet: SheetData) -> bool:
 
 
 ## Retire une Partition equipee (vente). Retourne false si elle n'etait pas
-## equipee. N'affecte pas la resolution de la manche en cours (deja snapshotee
-## dans SheetManager au round_start) — prend effet a la manche suivante,
-## comme le level up des Partitions.
+## equipee. Prend effet IMMEDIATEMENT, y compris sur la manche en cours
+## (retour user, session 28 : vendre une Partition pour en debloquer une
+## autre en conflit ne servait a rien avant la manche suivante, ressenti
+## comme un bug) -- met aussi a jour `_active_context.equipped_sheets` en
+## place si une manche est en cours, meme pattern que les autres canaux
+## mutables a chaud (set_flat_score_bonus, set_global_multiplier...).
 func unequip_sheet(sheet: SheetData) -> bool:
 	if not _equipped_sheets.has(sheet):
 		return false
 	_equipped_sheets.erase(sheet)
+	if _active_context != null:
+		_active_context.equipped_sheets = _equipped_sheets.duplicate()
 	sheets_changed.emit(_equipped_sheets)
 	return true
 

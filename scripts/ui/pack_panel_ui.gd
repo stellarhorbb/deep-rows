@@ -32,14 +32,19 @@ func open_with(candidates: Array, title: String, shop_manager: ShopManager, run_
 
 	_shop_manager = shop_manager
 	_run_manager = run_manager
-	# Le grise initial ne suffit pas : si le joueur vend un Partition/Sortilège
-	# equipe pendant que le pack reste ouvert (liberant un slot), il faut
-	# recalculer _disabled_ sur les candidats deja affiches plutot que de
+	# Le grise initial ne suffit pas : si le joueur vend un Partition/Sortilège/
+	# special equipe pendant que le pack reste ouvert (liberant un slot), il
+	# faut recalculer _disabled_ sur les candidats deja affiches plutot que de
 	# figer l'etat au moment de l'ouverture.
 	if not run_manager.spells_changed.is_connected(_refresh_disabled_states):
 		run_manager.spells_changed.connect(_refresh_disabled_states)
 	if not run_manager.sheets_changed.is_connected(_refresh_disabled_states):
 		run_manager.sheets_changed.connect(_refresh_disabled_states)
+	# Session 28, retour user : oubliee jusqu'ici -- un pack de Speciaux
+	# restait grise si le joueur vendait un special de son inventaire pour
+	# faire de la place, contrairement aux packs Partition/Sortilège.
+	if not run_manager.special_inventory_changed.is_connected(_refresh_disabled_states):
+		run_manager.special_inventory_changed.connect(_refresh_disabled_states)
 
 	for item in candidates:
 		var btn: RarityButton = RarityButton.new()

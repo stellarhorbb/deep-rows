@@ -320,12 +320,17 @@ const CURSED_COLUMN_RARITY_RATES: Array[float] = [0.55, 0.40, 0.05]  # Commun/Ra
 ## Contrepoids au risque (session 27, retour user) : plus le % de corruption
 ## affiche sur la Colonne Convoitée est haut, plus le palier Legendaire est
 ## probable en retour -- voir CursedColumnRewards.roll_tier/_scaled_rates.
-## Multiplicatif sur le taux de base (5%) : x1 a risque nul, jusqu'a x4 (20%)
-## a 100% de risque. A 80% de risque (exemple concret du user), ca donne
-## ~x3.4 -- proche du "3x" evoque a l'oral. Sans ca, une colonne a haut risque
-## n'offre aucune contrepartie et devient juste une case a fuir des qu'elle
-## depasse un seuil de confort personnel.
-const CURSED_COLUMN_JACKPOT_MULTIPLIER_MAX: float = 4.0
+## Multiplicatif sur le taux de base (5%), applique au CARRE du risque
+## (retune session 28) : x1 a risque nul, jusqu'a x20 (100%) a 100% de
+## risque -- Jackpot garanti si le drop passe. Remonte de x4 a x20 apres
+## retour user ("75% de skull, 16% de Jackpot conditionnel, ca fait pas
+## assez") : au carre, x20 donne ~x11,7 a 75% de risque (~58% de Jackpot
+## conditionnel, proche de l'exemple "40% Bonus/60% Jackpot" evoque a
+## l'oral) tout en gardant le bas de la courbe quasi inchange (30% de risque
+## minimum -> ~x2,7, ~14% de Jackpot conditionnel, contre ~9,5% avant).
+## Sans ca, une colonne a haut risque n'offre aucune contrepartie et devient
+## juste une case a fuir des qu'elle depasse un seuil de confort personnel.
+const CURSED_COLUMN_JACKPOT_MULTIPLIER_MAX: float = 20.0
 
 ## Multiplicateur applique aux prochains drops apres le declenchement (jamais
 ## celui qui declenche) -- voir EntityManager. Fixe, pas de roll dans une

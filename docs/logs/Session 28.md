@@ -159,3 +159,28 @@ Piste de rééquilibrage discutée (Commun toujours mince, zéro Grille/CC/Spéc
 - Rééquilibrage des paliers de rareté — voir `questions-ouvertes.md`, rien d'exécuté.
 - `sortileges-implementes.md` n'a pas suivi les retunes de cette session (Couronne/Diadème en decimales, Refrain/Sacre/Gourmand désynchronisés, Numérologie listée à tort comme "Dormant") — prévoir une vraie passe de resynchro plutôt que des patchs.
 - Aucun des changements de cette partie 3 n'a encore été testé en run réelle.
+
+---
+
+## Partie 4 — Trois bugs remontés en playtest, retune de la courbe Jackpot
+
+Session reprise le lendemain matin après le commit/push de la partie 3, sur des retours de playtest concrets.
+
+### Vente de Partition en cours de manche sans effet — corrigé
+
+Bug remonté : vendre LINE 3 en pleine manche pour débloquer SMALL T (conflit entre les deux Sheets) ne changeait rien — LINE 3 continuait de scorer. Pas un vrai bug de code : `RunManager.unequip_sheet` documentait déjà explicitement "n'affecte pas la résolution de la manche en cours, prend effet à la manche suivante" — le contexte de résolution (`RunContext.equipped_sheets`) est figé une fois par manche (`TurnController.finish_round_start`) et jamais recalculé. Comportement voulu à l'origine, mais qui bloquait le joueur en pratique. Retravaillé pour prendre effet immédiatement : `unequip_sheet` met maintenant aussi à jour `_active_context.equipped_sheets` en place si une manche est en cours — même pattern déjà utilisé par les autres canaux mutables à chaud (`set_flat_score_bonus`, `set_global_multiplier`...).
+
+### Packs de Spéciaux qui restaient grisés — corrigé
+
+Suite à une question du user (peut-on vendre pour faire de la place pendant un pack ouvert ?) : vérifié que les packs de Partitions/Sortilèges gèrent déjà ça correctement (`PackPanelUI` écoute `sheets_changed`/`spells_changed` et redégrise les candidats en direct). Les packs de Spéciaux non : `special_inventory_changed` n'était jamais connecté. Ajouté, même pattern que les deux autres. Vérifié au passage que la vente d'un spécial donne bien 1 ou 2 mouches selon son prix (`int(price × 0.5)`, déjà correct, aucun changement nécessaire là).
+
+### Courbe du Jackpot de la Colonne Convoitée retravaillée
+
+Retour user : à 75% de risque affiché, seulement 16% de chance de Jackpot (conditionnel), jugé trop faible pour le risque pris (le jeton est perdu si ça corrompt, depuis le retune de la partie 2). En creusant la formule (`CursedColumnRewards._scaled_rates`, multiplicateur linéaire avec le risque, plafond `CURSED_COLUMN_JACKPOT_MULTIPLIER_MAX` ×4) : trouvé un défaut structurel — la vraie probabilité *absolue* de toucher le Jackpot (en tenant compte de la chance de corruption) culminait à 33% de risque puis redescendait. Viser 75%+ de risque était donc mathématiquement une mauvaise stratégie, à l'opposé de la promesse "plus de risque, plus de jackpot" de session 27.
+
+Le user propose un système à deux pools (75% skull / 40% Bonus / 60% Jackpot conditionnel une fois passé). Implémenté sans code à deux branches : le multiplicateur s'applique désormais au **carré** du risque plutôt qu'au risque brut, plafond remonté de ×4 à ×20. Résultat : le bas de la courbe bouge à peine (30% de risque minimum → ~14% de Jackpot conditionnel, contre ~9,5% avant), le haut explose (75% → ~58%, 100% → Jackpot garanti si le drop passe). Corrige aussi le défaut structurel : le pic de probabilité absolue remonte vers ~63% de risque, bien plus proche de la promesse du système. `GameRules.CURSED_COLUMN_JACKPOT_MULTIPLIER_MAX` et `docs/gdd/manche/colonne-convoitee.md` mis à jour en conséquence.
+
+## Reste ouvert (partie 4)
+
+- Les trois fixes de cette partie n'ont pas encore été retestés en jeu par le user.
+- La nouvelle courbe Jackpot (×20 au carré) reste un calibrage "au feeling" du user, pas de données de playtest dessus.

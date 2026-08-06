@@ -37,13 +37,26 @@ static func legendary_rate(skull_chance: float) -> float:
 	return _scaled_rates(skull_chance)[Tier.LEGENDAIRE]
 
 
-## Multiplicatif, pas additif (session 27, retour user) : x1 au risque le
-## plus bas, jusqu'a GameRules.CURSED_COLUMN_JACKPOT_MULTIPLIER_MAX au risque
-## maximal (skull_chance = 100%). Commun/Rare se retassent proportionnellement
-## a leur poids de base pour compenser la place prise par Legendaire.
+## Multiplicatif, pas additif (session 27, retour user), sur le CARRE du
+## risque plutot que le risque lui-meme (retune session 28, retour user :
+## "75% de skull, 16% de Jackpot conditionnel, ca fait pas assez") -- x1 au
+## risque le plus bas, jusqu'a GameRules.CURSED_COLUMN_JACKPOT_MULTIPLIER_MAX
+## au risque maximal (skull_chance = 100%). Le carre garde le bas de la
+## courbe quasi inchange (30% de risque minimum -> encore ~14% de Jackpot
+## conditionnel, contre ~9,5% avant) mais fait exploser le haut (75% -> ~58%
+## au lieu de 16%, 100% -> Jackpot garanti si le drop passe) -- une vraie
+## montee tardive plutot qu'une droite, sans les deux pools/branches que le
+## user proposait au depart. Reglait aussi un defaut structurel trouve en le
+## calculant : avec l'ancienne courbe lineaire, la VRAIE probabilite absolue
+## de toucher le Jackpot (skull_chance pris en compte) culminait a 33% de
+## risque puis redescendait -- viser 75%+ etait donc mathematiquement une
+## MAUVAISE strategie malgre le nom "plus de risque, plus de jackpot". Avec
+## le carre, ce pic remonte vers ~63% de risque, bien plus proche de la
+## promesse du systeme. Commun/Rare se retassent proportionnellement a leur
+## poids de base pour compenser la place prise par Legendaire.
 static func _scaled_rates(skull_chance: float) -> Array[float]:
 	var base: Array[float] = GameRules.CURSED_COLUMN_RARITY_RATES
-	var multiplier: float = 1.0 + (GameRules.CURSED_COLUMN_JACKPOT_MULTIPLIER_MAX - 1.0) * skull_chance
+	var multiplier: float = 1.0 + (GameRules.CURSED_COLUMN_JACKPOT_MULTIPLIER_MAX - 1.0) * skull_chance * skull_chance
 	var legendary: float = minf(base[2] * multiplier, 1.0)
 	var remaining: float = 1.0 - legendary
 	var common_share: float = base[0] / (base[0] + base[1])
