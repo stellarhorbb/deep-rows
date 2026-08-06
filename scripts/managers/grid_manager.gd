@@ -615,8 +615,10 @@ func tick_special_countdowns(multiplier_by_type: Dictionary = {}) -> int:
 ## un jeton deplace pendant le scan pourrait sinon etre retraite deux fois
 ## dans la meme passe. Appele inconditionnellement a chaque tour, avant
 ## resolve() (comme tick_special_countdowns) — voir TurnController.
-## play_current_to. Retourne le score total gagne.
-func tick_mobile_specials() -> int:
+## play_current_to. Retourne {"score": int, "eaten": int} -- "eaten" (session
+## 28) compte les bouchees reelles de Cavalier/Frog/Liane/Siphon, utilise par
+## le Sortilège "Gourmand".
+func tick_mobile_specials() -> Dictionary:
 	var cells: Array[Vector2i] = []
 	for c in range(_cols):
 		for r in range(_rows):
@@ -625,6 +627,7 @@ func tick_mobile_specials() -> int:
 				cells.append(Vector2i(c, r))
 
 	var total_score: int = 0
+	var eaten_count: int = 0
 	for cell in cells:
 		var token: TokenData = _grid[cell.x][cell.y]
 		if token == null or token.kind != TokenData.Kind.SPECIAL:
@@ -660,6 +663,8 @@ func tick_mobile_specials() -> int:
 							token.countdown -= 1
 							if token.countdown <= 0:
 								_grid[dest.x][dest.y] = null
+					if result["ate"] as bool:
+						eaten_count += 1
 			TokenData.SpecialType.FROG:
 				var result: Dictionary = SpecialEffects.move_frog(_grid, cell.x, cell.y, _cols, _rows, _holes)
 				var dest: Vector2i = result["dest"] as Vector2i
@@ -673,10 +678,15 @@ func tick_mobile_specials() -> int:
 							token.countdown -= 1
 							if token.countdown <= 0:
 								_grid[dest.x][dest.y] = null
+					if result["ate"] as bool:
+						eaten_count += 1
 			TokenData.SpecialType.LIANE:
 				if token.countdown < 0:
 					continue  # segment de corps, pas la tete : rien a piloter ici
-				total_score += SpecialEffects.grow_liane(_grid, cell.x, cell.y, _cols, _rows, _holes)
+				var liane_result: Dictionary = SpecialEffects.grow_liane(_grid, cell.x, cell.y, _cols, _rows, _holes)
+				total_score += liane_result["score"] as int
+				if liane_result["ate"] as bool:
+					eaten_count += 1
 				if not never_expire:
 					token.countdown -= 1
 					if token.countdown <= 0:
@@ -693,6 +703,7 @@ func tick_mobile_specials() -> int:
 				var siphon_result: Dictionary = SpecialEffects.siphon_eat(_grid, cell.x, cell.y, _rows)
 				total_score += siphon_result["score"] as int
 				var eaten: int = siphon_result["eaten"] as int
+				eaten_count += eaten
 				if eaten == 0:
 					# Plus rien a manger au-dessus/en dessous -- colonne "vide"
 					# autour de lui, il disparait meme si son plafond de
@@ -705,7 +716,7 @@ func tick_mobile_specials() -> int:
 
 	if cells.size() > 0:
 		mobile_specials_ticked.emit()
-	return total_score
+	return {"score": total_score, "eaten": eaten_count}
 
 
 ## Dernier Souffle : les jetons speciaux poses explosent (decision verrouillee,
@@ -860,6 +871,18 @@ func clear_entity_skulls() -> Array[Vector2i]:
 				_grid[c][r] = null
 	entity_skulls_cleared.emit(positions)
 	return positions
+
+
+## Sortilège "Accoutumance" (session 28) : nombre d'entity-skulls actuellement
+## sur la grille -- voir EntityManager._cursed_column_chance.
+func count_entity_skulls() -> int:
+	var count: int = 0
+	for c in range(_cols):
+		for r in range(_rows):
+			var token: TokenData = _grid[c][r]
+			if token != null and token.kind == TokenData.Kind.ENTITY:
+				count += 1
+	return count
 
 
 func get_grid() -> Array:

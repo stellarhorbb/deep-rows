@@ -7,7 +7,7 @@
 script = ExtResource("1_data")
 id = &"pile_ou_face"
 label = "PILE OU FACE"
-description = "Au drop, 10% de chance : pile +5 de valeur, face devient un Rock pour la manche"
+description = "Au drop, 1 chance sur 10 : pile +5 de valeur, face devient un Rock pour la manche"
 price = 6
 rarity = 2
 trigger = &"on_token_drop"

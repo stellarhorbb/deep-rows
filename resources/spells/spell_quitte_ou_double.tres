@@ -7,7 +7,7 @@
 script = ExtResource("1_data")
 id = &"quitte_ou_double"
 label = "QUITTE OU DOUBLE"
-description = "Une Partition qui score déclenche un pile ou face : 50% double, 50% remet à zéro"
+description = "Une Partition qui score déclenche un pile ou face : 1 chance sur 2 de doubler, sinon remis à zéro"
 price = 7
 rarity = 3
 trigger = &"on_round_start"

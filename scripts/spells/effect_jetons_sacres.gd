@@ -19,4 +19,4 @@ func apply(event: Dictionary, run_manager: RunManager) -> void:
 
 func get_progress_text(run_manager: RunManager) -> String:
 	var played: int = run_manager.get_run_spell_state(STATE_KEY, 0) as int
-	return "+%.1f mult (%d spéciaux joués)" % [played * BONUS_PER_SPECIAL, played]
+	return "+%d%% mult (%d spéciaux joués)" % [int(round(played * BONUS_PER_SPECIAL * 100)), played]

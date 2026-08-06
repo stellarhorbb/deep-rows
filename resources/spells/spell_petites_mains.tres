@@ -7,6 +7,6 @@
 script = ExtResource("1_data")
 id = &"petites_mains"
 label = "PETITES MAINS"
-description = "Chaque jeton de valeur 1 dans une figure ajoute +0.1 à son multi"
+description = "Chaque jeton de valeur 1 dans une figure ajoute +50% à son multi"
 price = 4
 effect_script = ExtResource("2_effect")

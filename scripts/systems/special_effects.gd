@@ -307,11 +307,12 @@ static func move_frog(grid: Array, col: int, row: int, cols: int, rows: int, hol
 ## Liane : fait grandir la vigne d'un cran vers la droite, a partir de la
 ## case la plus a droite d'un segment LIANE contigu commencant a (col, row)
 ## sur la meme rangee. Case occupee : mange son contenu (voir _eat_cell) au
-## lieu de le decaler. Retourne le score gagne (0 si rien mange, aussi 0 si
-## bloquee par le bord de la grille ou une case trouee — le minuteur continue
-## quand meme de descendre cote appelant, voir GridManager.
-## tick_mobile_specials).
-static func grow_liane(grid: Array, col: int, row: int, cols: int, _rows: int, holes: Dictionary = {}) -> int:
+## lieu de le decaler. Retourne {"score": int, "ate": bool} -- "ate" false si
+## rien mange (bloquee par le bord de la grille ou une case trouee, le
+## minuteur continue quand meme de descendre cote appelant, voir GridManager.
+## tick_mobile_specials), pour que Sortilège "Gourmand" (session 28) puisse
+## compter cette bouchee comme les autres mangeurs.
+static func grow_liane(grid: Array, col: int, row: int, cols: int, _rows: int, holes: Dictionary = {}) -> Dictionary:
 	var tip_col: int = col
 	while tip_col + 1 < cols:
 		var next_token: TokenData = grid[tip_col + 1][row] as TokenData
@@ -320,13 +321,13 @@ static func grow_liane(grid: Array, col: int, row: int, cols: int, _rows: int, h
 		else:
 			break
 	if tip_col + 1 >= cols:
-		return 0
+		return {"score": 0, "ate": false}
 	var new_col: int = tip_col + 1
 	if holes.has(Vector2i(new_col, row)):
-		return 0
+		return {"score": 0, "ate": false}
 	var eaten: Dictionary = _eat_cell(grid, Vector2i(new_col, row))
 	grid[new_col][row] = TokenData.make_special(TokenData.SpecialType.LIANE)
-	return eaten["score"] as int
+	return eaten
 
 
 ## Fane et efface toute la vigne contigue (tete + segments) a partir de

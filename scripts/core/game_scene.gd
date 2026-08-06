@@ -602,12 +602,6 @@ func _on_mystery_cell_defused(_col: int, _row: int, effect: MysteryCellEffects.T
 	grid_visual.play_mystery_announcement("CASE DÉSAMORCÉE", "C'était : " + missed_label)
 
 
-## Noms affiches pendant le defile de la Colonne Convoitée (voir
-## _on_reward_triggered) -- purement cosmetique, les deux vraies familles
-## (CursedColumnRewards.Family) sont ce qui atterrit reellement.
-const _REWARD_FLAVOR_POOL: Array[String] = ["MULTIPLICATEUR", "BOOST"]
-
-
 ## Recompense de la Colonne Convoitée tiree (EntityManager.reward_triggered,
 ## session 27) -- tirage deja resolu cote manager (tier/family/amount), signal
 ## emis APRES l'animation de chute mais AVANT _resolve_turn() (voir
@@ -631,12 +625,13 @@ func _on_reward_triggered(tier: CursedColumnRewards.Tier, family: CursedColumnRe
 
 
 ## Affiche reellement l'annonce -- voir _on_reward_triggered pour pourquoi
-## c'est separe et appele en differe par _on_turn_resolved. Ne pas reutiliser
-## le label "ROULETTE" : deja pris par play_roll_announcement (roll du
-## Diamond Rock).
+## c'est separe et appele en differe par _on_turn_resolved. Plus de defile
+## (retour user, session 28 : "trop long") -- affichage direct du gain, avec
+## "JACKPOT" en titre uniquement pour le palier Legendaire (le seul qui
+## merite un temps fort a part) ; Commun/Rare vont droit au gain, sans label
+## de palier.
 func _play_reward_announcement(tier: CursedColumnRewards.Tier, family: CursedColumnRewards.Family, amount: float) -> void:
 	var landed_label: String
-	var landed_description: String = CursedColumnRewards.tier_label(tier)
 	match family:
 		CursedColumnRewards.Family.MULTI:
 			landed_label = "MULTIPLICATEUR x%s" % String.num(amount, 1)
@@ -644,7 +639,10 @@ func _play_reward_announcement(tier: CursedColumnRewards.Tier, family: CursedCol
 			landed_label = "BOOST +%d !" % int(amount)
 		_:
 			landed_label = ""
-	await grid_visual.play_prize_spin_announcement(_REWARD_FLAVOR_POOL, landed_label, landed_description)
+	if tier == CursedColumnRewards.Tier.LEGENDAIRE:
+		await grid_visual.play_mystery_announcement("JACKPOT", landed_label)
+	else:
+		await grid_visual.play_mystery_announcement(landed_label)
 
 
 ## Boost de la Colonne Convoitée applique (EntityManager.token_boosted,

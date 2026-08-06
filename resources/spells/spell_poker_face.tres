@@ -7,7 +7,7 @@
 script = ExtResource("1_data")
 id = &"poker_face"
 label = "POKER FACE"
-description = "Chaque jeton qui score a 10% de chance de gagner +1 de valeur dans le deck"
+description = "Chaque jeton qui score a 1 chance sur 10 de gagner +1 de valeur dans le deck"
 price = 8
 rarity = 4
 effect_script = ExtResource("2_effect")

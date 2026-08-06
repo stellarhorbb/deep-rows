@@ -13,12 +13,6 @@ extends RefCounted
 enum Tier { COMMUN, RARE, LEGENDAIRE }
 enum Family { MULTI, BOOST }
 
-const TIER_LABELS: Dictionary = {
-	Tier.COMMUN: "COMMUN",
-	Tier.RARE: "RARE",
-	Tier.LEGENDAIRE: "LÉGENDAIRE",
-}
-
 
 ## `skull_chance` : le % de corruption affiche sur la Colonne Convoitée au
 ## moment du drop (voir EntityManager.roll_reward) -- plus il est haut, plus
@@ -59,7 +53,7 @@ static func _scaled_rates(skull_chance: float) -> Array[float]:
 
 
 ## 50/50 entre les deux familles, independant du palier -- le palier decide
-## uniquement l'ampleur (multi_value/boost_amount ci-dessous), pas quelle
+## uniquement l'ampleur (multi_value/boosted_value ci-dessous), pas quelle
 ## famille sort.
 static func roll_family() -> Family:
 	return Family.MULTI if randf() < 0.5 else Family.BOOST
@@ -69,9 +63,13 @@ static func multi_value(tier: Tier) -> float:
 	return GameRules.CURSED_COLUMN_MULTI_VALUES[tier]
 
 
-static func boost_amount(tier: Tier) -> int:
-	return GameRules.CURSED_COLUMN_BOOST_VALUES[tier]
-
-
-static func tier_label(tier: Tier) -> String:
-	return TIER_LABELS.get(tier, "") as String
+## Valeur finale d'un jeton apres Boost (retune session 28) -- Commun/Rare
+## restent additifs (GameRules.CURSED_COLUMN_BOOST_VALUES), Legendaire
+## devient multiplicatif (GameRules.CURSED_COLUMN_JACKPOT_VALUE_MULTIPLIER)
+## pour rendre le risque proportionnel a l'enjeu plutot qu'un plafond plat.
+## Plafonne a MAX_BUTTON_VALUE dans tous les cas -- les figures restent
+## exclusivement accessibles par le score reel, jamais offertes gratuitement.
+static func boosted_value(tier: Tier, pre_value: int) -> int:
+	if tier == Tier.LEGENDAIRE:
+		return mini(int(pre_value * GameRules.CURSED_COLUMN_JACKPOT_VALUE_MULTIPLIER), GameRules.MAX_BUTTON_VALUE)
+	return mini(pre_value + GameRules.CURSED_COLUMN_BOOST_VALUES[tier], GameRules.MAX_BUTTON_VALUE)

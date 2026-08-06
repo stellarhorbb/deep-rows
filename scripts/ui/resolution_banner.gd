@@ -260,45 +260,6 @@ func play_roll_announcement(result: int, min_value: int, max_value: int) -> void
 	_release_lock()
 
 
-## Recompense de la Colonne Convoitée (session 27, EntityManager.
-## reward_triggered, remplace la roulette de session 25) -- defile parmi des
-## noms de prix (meme cadence que play_roll_announcement, couleur mystere
-## plutot que roll_color pour rester dans le meme registre visuel que les
-## cases mystere) puis s'arrete sur le prix reellement gagne. `flavor_pool`
-## est purement cosmetique pendant le defile (le vrai resultat est deja tire
-## par EntityManager avant l'appel, voir CursedColumnRewards) -- deux
-## familles possibles, Multiplicateur ou Boost.
-func play_prize_spin_announcement(flavor_pool: Array[String], landed_label: String, landed_description: String = "") -> void:
-	await _acquire_lock()
-	visible = true
-	_hide_breakdown_children()
-	remove_theme_font_size_override("font_size")
-	add_theme_font_size_override("font_size", _base_font_size + mystery_font_size_boost)
-	subtitle.visible = false
-
-	for i in range(roll_spin_count):
-		var flavor: String = flavor_pool.pick_random() if not flavor_pool.is_empty() else landed_label
-		_show_step(flavor, mystery_color)
-		var progress: float = float(i) / float(maxi(roll_spin_count - 1, 1))
-		var interval: float = lerpf(roll_spin_start_interval, roll_spin_end_interval, progress)
-		await get_tree().create_timer(interval).timeout
-
-	_show_step(landed_label, mystery_color)
-	subtitle.text = landed_description
-	subtitle.visible = landed_description != ""
-
-	scale = Vector2(0.7, 0.7)
-	var tween: Tween = create_tween()
-	tween.tween_property(self, "scale", Vector2(1.15, 1.15), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	tween.tween_property(self, "scale", Vector2.ONE, 0.15).set_ease(Tween.EASE_IN_OUT)
-	await tween.finished
-
-	await get_tree().create_timer(mystery_duration).timeout
-	visible = false
-	subtitle.visible = false
-	_release_lock()
-
-
 ## Case mystere revelee (session 24, voir TurnController.mystery_cell_resolved) —
 ## meme temps fort que play_cascade_announcement/play_combo_announcement,
 ## en dehors de toute resolution de Partition (retour de playtest : le

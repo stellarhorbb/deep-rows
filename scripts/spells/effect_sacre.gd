@@ -1,13 +1,35 @@
-## Sortilège Legendaire "Sacre" : chaque figure (Valet/Chevalier/Dame/Roi) dans un
-## groupe qui score ajoute +1.0 au multiplicateur de CE groupe — meme
-## mecanisme que "Petites Mains" (add_value_bonus_multiplier), applique aux 4
-## valeurs de GameRules.FACE_CARD_VALUES au lieu d'une seule.
-## Trigger : on_round_start
+## Sortilège Legendaire "Sacre" (retravaillé session 28, retour user -- l'ancien
+## mécanisme "+100% local par groupe" ne correspondait pas à l'intention :
+## chaque figure qui score, dans N'IMPORTE QUELLE Partition, cumule +10% au
+## facteur de scaling permanent (jamais remis à zéro, actif sur toute la run
+## -- même canal que Jetons Sacrés/Cairn/Escalade Musicale/Rescapé).
+## Trigger : on_turn_resolved
 extends SpellEffect
 
-const BONUS_PER_FIGURE: float = 1.0
+const BONUS_PER_FIGURE: float = 0.1
+const STATE_KEY: StringName = &"sacre_figures_scored"
 
 
-func apply(_event: Dictionary, run_manager: RunManager) -> void:
-	for value in GameRules.FACE_CARD_VALUES:
-		run_manager.add_value_bonus_multiplier(value, BONUS_PER_FIGURE, &"sacre")
+func apply(event: Dictionary, run_manager: RunManager) -> void:
+	var timeline: Array = event.get("timeline", [])
+	var scored_figures: int = 0
+	for step in timeline:
+		var e: Dictionary = step as Dictionary
+		if e.get("type") != CascadeResolver.EventType.MATCH:
+			continue
+		for group in (e.get("groups", []) as Array):
+			for scored in ((group as Dictionary).get("scored_tokens", []) as Array):
+				var value: int = (scored as Dictionary).get("value", -1) as int
+				if GameRules.FACE_CARD_VALUES.has(value):
+					scored_figures += 1
+	if scored_figures <= 0:
+		return
+
+	var total: int = (run_manager.get_run_spell_state(STATE_KEY, 0) as int) + scored_figures
+	run_manager.set_run_spell_state(STATE_KEY, total)
+	run_manager.set_scaling_mult_bonus(&"sacre", total * BONUS_PER_FIGURE)
+
+
+func get_progress_text(run_manager: RunManager) -> String:
+	var total: int = run_manager.get_run_spell_state(STATE_KEY, 0) as int
+	return "+%d%% mult (%d figures scorées)" % [int(round(total * BONUS_PER_FIGURE * 100)), total]

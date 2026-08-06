@@ -107,8 +107,15 @@ func _ambient_chance() -> float:
 ## (longue serie sans skull) finirait par depasser le "risque eleve" affiche
 ## sur la colonne, qui doit pourtant rester la pire option. Au niveau de base
 ## (ambiant 5%, bonus 30%) ca retombe sur 35%, mais les deux grimpent ensemble.
+## Sortilège "Accoutumance" (session 28) : si equipe, retranche GameRules.
+## ACCOUTUMANCE_PER_SKULL par entity-skull present sur la grille -- plus le
+## chaos ambiant s'accumule, plus le prochain pari redevient sur. Plafonne a
+## 0, jamais negatif.
 func _cursed_column_chance() -> float:
-	return minf(_ambient_chance() + GameRules.CURSED_COLUMN_SKULL_BONUS * drop_chance_multiplier, 1.0)
+	var chance: float = minf(_ambient_chance() + GameRules.CURSED_COLUMN_SKULL_BONUS * drop_chance_multiplier, 1.0)
+	if run_manager.has_spell(&"accoutumance"):
+		chance = maxf(chance - GameRules.ACCOUTUMANCE_PER_SKULL * grid_manager.count_entity_skulls(), 0.0)
+	return chance
 
 
 ## Jette le de de corruption pour un drop dans la Colonne Convoitée -- voir
@@ -151,9 +158,9 @@ func roll_reward(cell: Vector2i, token: TokenData) -> void:
 			amount = CursedColumnRewards.multi_value(tier)
 			_activate_multi(amount)
 		CursedColumnRewards.Family.BOOST:
-			var boost: int = CursedColumnRewards.boost_amount(tier)
-			amount = float(boost)
-			_apply_boost(cell, token, boost)
+			var new_value: int = CursedColumnRewards.boosted_value(tier, token.value)
+			amount = float(new_value - token.value)
+			_apply_boost(cell, token, new_value)
 	reward_triggered.emit(tier, family, amount)
 
 
@@ -165,11 +172,21 @@ func _activate_multi(value: float) -> void:
 
 ## Mutation directe du jeton dropé -- jamais un jeton aleatoire ailleurs
 ## (ancien defaut de la roulette, voir GameRules.CURSED_COLUMN_BOOST_VALUES).
-## No-op silencieux sur un jeton non-base ou deja au plafond.
-func _apply_boost(cell: Vector2i, token: TokenData, amount: int) -> void:
+## `new_value` deja calcule et plafonne par CursedColumnRewards.boosted_value
+## (additif Commun/Rare, multiplicatif Legendaire -- voir GameRules.
+## CURSED_COLUMN_JACKPOT_VALUE_MULTIPLIER). No-op silencieux sur un jeton
+## non-base. Banque aussi le gain cote pool possede (RunManager.
+## bank_column_boost) AVANT de muter la copie de la grille -- sans ca,
+## l'incrementation ne vit que sur cette copie ephemere (voir DeckManager.
+## build_deck, copies fraiches a chaque manche) et se perd des que ce jeton
+## ne persiste pas jusqu'au sommet de sa colonne en fin de manche (bug trouve
+## session 28, meme defaut que l'ancien Boost roulette avant sa fix session
+## 25 -- voir RunManager.boost_random_button).
+func _apply_boost(cell: Vector2i, token: TokenData, new_value: int) -> void:
 	if token.kind != TokenData.Kind.BASE:
 		return
-	token.value = mini(token.value + amount, GameRules.MAX_BUTTON_VALUE)
+	run_manager.bank_column_boost(token.family, token.value, new_value)
+	token.value = new_value
 	token_boosted.emit(cell, token)
 
 

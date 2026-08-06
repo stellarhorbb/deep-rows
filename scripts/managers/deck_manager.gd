@@ -199,6 +199,21 @@ func force_hold_to_current() -> void:
 	_hold[slot] = null
 	_emit_stream_updated()
 
+
+## Sortilège "Renaissance" (session 28) : reinsere un jeton corrompu par la
+## Colonne Convoitée a une position aleatoire du stream restant -- pourra
+## etre retire a nouveau CETTE manche, contrairement au comportement par
+## defaut (le pool possede n'est jamais touche par une corruption, mais le
+## jeton n'y redevient tirable qu'a la manche suivante, voir TurnController.
+## play_current_to). Insertion simple, jamais un `_shuffle()` complet : ne
+## perturbe pas l'ordre du reste du stream deja tire au hasard en debut de
+## manche.
+func insert_random(token: TokenData) -> void:
+	var index: int = randi_range(0, _deck.size())
+	_deck.insert(index, token)
+	_emit_stream_updated()
+
+
 func _shuffle() -> void:
 	for i in range(_deck.size() - 1, 0, -1):
 		var j: int = randi() % (i + 1)

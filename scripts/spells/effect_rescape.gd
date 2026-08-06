@@ -25,4 +25,4 @@ func apply(_event: Dictionary, run_manager: RunManager) -> void:
 
 func get_progress_text(run_manager: RunManager) -> String:
 	var count: int = run_manager.get_run_spell_state(STATE_KEY, 0) as int
-	return "+%.1f mult (%d boss survécus)" % [count * BONUS_PER_BOSS, count]
+	return "+%d%% mult (%d boss survécus)" % [int(round(count * BONUS_PER_BOSS * 100)), count]

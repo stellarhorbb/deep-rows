@@ -1,14 +1,13 @@
-[gd_resource type="Resource" script_class="SpellData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SpellData" format=3 uid="uid://bg7mr5d34x0vq"]
 
-[ext_resource type="Script" path="res://scripts/data/spell_data.gd" id="1_data"]
-[ext_resource type="Script" path="res://scripts/spells/effect_impair_profane.gd" id="2_effect"]
+[ext_resource type="Script" uid="uid://ct80ym651ovo7" path="res://scripts/data/spell_data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://cs0kkrkgmrbtr" path="res://scripts/spells/effect_impair_profane.gd" id="2_effect"]
 
 [resource]
 script = ExtResource("1_data")
 id = &"impair_profane"
 label = "IMPAIR PROFANE"
-description = "Les jetons de valeur impaire qui scorent recomptent leur valeur une deuxième fois"
-trigger = &"on_round_start"
+description = "Les jetons de valeur impaire qui scorent recomptent leur valeur une deuxième fois."
 price = 5
 rarity = 1
 effect_script = ExtResource("2_effect")

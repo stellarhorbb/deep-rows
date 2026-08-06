@@ -49,6 +49,11 @@ signal dropped_token_mutated(col: int, row: int)
 ## jeton en se deplacant/grandissant — meme raison que petard_scored, en
 ## dehors de la banniere de resolution normale (voir tick_mobile_specials).
 signal mobile_specials_scored(amount: int)
+## Nombre de bouchees reelles ce tour-ci (Cavalier/Frog/Liane/Siphon confondus,
+## voir GridManager.tick_mobile_specials) — separe de mobile_specials_scored
+## car une bouchee peut ne rien scorer (Rock, session 25) tout en comptant
+## quand meme pour le Sortilège "Gourmand" (session 28).
+signal special_ate(count: int)
 ## Case mystere revelee et resolue (voir GridManager.mystery_cell_triggered /
 ## _on_mystery_cell_triggered) — le visuel affiche un message et met a jour
 ## la grille selon l'effet (voir GameScene._on_mystery_cell_resolved).
@@ -200,14 +205,30 @@ func play_current_to(col: int, row: int) -> void:
 
 	var on_cursed_column: bool = col == entity_manager.get_cursed_column()
 
-	# Colonne Convoitée (session 27, voir EntityManager) : seul le pari
+	# Colonne Convoitée (session 27, retune session 28) : seul le pari
 	# delibere sur cette colonne peut saboter le drop lui-meme -- la
 	# corruption ambiante ne touche plus le geste du joueur, elle retombe sur
 	# une colonne aleatoire apres coup (voir _on_turn_resolved dans
-	# GameScene). Le jeton vise n'est JAMAIS consomme : un skull tombe a sa
-	# place, le jeton reste en tete de stream pour retenter. Uniquement pour
-	# un jeton de base -- rocks/speciaux ne sont jamais corrompus.
+	# GameScene). Le jeton vise EST desormais consomme (retour user : le
+	# swap-sans-perte diluait le risque, "pas grave je tente ailleurs") -- un
+	# skull tombe a sa place, le jeton disparait sans avoir score pour cette
+	# manche. Pas perdu pour la run : consume_current() ne touche que le
+	# _current du stream, jamais le pool possede (voir RunManager.
+	# _button_pool) -- il reapparaitra normalement au deck de la manche
+	# suivante, comme n'importe quel jeton non joue. Uniquement pour un
+	# jeton de base -- rocks/speciaux ne sont jamais corrompus.
+	# Sortilège "Renaissance" (session 28) : GameRules.RENAISSANCE_CHANCE
+	# (1/3) que ce jeton soit repeche direct dans le stream de CETTE manche
+	# (DeckManager.insert_random) plutot que d'attendre la manche suivante.
+	# Sortilège "Consolation" (session 28) : GameRules.CONSOLATION_FLIES
+	# mouches fixes gagnees a chaque corruption, compense la perte sans
+	# l'annuler.
 	if on_cursed_column and token.kind == TokenData.Kind.BASE and entity_manager.roll_cursed_column_corruption():
+		deck_manager.consume_current()
+		if run_manager.has_spell(&"renaissance") and randf() < GameRules.RENAISSANCE_CHANCE:
+			deck_manager.insert_random(token)
+		if run_manager.has_spell(&"consolation"):
+			run_manager.add_flies(GameRules.CONSOLATION_FLIES)
 		var skull: TokenData = TokenData.make_entity()
 		if boss_malus_manager.active_malus == BossMalusManager.Type.MECHE_COURTE:
 			skull.countdown = GameRules.MECHE_COURTE_START_COUNTDOWN
@@ -298,10 +319,14 @@ func _resolve_turn() -> void:
 
 	# Speciaux mobiles (Cavalier, Frog, Liane, Crow, Underground) : meme
 	# timing, AVANT resolve(), inconditionnel.
-	var mobile_score: int = grid_manager.tick_mobile_specials()
+	var mobile_result: Dictionary = grid_manager.tick_mobile_specials()
+	var mobile_score: int = mobile_result["score"] as int
 	if mobile_score > 0:
 		score_manager.add_score(mobile_score)
 		mobile_specials_scored.emit(mobile_score)
+	var mobile_eaten: int = mobile_result["eaten"] as int
+	if mobile_eaten > 0:
+		special_ate.emit(mobile_eaten)
 
 	# Resolution cascade
 	_state = State.RESOLVING

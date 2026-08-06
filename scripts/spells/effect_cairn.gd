@@ -25,4 +25,4 @@ func apply(event: Dictionary, run_manager: RunManager) -> void:
 
 func get_progress_text(run_manager: RunManager) -> String:
 	var total: int = run_manager.get_run_spell_state(STATE_KEY, 0) as int
-	return "%d Rocks cumulés (+%.1f mult)" % [total, total * BONUS_PER_ROCK]
+	return "%d Rocks cumulés (+%d%% mult)" % [total, int(round(total * BONUS_PER_ROCK * 100))]

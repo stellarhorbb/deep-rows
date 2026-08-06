@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="StarterPackData" format=3 uid="uid://h217ho4mb02x"]
 
 [ext_resource type="Script" uid="uid://cncok8imjgcug" path="res://scripts/data/starter_pack_data.gd" id="1_script"]
-[ext_resource type="Resource" uid="uid://bjx3ppvr7q8kq" path="res://resources/sheets/line_family_4.tres" id="2_sheet_a"]
+[ext_resource type="Resource" path="res://resources/sheets/line_family_3.tres" id="2_sheet_a"]
 [ext_resource type="Resource" path="res://resources/sheets/diamond_rainbow.tres" id="3_sheet_b"]
 
 [resource]

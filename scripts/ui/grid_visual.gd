@@ -332,18 +332,13 @@ func remove_sprite_at(cell: Vector2i) -> void:
 
 ## Case mystere revelee (voir GameScene._on_mystery_cell_resolved) — passe
 ## par resolution_banner plutot que message_display, trop discret pour ce
-## genre de moment (retour de playtest). Pas d'await cote appelant : fire-
-## and-forget, ne bloque pas le tour, comme petard_scored/mobile_specials_scored.
+## genre de moment (retour de playtest). L'await est interne pour que
+## GameScene._play_reward_announcement (Colonne Convoitée, session 28) puisse
+## bloquer jusqu'a la fin reelle de l'annonce -- les autres appelants
+## (mystere/desamorcage) restent fire-and-forget en n'awaitant pas cette
+## fonction eux-memes, comme petard_scored/mobile_specials_scored.
 func play_mystery_announcement(label: String, description: String = "") -> void:
-	resolution_banner.play_mystery_announcement(label, description)
-
-
-## Recompense Colonne Convoitée tiree (voir GameScene._on_reward_triggered) --
-## contrairement a play_mystery_announcement ci-dessus, l'appelant attend la
-## fin reelle de l'annonce avant de continuer, donc await ici plutot que
-## fire-and-forget.
-func play_prize_spin_announcement(flavor_pool: Array[String], landed_label: String, landed_description: String = "") -> void:
-	await resolution_banner.play_prize_spin_announcement(flavor_pool, landed_label, landed_description)
+	await resolution_banner.play_mystery_announcement(label, description)
 
 
 ## Joue la timeline de resolution complete avec animations.

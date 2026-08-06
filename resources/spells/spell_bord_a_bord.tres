@@ -7,7 +7,7 @@
 script = ExtResource("1_data")
 id = &"bord_a_bord"
 label = "BORD À BORD"
-description = "Les 2 colonnes extérieures passent en BOOST x1.2"
+description = "Les 2 colonnes extérieures passent en BOOST x1.5"
 price = 5
 rarity = 2
 effect_script = ExtResource("2_effect")

@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="StarterPackData" format=3 uid="uid://c6ljusuhg48ed"]
 
 [ext_resource type="Script" uid="uid://cncok8imjgcug" path="res://scripts/data/starter_pack_data.gd" id="1_script"]
-[ext_resource type="Resource" uid="uid://bnftdi0liay22" path="res://resources/sheets/suite.tres" id="2_sheet_a"]
-[ext_resource type="Resource" path="res://resources/sheets/diamond_family.tres" id="3_sheet_b"]
+[ext_resource type="Resource" path="res://resources/sheets/line_family_3.tres" id="2_sheet_a"]
+[ext_resource type="Resource" uid="uid://bnftdi0liay22" path="res://resources/sheets/suite.tres" id="3_sheet_b"]
 [ext_resource type="Resource" path="res://resources/starter_packs/le_genereux.tres" id="4_requires"]
 
 [resource]

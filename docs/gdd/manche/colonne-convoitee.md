@@ -20,14 +20,27 @@ Une colonne signalée (overlay rouge sur `GridVisual`), re-tirée à **chaque to
 
 Droper là est un choix informé :
 - **Risque affiché** : `ambiant du moment + GameRules.CURSED_COLUMN_SKULL_BONUS` (0.30), jamais un taux fixe indépendant — sinon un ambiant déjà monté haut dépasserait le risque affiché comme "élevé". Au niveau de base (ambiant 5%), ça retombe sur 35%.
-- **Si ça corrompt** : swap, pas destruction — un skull tombe à la place du jeton visé, mais celui-ci n'est **jamais consommé** : il reste en tête de stream pour retenter au prochain tour. Coût réel = le tour, pas le jeton.
+- **Si ça corrompt** : le jeton visé est **consommé** (retune session 28, retour user) — un skull tombe à sa place, le jeton disparaît sans avoir scoré pour cette manche. Pas de retry au tour suivant (l'ancien swap-sans-perte diluait le risque : "pas grave, je tente ailleurs"). Pas perdu pour la run pour autant : `TurnController.play_current_to` appelle `DeckManager.consume_current()`, qui ne touche que le stream de la manche en cours, jamais le pool possédé (`RunManager._button_pool`) — le jeton réapparaît normalement au deck de la manche suivante, comme n'importe quel jeton non joué.
 - **Si ça passe** : récompense ciblée sur CE jeton précis (jamais un jeton aléatoire ailleurs — défaut identifié de l'ancienne roulette), tirée à deux temps comme avant : palier (Commun/Rare/Légendaire) puis famille (Multiplicateur/Boost), voir `CursedColumnRewards`.
   - **Multiplicateur** — s'applique aux `GameRules.CURSED_COLUMN_MULTI_DROPS` (3) prochains drops qui scorent, jamais celui qui déclenche.
-  - **Boost** — mute directement la valeur du jeton dropé, plafonnée à `MAX_BUTTON_VALUE`, appliqué **avant** résolution de cascade (peut donc compléter/upgrader un pattern sur ce même tour).
+  - **Boost** — mute directement la valeur du jeton dropé, appliqué **avant** résolution de cascade (peut donc compléter/upgrader un pattern sur ce même tour). Commun/Rare restent additifs et plats (`GameRules.CURSED_COLUMN_BOOST_VALUES`, +1/+2), mais le Légendaire est **multiplicatif** depuis la session 28 (`GameRules.CURSED_COLUMN_JACKPOT_VALUE_MULTIPLIER`, ×2) plutôt qu'un ancien +10 plat qui fixait n'importe quel jeton pile à `MAX_BUTTON_VALUE` (10). L'ancien +10 profitait toujours plus (en relatif) à un jeton pourri qu'à un bon — le ×2 rend le risque proportionnel à l'enjeu : un "5" qui double tombe pile sur 10 (le vrai sweet spot), doubler un "1" reste volontairement fade. Voir `CursedColumnRewards.boosted_value`, plafonné à `MAX_BUTTON_VALUE` dans tous les cas.
 
-**Contrepoids risque/récompense (retour user, session 27)** : sans lui, une colonne à haut risque n'offre aucune contrepartie et devient juste une case à fuir. Le palier Légendaire scale avec le risque affiché — multiplicatif, ×1 à risque nul jusqu'à `GameRules.CURSED_COLUMN_JACKPOT_MULTIPLIER_MAX` (×4) à 100%. **Affiché en conditionnel** ("si ça passe : X% bonus, Y% jackpot"), jamais en absolu — un bug trouvé en playtest montrait un jackpot absolu qui chutait mécaniquement vers 0 à haut risque (moins d'espace de récompense total quand le risque de skull grandit), donnant l'impression fausse que le risque payait moins alors que le tirage réel scalait bien. Le tooltip au survol du % (`GridHoverUI`, réutilise le système de tooltip natif déjà en place pour les jetons) affiche le détail Skull/Bonus/Jackpot.
+**Contrepoids risque/récompense (retour user, session 27)** : sans lui, une colonne à haut risque n'offre aucune contrepartie et devient juste une case à fuir. Le palier Légendaire scale avec le risque affiché — multiplicatif, ×1 à risque nul jusqu'à `GameRules.CURSED_COLUMN_JACKPOT_MULTIPLIER_MAX` (×4) à 100%. Ce taux Légendaire reste calculé en interne comme un conditionnel ("si le drop passe", voir `CursedColumnRewards.legendary_rate`), pour que le signal "plus de risque = jackpot bien plus probable en cas de réussite" reste correct dans les données.
+
+**Affichage — retour user, session 28** : deux essais avant de se fixer. Le tout-indépendant (Skull/Bonus/Jackpot en % absolus sommant à 100%) a été testé puis abandonné : il rendait le Jackpot mécaniquement décroissant à mesure que le skull grimpe (le skull mange une part croissante du pool), ce qui va à l'encontre du but recherché — donner envie de tenter la CC *justement* quand le risque est élevé. Le tooltip (`GridHoverUI`) reste donc conditionnel comme à l'origine, mais reformaté en bloc plutôt qu'en phrase "si ça passe" pour rester lisible à la volée : `Skull : X%` sur sa propre ligne, puis `Drop réussi → Bonus Y%, Jackpot Z%`. Le taux interne (`CursedColumnRewards`) n'a jamais changé au fil de ces essais, seul l'affichage a bougé.
 
 **Compteur de dread partagé** entre les deux couches — un skull qui apparaît, peu importe la source, calme la pression pour un moment (reset de `_turns_since_corruption`).
+
+### Sortilèges dédiés (session 28)
+
+Quatre Sortilèges scopés exclusivement à ce système, ajoutés une fois la corruption retravaillée pour vraiment coûter un jeton :
+
+- **Renaissance** (Rare) — 1 jeton corrompu sur 3 revient à une place aléatoire du stream de la manche en cours (`DeckManager.insert_random`) au lieu d'attendre la manche suivante.
+- **Consolation** (Uncommon) — +2 mouches à chaque corruption, compense la perte sans l'annuler.
+- **Adjacence Sombre** (Rare) — +20% de score, mais LOCAL (pas un `global_multiplier`) : par skull adjacent orthogonalement à la Partition qui score, même canal que l'Amplificateur (`grid_mult`).
+- **Accoutumance** (Rare) — le risque affiché/réel baisse de 3% par skull actuellement présent sur la grille (`GridManager.count_entity_skulls`, branché dans `EntityManager._cursed_column_chance`) — plus le chaos s'accumule, plus les prochains paris redeviennent sûrs.
+
+Brainstorm : un premier jet générique (multiplicateur global +10%/skull, "Emprise") a été écarté car déconnecté du placement — préféré une version locale liée à l'adjacence, plus proche de l'identité "puzzle de placement" du jeu.
 
 ## Cases mystère et désamorçage
 
@@ -48,7 +61,9 @@ Historique conservé de la roulette (session 25) pour ne pas relitiger sans nouv
 
 Codé en session 27 : `EntityManager` (corruption ambiante + Colonne Convoitée, remplace `RouletteManager` et l'ancien `on_turn_resolved` skull-ailleurs), `CursedColumnRewards` (catalogue, remplace `RouletteRewards`), constantes `GameRules.CURSED_COLUMN_*`/`ENTITY_DROP_*`, overlay + tooltip dans `GridVisual`/`GridHoverUI`.
 
-Reste ouvert : calibrage au playtest prolongé de `CURSED_COLUMN_SKULL_BONUS` (0.30) et `CURSED_COLUMN_JACKPOT_MULTIPLIER_MAX` (×4), posés sur un premier jet de raisonnement plutôt que des données de jeu étendues.
+Retuné en session 28 : la corruption consomme désormais vraiment le jeton visé (plus de swap-sans-perte) et le Boost Légendaire devient multiplicatif (×2) au lieu d'un +10 plat — voir ci-dessus. L'annonce de récompense est aussi passée d'un double défilement type roulette à un affichage direct (retour user : "trop long"), `JACKPOT` en titre uniquement sur le palier Légendaire.
+
+Reste ouvert : calibrage au playtest prolongé de `CURSED_COLUMN_SKULL_BONUS` (0.30) — potentiellement à revoir maintenant que la corruption coûte vraiment un jeton (avant session 28 elle ne coûtait qu'un tour), mais pas de décision a priori, à recalibrer avec de vraies données de run plutôt qu'à l'instinct.
 
 ## Liens
 

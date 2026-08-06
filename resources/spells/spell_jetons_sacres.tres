@@ -7,7 +7,7 @@
 script = ExtResource("1_data")
 id = &"jetons_sacres"
 label = "JETONS SACRÉS"
-description = "Chaque jeton spécial joué ajoute +0.1 au multi, cumulé sur toute la run"
+description = "Chaque jeton spécial joué cumule +10% au multi, sur toute la run"
 price = 5
 rarity = 2
 trigger = &"on_token_drop"

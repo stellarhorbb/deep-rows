@@ -27,6 +27,7 @@ func bind_round(turn_controller: TurnController) -> void:
 	turn_controller.turn_resolved.connect(_on_turn_resolved)
 	turn_controller.last_breath_started.connect(_on_last_breath)
 	turn_controller.shake_used.connect(_on_shake_used)
+	turn_controller.special_ate.connect(_on_special_ate)
 
 	# sheet_leveled_up/button_pool_changed/sheet_sold/figure_promoted vivent sur
 	# RunManager (persistant toute la run), pas sur TurnController (recree
@@ -74,6 +75,12 @@ func _on_last_breath() -> void:
 
 func _on_shake_used() -> void:
 	_dispatch(&"on_shake_used", {})
+
+
+## Un special "mangeur" (Cavalier/Frog/Liane/Siphon) vient de manger `count`
+## jeton(s) ce tour-ci (voir TurnController.special_ate) — ex: "Gourmand".
+func _on_special_ate(count: int) -> void:
+	_dispatch(&"on_special_ate", {"count": count})
 
 
 func _on_sheet_sold(sheet_name: StringName) -> void:

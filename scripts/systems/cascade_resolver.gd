@@ -505,6 +505,8 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		var diamond_grid_mult: float = _grid_modifier_multiplier(scored_cells, grid_modifiers)
 		if (group.get("amplificateur_cells", []) as Array).size() > 0:
 			diamond_grid_mult *= GameRules.AMPLIFICATEUR_MULT
+		if context.has_adjacence_sombre:
+			diamond_grid_mult *= 1.0 + GameRules.ADJACENCE_SOMBRE_PER_SKULL * _count_adjacent_skulls(scored_cells, grid)
 		var diamond_value_bonus_mult: float = _value_bonus_multiplier(scored_cells, grid, context)
 		var diamond_sum_bonus: Dictionary = _value_sum_bonus(group, scored_cells, grid, context)
 		var base_value: int = diamond_raw_value + (diamond_sum_bonus["amount"] as int)
@@ -571,6 +573,8 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 	var grid_mult: float = _grid_modifier_multiplier(group["cells"], grid_modifiers)
 	if (group.get("amplificateur_cells", []) as Array).size() > 0:
 		grid_mult *= GameRules.AMPLIFICATEUR_MULT
+	if context.has_adjacence_sombre:
+		grid_mult *= 1.0 + GameRules.ADJACENCE_SOMBRE_PER_SKULL * _count_adjacent_skulls(group["cells"], grid)
 	var value_bonus_mult: float = _value_bonus_multiplier(group["cells"], grid, context)
 	var mult_contribs: Dictionary = _mult_contributions(group["cells"], grid, context, rule, sheet_name)
 	# cascade_mult exclu du breakdown affiche, meme raison que la branche diamond.
@@ -628,6 +632,30 @@ func _count_skulls(grid: Array) -> int:
 			if token != null and token.kind == TokenData.Kind.ENTITY:
 				count += 1
 	return count
+
+
+## Sortilège "Adjacence Sombre" (session 28) : nombre d'entity-skulls
+## DISTINCTS adjacents orthogonalement a au moins une des cellules de
+## `cells` -- meme structure/dedup que _adjacent_amplificateurs (un meme
+## skull ne compte qu'une fois meme si plusieurs cellules du groupe le
+## touchent). Contrairement a _count_skulls ci-dessus (total sur toute la
+## grille, Skull Line 4/Shadow Dance), celle-ci reste locale au groupe qui
+## score -- voir GameRules.ADJACENCE_SOMBRE_PER_SKULL.
+func _count_adjacent_skulls(cells: Array, grid: Array) -> int:
+	var found: Array[Vector2i] = []
+	var offsets: Array[Vector2i] = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
+	for cell in cells:
+		var gc: Vector2i = cell as Vector2i
+		for offset in offsets:
+			var ac: Vector2i = Vector2i(gc.x + offset.x, gc.y + offset.y)
+			if ac.x < 0 or ac.x >= GameRules.COLS or ac.y < 0 or ac.y >= GameRules.ROWS:
+				continue
+			var maybe_skull: TokenData = grid[ac.x][ac.y] as TokenData
+			if maybe_skull == null or maybe_skull.kind != TokenData.Kind.ENTITY:
+				continue
+			if not found.has(ac):
+				found.append(ac)
+	return found.size()
 
 
 ## Tirage a palier generique (meme principe que RouletteRewards.roll_tier) :

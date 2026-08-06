@@ -178,7 +178,7 @@ const BIOME_BACKGROUND_COLORS: Array[Color] = [
 ]
 
 # Sheets
-const MAX_SHEET_SLOTS: int = 4
+const MAX_SHEET_SLOTS: int = 3
 
 # Vente de Partitions/Sortilèges — pourcentage du prix d'achat rembourse
 const SELL_REFUND_RATIO: float = 0.5
@@ -246,7 +246,7 @@ const MODIFIER_MYSTERY_X10_MULT: float = 10.0
 # ces trois-la sans que ce soit demande. Valeur dediee pour ne changer que
 # Bord a Bord.
 const MODIFIER_BORD_A_BORD: StringName = &"bord_a_bord"
-const MODIFIER_BORD_A_BORD_MULT: float = 1.2
+const MODIFIER_BORD_A_BORD_MULT: float = 1.5
 
 # Cases mystere (session 24, axe casino) — quelques cases par manche, visibles
 # mais au contenu inconnu jusqu'a ce qu'un jeton/rock/special y atterrisse
@@ -344,18 +344,51 @@ const CURSED_COLUMN_MULTI_DROPS: int = 3
 ## d'etre reellement rentabilise.
 const CURSED_COLUMN_MULTI_DROPS_EXTENDED: int = 5
 
+## Sortilège "Renaissance" (session 28) : chance qu'un jeton corrompu par la
+## Colonne Convoitée soit reinsere dans le stream de la manche plutot que
+## perdu jusqu'a la manche suivante -- voir TurnController.play_current_to,
+## DeckManager.insert_random.
+const RENAISSANCE_CHANCE: float = 1.0 / 3.0
+
 ## Boost (session 25, remplace Frog dans le pool a l'epoque de la roulette) --
 ## augmente directement la valeur du jeton que le joueur vient de droper dans
 ## la Colonne Convoitée (mutation immediate, meme langage visuel que Pile ou
 ## Face -- voir TurnController.play_current_to). Cible desormais TOUJOURS ce
 ## jeton precis, jamais un jeton aleatoire ailleurs sur la grille (ancien
-## defaut de la roulette identifie en session 27). L'ampleur varie par palier
-## -- meme forme que CURSED_COLUMN_MULTI_VALUES (1.2/3/10) pour rester
-## coherent visuellement dans le pool. Plafonne a MAX_BUTTON_VALUE (10) :
-## les figures restent exclusivement accessibles par le score reel, jamais
-## offertes gratuitement -- +10 sur le palier Legendaire revient donc
-## toujours a fixer la valeur pile a 10, peu importe le point de depart.
-const CURSED_COLUMN_BOOST_VALUES: Array[int] = [1, 3, 10]  # Commun/Rare/Legendaire
+## defaut de la roulette identifie en session 27). Commun/Rare seulement --
+## petits gains fixes, additifs (voir CursedColumnRewards.boosted_value).
+## Legendaire n'utilise plus cette table, voir CURSED_COLUMN_JACKPOT_VALUE_
+## MULTIPLIER ci-dessous.
+const CURSED_COLUMN_BOOST_VALUES: Array[int] = [1, 2]  # Commun/Rare
+
+## Legendaire du Boost (retune session 28, retour user) : multiplicatif (x2)
+## plutot qu'un +10 plat qui fixait n'importe quel jeton pile a 10 -- un +10
+## sur un jeton a 1 valait bien plus (en relatif) qu'un +10 sur un jeton a 8
+## (deja plafonne), ce qui poussait TOUJOURS a risquer du fodder, jamais un
+## bon jeton. Doubler rend le risque proportionnel a l'enjeu : un "5" qui
+## double tombe pile sur MAX_BUTTON_VALUE (10), le vrai sweet spot -- doubler
+## un "1" reste volontairement fade (=2), pour qu'il n'y ait plus d'interet a
+## risquer du fodder specifiquement pour LE jackpot (les paliers Commun/Rare
+## restent la eux pour ca). Voir CursedColumnRewards.boosted_value.
+const CURSED_COLUMN_JACKPOT_VALUE_MULTIPLIER: float = 2.0
+
+## Sortilège "Consolation" (session 28) : mouches fixes gagnees quand un
+## jeton est corrompu par la Colonne Convoitée -- compense la perte sans
+## l'annuler (voir TurnController.play_current_to).
+const CONSOLATION_FLIES: int = 2
+
+## Sortilège "Adjacence Sombre" (session 28) : bonus de score LOCAL (pas un
+## global_multiplier) par entity-skull adjacent orthogonalement a une
+## Partition qui score -- voir CascadeResolver._count_adjacent_skulls.
+## Naturellement plafonne a 4 skulls adjacents (les 4 cotes d'une cellule).
+const ADJACENCE_SOMBRE_PER_SKULL: float = 0.20
+
+## Sortilège "Accoutumance" (session 28) : reduit le risque affiche/reel de
+## la Colonne Convoitée (EntityManager._cursed_column_chance) d'autant par
+## entity-skull actuellement present sur la grille -- plus le chaos
+## s'accumule, plus les prochains paris redeviennent surs. Plafonne a 0
+## (jamais negatif), voir GridManager.count_entity_skulls.
+const ACCOUTUMANCE_PER_SKULL: float = 0.03
 
 # Valeurs des jetons de base
 const TOKEN_MIN_VALUE: int = 1
@@ -635,7 +668,7 @@ const REROLL_INCREMENT: int = 1
 ## memoriser plutot que les sommes exactes (435/1585/4825/14825).
 const SHEET_LEVEL_THRESHOLDS: Array[int] = [400, 1500, 4000, 12000]
 # Multiplicateur applique au score selon le niveau (index 0 = niveau 1).
-const SHEET_LEVEL_MULTIPLIERS: Array[float] = [1.0, 1.25, 1.5, 1.75, 2.0]
+const SHEET_LEVEL_MULTIPLIERS: Array[float] = [1.0, 2.0, 3.0, 4.0, 5.0]
 const SHEET_LEVEL_NAMES: Array[String] = ["Pianissimo", "Piano", "Forte", "Fortissimo", "Maestro"]
 
 

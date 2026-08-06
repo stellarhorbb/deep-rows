@@ -157,6 +157,13 @@ extends Resource
 # _apply_score_gambles, applique AVANT Echo (voir ce fichier pour l'ordre).
 @export var has_quitte_ou_double: bool = false
 
+# Sortilège "Adjacence Sombre" (session 28) : vrai si equipe -- chaque
+# Partition qui score gagne un multiplicateur LOCAL (pas un global_
+# multiplier) de GameRules.ADJACENCE_SOMBRE_PER_SKULL par entity-skull
+# adjacent orthogonalement a une de ses cellules. Simple flag, meme
+# convention que has_echo. Lu par CascadeResolver._score_group.
+@export var has_adjacence_sombre: bool = false
+
 
 ## --- Combinaison des contributions --------------------------------------
 ## Chaque canal "keyed" ou "flat" a une seule methode qui sait le combiner —

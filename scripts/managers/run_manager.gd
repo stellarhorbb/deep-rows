@@ -291,6 +291,7 @@ func build_context() -> RunContext:
 	ctx.rock_wildcard_family = has_spell(&"pierre_de_famille")
 	ctx.has_echo = has_spell(&"echo")
 	ctx.has_quitte_ou_double = has_spell(&"quitte_ou_double")
+	ctx.has_adjacence_sombre = has_spell(&"adjacence_sombre")
 	_active_context = ctx
 	return ctx
 
@@ -966,6 +967,34 @@ func boost_random_button(amount: int) -> void:
 	var token: TokenData = _button_pool[index]
 	_button_pool[index] = TokenData.make_base(token.family, mini(token.value + amount, GameRules.MAX_BUTTON_VALUE))
 	button_pool_changed.emit()
+
+
+## Colonne Convoitee (session 27, fix session 28) : meme raison d'etre que
+## boost_random_button ci-dessus (un Boost qui ne mute QUE la copie ephemere
+## de la grille ne survit jamais a une manche ou le jeton ne finit pas au
+## sommet de sa colonne -- voir docs/logs/Session 25.md pour le bug d'origine
+## sur l'ancienne roulette), mais cible le pool possede correspondant AU
+## JETON PRECIS que le joueur vient de dropper (meme famille + meme valeur
+## AVANT le boost), jamais un candidat aleatoire -- coherent avec la refonte
+## session 27 qui visait deja a recompenser CE jeton plutot qu'un autre pris
+## au hasard (voir EntityManager._apply_boost). Fonctionne aussi pour un
+## jeton qui revient d'un carryover entre manches : la reconciliation pool/
+## grille se fait par (famille, valeur), pas par identite d'objet (voir
+## DeckManager.build_deck), donc une entree de pool correspond toujours
+## logiquement au jeton en jeu, meme apres plusieurs manches. Si aucune
+## entree ne correspond exactement (edge case, ex: toutes verrouillees),
+## ajoute un nouveau bouton plutot que de perdre le bonus. `boosted_value`
+## deja calcule et plafonne par l'appelant (voir CursedColumnRewards.
+## boosted_value, additif Commun/Rare, multiplicatif Legendaire) -- pas
+## recalcule ici pour ne pas dupliquer cette logique a deux endroits.
+func bank_column_boost(family: TokenData.Family, pre_boost_value: int, boosted_value: int) -> void:
+	for i in range(_button_pool.size()):
+		var candidate: TokenData = _button_pool[i]
+		if candidate.kind == TokenData.Kind.BASE and candidate.family == family and candidate.value == pre_boost_value and not candidate.locked:
+			_button_pool[i] = TokenData.make_base(family, boosted_value)
+			button_pool_changed.emit()
+			return
+	add_button(family, boosted_value)
 
 
 ## Tire n candidats au hasard dans le pool pour un outil de deck (Fusion,

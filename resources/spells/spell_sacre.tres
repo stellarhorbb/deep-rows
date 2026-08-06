@@ -7,8 +7,8 @@
 script = ExtResource("1_data")
 id = &"sacre"
 label = "SACRE"
-description = "Chaque figure (Valet/Chevalier/Dame/Roi) dans un groupe qui score ajoute +1.0 à son multi"
-trigger = &"on_round_start"
+description = "Chaque figure (Valet/Chevalier/Dame/Roi) qui score dans une Partition cumule +10% au multi, sur toute la run"
+trigger = &"on_turn_resolved"
 price = 8
 rarity = 4
 effect_script = ExtResource("2_effect")

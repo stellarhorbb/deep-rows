@@ -34,14 +34,18 @@ func _get_tooltip(at_position: Vector2) -> String:
 	return TokenTooltip.describe(token)
 
 
-## Skull = chance absolue de corruption. Bonus/Jackpot = conditionnels ("si
-## ca passe") plutot qu'absolus -- voir EntityManager.get_cursed_column_
-## jackpot_chance pour pourquoi (l'absolu chute vers 0 avec un risque eleve,
-## donnerait l'impression fausse qu'un gros risque paie moins bien).
+## Skull = risque absolu. Bonus/Jackpot restent conditionnels ("si le drop
+## passe") -- retour session 28 : l'absolu indépendant a été essayé (tout
+## somme à 100%) mais le Jackpot y chute mécaniquement vers 0 à haut risque
+## (skull mange une part croissante du pool), ce qui va à l'encontre du but :
+## donner envie de tenter la CC justement quand le skull est élevé. Le
+## conditionnel est le seul chiffre qui monte honnêtement avec le risque
+## (voir CursedColumnRewards._scaled_rates). Format en bloc (pas de tournure
+## "si...alors" en une phrase) pour rester lisible à la volée malgré tout.
 func _cursed_column_tooltip() -> String:
 	var skull: float = entity_manager.get_cursed_column_skull_chance()
 	var jackpot: float = entity_manager.get_cursed_column_jackpot_chance()
 	var bonus: float = maxf(1.0 - jackpot, 0.0)
-	return "COLONNE CONVOITÉE\nSkull : %d%%\nSi ça passe : %d%% bonus, %d%% jackpot" % [
+	return "COLONNE CONVOITÉE\nSkull : %d%%\nDrop réussi → Bonus %d%%, Jackpot %d%%" % [
 		int(round(skull * 100)), int(round(bonus * 100)), int(round(jackpot * 100)),
 	]
