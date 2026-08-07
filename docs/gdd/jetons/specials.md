@@ -65,6 +65,7 @@ Statut **idea** (Google Sheet, onglet Spéciaux) — rien d'implémenté.
 | **Amplificateur** | Uncommon | Surveille ses 4 cases orthogonales (haut/bas/gauche/droite) ; si une Partition qui score en touche une, double le score de cette résolution |
 | **Comète** | Epic | Traverse toute une diagonale en une seule fois et score tout ce qu'elle croise — rejoint en fait la famille **Instantané** existante (Bombe/Marée/Enclume), pas les Réactifs : score direct à l'impact, sans passer par une Partition |
 | **Siphon** | Rare | Aspire et score les jetons au-dessus et en-dessous à chaque drop, jusqu'à ce que la colonne soit vide — rejoint la famille **Mobile (mangeur)** existante (Cavalier/Frog/Liane). À surveiller : contrairement à ses cousins (limite fixe en nombre de coups), sa durée dépend entièrement du remplissage de la colonne au moment où il est posé — swing potentiellement plus fort qu'un "rare" habituel, à valider en playtest |
+| **Couronnement** (session 30) | Epic | S'il touche (orthogonalement) un jeton déjà à `MAX_BUTTON_VALUE` ou une figure Valet/Chevalier/Reine (pas encore Roi), le fait progresser d'un cran — même logique que [Cristal/Diamant](#) mais cible une figure plutôt qu'un Rock. Chemin déterministe et sans risque vers les figures, en complément du Couronnement via la [Colonne Convoitée](../manche/colonne-convoitee.md) (celui-ci a un coût de corruption possible, pas ce Spécial) |
 
 **Écartés en session 25** (raisons notées pour ne pas les rouvrir sans nouvel angle) :
 - **Rouille** — variante négative de l'Électrique (retire de la valeur au lieu d'en ajouter). Un négatif pur dans un pool de spéciaux *achetables* est du contenu mort, personne ne le choisit jamais — contrairement aux cases mystère ou aux malus de boss, subis et non choisis
@@ -88,7 +89,7 @@ Vendus par les [grenouilles orchestre](../univers/personnages/grenouilles-orches
 | Common | 10 | 2 | Enclume, Fantôme, Marée |
 | Uncommon | 5 | 2 | Underground, Pétard à mèche, Crow, Liane |
 | Rare | 2 | 3 | Cavalier, Frog, Bombe |
-| Epic | 1 | 4 | Hypercube, Armageddon |
+| Epic | 1 | 4 | Hypercube, Armageddon, Diamant, Comète, Couronnement |
 
 Hypercube (le plus lourd des spéciaux, seul à interagir en direct avec le scoring) descend de 5 à 4 mouches — sa rareté porte maintenant l'essentiel de son coût, pas son prix d'achat. **Session 25** : Bombe quitte Common pour Rare (elle scorait gratuitement en plus de déblayer, sous-évaluée à son ancien prix) ; Armageddon rejoint Hypercube en Epic, plus gros palier de la famille explosifs.
 

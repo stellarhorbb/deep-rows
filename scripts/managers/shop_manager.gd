@@ -40,6 +40,8 @@ const SHEET_PATHS: Array[String] = [
 	"res://resources/sheets/jackpot_9999.tres",
 	"res://resources/sheets/wedding.tres",
 	"res://resources/sheets/royal_court.tres",
+	"res://resources/sheets/shadow_dance.tres",
+	"res://resources/sheets/rock_bookend.tres",
 ]
 
 ## Petit pool a part (session 20) — jamais dans SHEET_PATHS/le tirage uniforme
@@ -50,7 +52,6 @@ const LEGENDARY_SHEET_PATHS: Array[String] = [
 	"res://resources/sheets/legendary_lost_corners.tres",
 	"res://resources/sheets/legendary_royal_square.tres",
 	"res://resources/sheets/legendary_skull_line.tres",
-	"res://resources/sheets/legendary_shadow_dance.tres",
 	"res://resources/sheets/legendary_black_hole.tres",
 	"res://resources/sheets/legendary_last_trick.tres",
 ]
@@ -74,6 +75,7 @@ const SPECIAL_PATHS: Array[String] = [
 	"res://resources/specials/special_comete.tres",
 	"res://resources/specials/special_amplificateur.tres",
 	"res://resources/specials/special_siphon.tres",
+	"res://resources/specials/special_couronnement.tres",
 ]
 
 ## Sortilèges achetables (SpellData).

@@ -76,13 +76,22 @@ static func multi_value(tier: Tier) -> float:
 	return GameRules.CURSED_COLUMN_MULTI_VALUES[tier]
 
 
-## Valeur finale d'un jeton apres Boost (retune session 28) -- Commun/Rare
-## restent additifs (GameRules.CURSED_COLUMN_BOOST_VALUES), Legendaire
-## devient multiplicatif (GameRules.CURSED_COLUMN_JACKPOT_VALUE_MULTIPLIER)
-## pour rendre le risque proportionnel a l'enjeu plutot qu'un plafond plat.
-## Plafonne a MAX_BUTTON_VALUE dans tous les cas -- les figures restent
-## exclusivement accessibles par le score reel, jamais offertes gratuitement.
+## Valeur finale d'un jeton apres Boost (retune session 28, "Couronnement"
+## session 30) -- Commun/Rare restent additifs (GameRules.
+## CURSED_COLUMN_BOOST_VALUES), Legendaire devient multiplicatif (GameRules.
+## CURSED_COLUMN_JACKPOT_VALUE_MULTIPLIER) pour rendre le risque proportionnel
+## a l'enjeu plutot qu'un plafond plat, jusqu'a MAX_BUTTON_VALUE. Au-dela :
+## un jeton deja a MAX_BUTTON_VALUE (ou une figure Valet/Chevalier/Reine, pas
+## encore Roi) qui touche N'IMPORTE QUEL palier de Boost est couronne d'un
+## cran (GameRules.next_face_value), peu importe la magnitude du tier -- la
+## Colonne Convoitée est desormais l'UNIQUE chemin vers les figures (retour
+## user session 30 : l'ancienne auto-promotion au score detruisait Wedding/
+## Royal Court des leur premier succes). Le verrou de boss "Cour endormie"
+## est verifie par l'appelant (EntityManager.roll_reward), pas ici -- cette
+## fonction reste un pur calcul, comme avant.
 static func boosted_value(tier: Tier, pre_value: int) -> int:
+	if pre_value >= GameRules.MAX_BUTTON_VALUE:
+		return GameRules.next_face_value(pre_value)
 	if tier == Tier.LEGENDAIRE:
 		return mini(int(pre_value * GameRules.CURSED_COLUMN_JACKPOT_VALUE_MULTIPLIER), GameRules.MAX_BUTTON_VALUE)
 	return mini(pre_value + GameRules.CURSED_COLUMN_BOOST_VALUES[tier], GameRules.MAX_BUTTON_VALUE)

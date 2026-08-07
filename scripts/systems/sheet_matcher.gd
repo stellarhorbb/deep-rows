@@ -698,6 +698,47 @@ static func find_jackpot_9999(grid: Array, cols: int, rows: int) -> Array[Dictio
 	return _find_sequence_matches(grid, cols, rows, [GameRules.JACKPOT_9999_SEQUENCE], &"jackpot_9999")
 
 
+## "Rock Bookends" (session 30) : 2 rocks sur la meme rangee, horizontal
+## uniquement (aucune extension verticale/diagonale -- contrairement aux
+## lignes famille depuis la session 16, ici la direction reste une vraie
+## contrainte de difficulte : deux rocks tombent independamment par gravite
+## selon le remplissage de leur colonne, les aligner sur la meme rangee n'est
+## jamais un choix direct du joueur). Entre les deux rocks : 2 ou 3 jetons
+## scorables consecutifs, aucun trou/rock/entity au milieu. Score = somme des
+## jetons entre les rocks (les rocks eux-memes ne sont jamais scorables, voir
+## TokenData.is_scorable) ; multi = nombre de rocks sur toute la grille au
+## moment du score (voir CascadeResolver._count_rocks), lu avant que la
+## resolution ne retire les 2 rocks utilises ici -- contrairement a Diamond
+## Rock, ceux-ci sont consommes normalement (pas de "recolte").
+static func find_rock_bookend(grid: Array, cols: int, rows: int) -> Array[Dictionary]:
+	var results: Array[Dictionary] = []
+	for r in range(rows):
+		for c in range(cols):
+			var left: TokenData = grid[c][r] as TokenData
+			if left == null or left.kind != TokenData.Kind.ROCK:
+				continue
+			var between: Array[Vector2i] = []
+			var nc: int = c + 1
+			while nc < cols and between.size() < 3:
+				var token: TokenData = grid[nc][r] as TokenData
+				if token == null:
+					break
+				if token.kind == TokenData.Kind.ROCK:
+					if between.size() >= 2:
+						results.append({
+							"cells": [Vector2i(c, r)] + between + [Vector2i(nc, r)],
+							"match_rule": &"rock_bookend",
+							"shape": &"rock_bookend",
+							"direction": &"horizontal",
+						})
+					break
+				if not token.is_scorable():
+					break
+				between.append(Vector2i(nc, r))
+				nc += 1
+	return results
+
+
 ## Trouve tous les groupes et filtre par les Sheets equipees.
 ## Un groupe passe si au moins un sheet matche : shape + rule + min_size + direction.
 static func find_all(grid: Array, cols: int, rows: int, context: RunContext, holes: Dictionary = {}) -> Array[Dictionary]:
@@ -720,6 +761,7 @@ static func find_all(grid: Array, cols: int, rows: int, context: RunContext, hol
 	all_groups.append_array(find_shadow_dance(grid, cols, rows))
 	all_groups.append_array(find_black_hole(grid, cols, rows, holes))
 	all_groups.append_array(find_bottom_corners(grid, cols, rows))
+	all_groups.append_array(find_rock_bookend(grid, cols, rows))
 
 	# Legendaires en premier (session 20) : quand un sheet legendaire partage
 	# exactement le meme shape+rule qu'un sheet de base (ex: Royal Square et

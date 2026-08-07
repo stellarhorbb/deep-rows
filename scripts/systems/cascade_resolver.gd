@@ -510,7 +510,7 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		var diamond_value_bonus_mult: float = _value_bonus_multiplier(scored_cells, grid, context)
 		var diamond_sum_bonus: Dictionary = _value_sum_bonus(group, scored_cells, grid, context)
 		var base_value: int = diamond_raw_value + (diamond_sum_bonus["amount"] as int)
-		group["upgrade_candidates"] = _roll_upgrades(scored_cells, grid, context) + _roll_face_promotions(scored_cells, grid, context)
+		group["upgrade_candidates"] = _roll_upgrades(scored_cells, grid, context)
 		group["scored_tokens"] = _snapshot_scored_tokens(scored_cells, grid)
 		var diamond_mult_contribs: Dictionary = _mult_contributions(scored_cells, grid, context, rule, sheet_name)
 		# cascade_mult exclu du breakdown affiche : la banniere de resolution
@@ -541,7 +541,7 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 
 	var sum_bonus: Dictionary = _value_sum_bonus(group, group["cells"], grid, context)
 	var value_sum: int = raw_value + (sum_bonus["amount"] as int)
-	group["upgrade_candidates"] = _roll_upgrades(group["cells"], grid, context) + _roll_face_promotions(group["cells"], grid, context)
+	group["upgrade_candidates"] = _roll_upgrades(group["cells"], grid, context)
 	group["scored_tokens"] = _snapshot_scored_tokens(group["cells"], grid)
 
 	# Multiplicateur fixe du sheet, meme regle pour toutes les formes (les lignes
@@ -566,6 +566,15 @@ func _score_group(group: Dictionary, grid: Array, cascade_level: int, context: R
 		# Multi = nombre de trous sur la grille -- meme principe, composer
 		# avec un fond marin charge plutot que le subir.
 		shape_mult = float(holes.size())
+	elif sheet_name == &"rock_bookend":
+		# Multi = nombre de rocks sur la grille, lu avant que la resolution ne
+		# retire les 2 rocks de CE groupe (voir SheetMatcher.find_rock_bookend
+		# et _count_rocks) -- contrairement a Skull Line/Black Hole, ce stock
+		# reste petit par defaut (DECK_ROCK_COUNT) et ne grossit que si le
+		# joueur a investi dans l'economie rock (Recif Vivant, Le
+		# Collectionneur), pour eviter qu'une forme aussi facile a placer que
+		# 2 rocks + 2-3 jetons ne lise un etat de grille non borne.
+		shape_mult = float(_count_rocks(grid))
 
 	if partition_targeted:
 		shape_mult = 1.0
@@ -630,6 +639,18 @@ func _count_skulls(grid: Array) -> int:
 		for r in range(GameRules.ROWS):
 			var token: TokenData = grid[c][r] as TokenData
 			if token != null and token.kind == TokenData.Kind.ENTITY:
+				count += 1
+	return count
+
+
+## Nombre de rocks actuellement sur la grille -- multiplicateur dynamique de
+## Rock Bookends (session 30), meme principe que _count_skulls.
+func _count_rocks(grid: Array) -> int:
+	var count: int = 0
+	for c in range(GameRules.COLS):
+		for r in range(GameRules.ROWS):
+			var token: TokenData = grid[c][r] as TokenData
+			if token != null and token.kind == TokenData.Kind.ROCK:
 				count += 1
 	return count
 
@@ -800,7 +821,11 @@ func _roll_upgrades(cells: Array, grid: Array, context: RunContext) -> Array:
 		if token == null or not token.is_scorable():
 			continue
 		# >= MAX_BUTTON_VALUE : plafond normal atteint, relève de la suite des
-		# figures (_roll_face_promotions) plutôt que de ce chemin probabiliste.
+		# figures (Couronnement via la Colonne Convoitée, voir
+		# CursedColumnRewards.boosted_value) plutôt que de ce chemin
+		# probabiliste — plus aucune promotion automatique par le score
+		# (session 30, retour user : ça detruisait Wedding/Royal Court des
+		# leur premier succes, voir SheetMatcher.find_wedding/find_royal_court).
 		if token.value >= GameRules.MAX_BUTTON_VALUE:
 			continue
 		if randf() < chance:
@@ -816,34 +841,6 @@ static func _effective_token_value(token: TokenData, context: RunContext) -> int
 	if context.score_capped_family >= 0 and int(token.family) == context.score_capped_family:
 		return 1
 	return token.value
-
-
-## Contrairement a _roll_upgrades (Poker Face, probabiliste), la promotion en
-## figure (arcanes mineurs) est une regle de base toujours active : un jeton
-## deja a MAX_BUTTON_VALUE (ou plus loin dans la suite) qui score avance
-## automatiquement d'un cran (voir GameRules.next_face_value). Chemin
-## exclusivement accessible par le score. Un jeton verrouille (action "Fixer"
-## des Des a coudre) n'est jamais propose ici, meme s'il rescore. Le malus de
-## boss "Cour endormie" (voir BossMalusManager) coupe entierement ce chemin
-## pour la manche.
-func _roll_face_promotions(cells: Array, grid: Array, context: RunContext) -> Array:
-	var promotions: Array = []
-	if context.figure_promotion_locked:
-		return promotions
-	for cell in cells:
-		var c: Vector2i = cell as Vector2i
-		var token: TokenData = grid[c.x][c.y] as TokenData
-		if token == null or not token.is_scorable():
-			continue
-		if token.locked:
-			continue
-		if token.value < GameRules.MAX_BUTTON_VALUE:
-			continue
-		var next_value: int = GameRules.next_face_value(token.value)
-		if next_value == token.value:
-			continue # deja Roi, plafond definitif
-		promotions.append({"cell": c, "family": token.family, "value": token.value, "next_value": next_value})
-	return promotions
 
 
 ## Capture famille/valeur des jetons scores AVANT leur suppression de la

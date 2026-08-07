@@ -46,7 +46,7 @@ const DESCRIPTIONS: Dictionary = {
 	Type.MAIN_LIEE: "Le slot de Hold est verrouillé pour toute la manche.",
 	Type.SOL_GELE: "Le bouton Shake est désactivé pour toute la manche.",
 	Type.PLUIE_DE_CAILLOUX: "%d rocks supplémentaires sont injectés dans le deck de la manche." % GameRules.BOSS_MALUS_ROCK_COUNT,
-	Type.COUR_ENDORMIE: "Aucune figure (Valet+) ne peut être promue pendant la manche, même si elle rescore.",
+	Type.COUR_ENDORMIE: "Aucune figure (Valet+) ne peut être promue pendant la manche, même via un Couronnement de la Colonne Convoitée.",
 	Type.ETAU: "2 colonnes sont bloquées pour toute la manche.",
 	Type.CIEL_BAS: "La rangée du haut de la grille est bloquée pour toute la manche.",
 	Type.COLONNE_MAUDITE: "Une colonne verrouillée est re-tirée au hasard avant chaque drop.",

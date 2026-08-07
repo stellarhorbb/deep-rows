@@ -12,4 +12,3 @@ min_size = 4
 direction = &"any"
 label = "SHADOW DANCE"
 price = 20
-is_legendary = true

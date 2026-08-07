@@ -284,7 +284,6 @@ func build_context() -> RunContext:
 	ctx.rock_count_bonus = int(_sum_dict_values(_rock_count_bonuses))
 	ctx.rock_leaving_sources = _rock_leaving_sources.duplicate()
 	ctx.hold_locked = _hold_locked
-	ctx.figure_promotion_locked = _figure_promotion_locked
 	ctx.score_capped_family = _score_capped_family
 	ctx.score_capped_sheet_name = _score_capped_sheet_name
 	ctx.mobiles_never_expire = has_spell(&"dresseur_fou")
@@ -585,6 +584,14 @@ func set_figure_promotion_locked(locked: bool) -> void:
 	_figure_promotion_locked = locked
 
 
+## Verifie par EntityManager.roll_reward avant d'appliquer un Couronnement
+## via la Colonne Convoitée (voir CursedColumnRewards.boosted_value) --
+## "Cour endormie" bloque desormais ce chemin plutot que l'ancienne
+## auto-promotion au score, retiree en session 30.
+func is_figure_promotion_locked() -> bool:
+	return _figure_promotion_locked
+
+
 func set_score_capped_family(family: int) -> void:
 	_score_capped_family = family
 
@@ -665,9 +672,11 @@ func upgrade_matching_button(family: TokenData.Family, value: int) -> bool:
 ## (arcanes mineurs — voir GameRules.next_face_value). Chemin distinct de
 ## upgrade_matching_button/increase_button_value (Fusion/Augmenter/Poker
 ## Face), qui restent plafonnes a MAX_BUTTON_VALUE : celui-ci n'existe QUE
-## via le score (voir CascadeResolver._roll_face_promotions).
-## Ignore les jetons verrouilles (voir lock_button) : ils gardent leur rang
-## meme s'ils rescorent. Si plusieurs exemplaires du meme family/valeur
+## via un Couronnement (Colonne Convoitée, voir EntityManager._apply_boost et
+## CursedColumnRewards.boosted_value) -- plus aucune promotion automatique au
+## score depuis session 30 (voir GameRules.FACE_CARD_VALUES).
+## Ignore les jetons verrouilles (voir lock_button) : le Couronnement passe
+## dessus sans les toucher. Si plusieurs exemplaires du meme family/valeur
 ## existent, seul un exemplaire NON verrouille peut etre promu.
 func promote_matching_button(family: TokenData.Family, value: int) -> bool:
 	var next_value: int = GameRules.next_face_value(value)
@@ -684,8 +693,8 @@ func promote_matching_button(family: TokenData.Family, value: int) -> bool:
 
 
 ## Action "Fixer" des Des a coudre : verrouille un jeton contre toute mutation
-## future de sa valeur -- promotion en figure par le score (voir
-## promote_matching_button), ou Boost de la roulette (voir boost_random_button/
+## future de sa valeur -- Couronnement (voir promote_matching_button), ou
+## Boost de la roulette (voir boost_random_button/
 ## GridManager.boost_random_token). Retune : initialement borne aux figures
 ## (Valet+), elargi suite a un retour playtest -- un jeton normal patiemment
 ## amene a une valeur precise (ex: 7 pour la Partition 777 via Augmenter) peut

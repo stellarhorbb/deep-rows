@@ -158,9 +158,15 @@ func roll_reward(cell: Vector2i, token: TokenData) -> void:
 			amount = CursedColumnRewards.multi_value(tier)
 			_activate_multi(amount)
 		CursedColumnRewards.Family.BOOST:
-			var new_value: int = CursedColumnRewards.boosted_value(tier, token.value)
-			amount = float(new_value - token.value)
-			_apply_boost(cell, token, new_value)
+			# "Cour endormie" (malus de boss) bloque le Couronnement -- un
+			# jeton deja a MAX_BUTTON_VALUE+ ne bouge pas cette manche-la,
+			# mais un Boost normal (< MAX_BUTTON_VALUE) reste applique.
+			if token.value >= GameRules.MAX_BUTTON_VALUE and run_manager.is_figure_promotion_locked():
+				amount = 0.0
+			else:
+				var new_value: int = CursedColumnRewards.boosted_value(tier, token.value)
+				amount = float(new_value - token.value)
+				_apply_boost(cell, token, new_value)
 	reward_triggered.emit(tier, family, amount)
 
 
@@ -175,17 +181,22 @@ func _activate_multi(value: float) -> void:
 ## `new_value` deja calcule et plafonne par CursedColumnRewards.boosted_value
 ## (additif Commun/Rare, multiplicatif Legendaire -- voir GameRules.
 ## CURSED_COLUMN_JACKPOT_VALUE_MULTIPLIER). No-op silencieux sur un jeton
-## non-base. Banque aussi le gain cote pool possede (RunManager.
-## bank_column_boost) AVANT de muter la copie de la grille -- sans ca,
-## l'incrementation ne vit que sur cette copie ephemere (voir DeckManager.
-## build_deck, copies fraiches a chaque manche) et se perd des que ce jeton
-## ne persiste pas jusqu'au sommet de sa colonne en fin de manche (bug trouve
-## session 28, meme defaut que l'ancien Boost roulette avant sa fix session
-## 25 -- voir RunManager.boost_random_button).
+## non-base. Banque aussi le gain cote pool possede AVANT de muter la copie
+## de la grille -- sans ca, l'incrementation ne vit que sur cette copie
+## ephemere (voir DeckManager.build_deck, copies fraiches a chaque manche) et
+## se perd des que ce jeton ne persiste pas jusqu'au sommet de sa colonne en
+## fin de manche (bug trouve session 28, meme defaut que l'ancien Boost
+## roulette avant sa fix session 25 -- voir RunManager.boost_random_button).
+## Couronnement (session 30, jeton deja a MAX_BUTTON_VALUE) : route vers
+## RunManager.promote_matching_button plutot que bank_column_boost -- seule
+## la premiere emet figure_promoted, le trigger du Sortilège "Adoubement".
 func _apply_boost(cell: Vector2i, token: TokenData, new_value: int) -> void:
 	if token.kind != TokenData.Kind.BASE:
 		return
-	run_manager.bank_column_boost(token.family, token.value, new_value)
+	if token.value >= GameRules.MAX_BUTTON_VALUE:
+		run_manager.promote_matching_button(token.family, token.value)
+	else:
+		run_manager.bank_column_boost(token.family, token.value, new_value)
 	token.value = new_value
 	token_boosted.emit(cell, token)
 

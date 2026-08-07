@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SpecialItem" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/special_item.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+label = "COURONNEMENT"
+description = "S'il touche un jeton à 10 ou une figure (Valet/Chevalier/Reine), le fait progresser d'un cran vers la figure suivante."
+price = 4
+rarity = 3
+special_type = 18

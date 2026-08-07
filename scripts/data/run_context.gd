@@ -112,11 +112,13 @@ extends Resource
 # importe combien de sortilèges le partagent.
 @export var rock_leaving_sources: Dictionary = {}
 
-# Verrous poses par le malus de boss actif de la manche (voir
-# BossMalusManager) : MAIN LIÉE et COUR ENDORMIE. Pas de dictionnaire par
-# source, contrairement aux canaux Sortilège ci-dessus — un seul emetteur possible.
+# Verrou pose par le malus de boss actif de la manche (voir
+# BossMalusManager) : MAIN LIÉE. Pas de dictionnaire par source, contrairement
+# aux canaux Sortilège ci-dessus — un seul emetteur possible. COUR ENDORMIE
+# (l'autre malus de ce groupe) est verifie directement via RunManager.
+# is_figure_promotion_locked() par EntityManager, pas relaye ici (session 30 :
+# le Couronnement se decide au moment du drop CC, pas pendant le scoring).
 @export var hold_locked: bool = false
-@export var figure_promotion_locked: bool = false
 
 # Legendaire "Dresseur Fou" (session 23) : vrai si equipe — les speciaux
 # mobiles (Cavalier/Frog/Liane/Underground) ne disparaissent plus jamais.

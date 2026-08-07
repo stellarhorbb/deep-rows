@@ -44,6 +44,8 @@ static func can_play(grid: Array, token: TokenData, col: int, _row: int, cols: i
 				return _column_height(grid, col, rows, holes) < rows
 			TokenData.SpecialType.SIPHON:
 				return _column_height(grid, col, rows, holes) < rows
+			TokenData.SpecialType.COURONNEMENT:
+				return _column_height(grid, col, rows, holes) < rows
 
 	return false
 
@@ -170,6 +172,41 @@ static func execute_cristal_diamant(grid: Array, col: int, row: int, cols: int, 
 		var new_token: TokenData = TokenData.make_base(family as TokenData.Family, value)
 		new_token.temporary = true
 		grid[cc][rr] = new_token
+
+
+## Couronnement (session 30) : meme geometrie que Cristal/Diamant (4 voisins
+## orthogonaux), mais cible un jeton deja a MAX_BUTTON_VALUE (ou une figure
+## Valet/Chevalier/Reine, pas encore Roi) plutot qu'un Rock -- le fait
+## progresser d'un cran dans la suite des figures (GameRules.next_face_value).
+## Seul chemin de Couronnement en dehors de la Colonne Convoitée (voir
+## CursedColumnRewards.boosted_value) -- deterministe, pas de risque de
+## corruption, mais rarete Epic. Un jeton verrouille (action "Fixer") n'est
+## jamais une cible valide. Retourne la liste des promotions reussies
+## ({family, old_value}) pour que l'appelant (GridManager -> TurnController ->
+## GameScene) synchronise le pool possede et declenche figure_promoted (voir
+## RunManager.promote_matching_button) -- cette fonction ne mute que la copie
+## de grille, comme le reste de SpecialEffects.
+static func execute_couronnement(grid: Array, col: int, row: int, cols: int, rows: int, holes: Dictionary = {}) -> Array[Dictionary]:
+	var promotions: Array[Dictionary] = []
+	var offsets: Array[Vector2i] = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
+	for offset in offsets:
+		var cc: int = col + offset.x
+		var rr: int = row + offset.y
+		if cc < 0 or cc >= cols or rr < 0 or rr >= rows:
+			continue
+		if holes.has(Vector2i(cc, rr)):
+			continue
+		var token: TokenData = grid[cc][rr]
+		if token == null or not token.is_scorable() or token.locked:
+			continue
+		if token.value < GameRules.MAX_BUTTON_VALUE:
+			continue
+		var next_value: int = GameRules.next_face_value(token.value)
+		if next_value == token.value:
+			continue # deja Roi, plafond definitif
+		promotions.append({"family": token.family, "old_value": token.value})
+		token.value = next_value
+	return promotions
 
 
 ## Comete (session "Vague 2") : instant a l'impact, comme Maree. Traverse

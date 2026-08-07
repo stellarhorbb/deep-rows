@@ -483,6 +483,14 @@ func _on_special_landing(col: int, row: int, token: TokenData) -> void:
 ## (voir GridManager.execute_special) -- elle est maintenant a retardement
 ## comme Petard/Armageddon, son score passe par _on_petard_scored.
 func _on_special_executed(_special_type: TokenData.SpecialType, _col: int, _row: int, _result: Dictionary) -> void:
+	# Couronnement : la copie de grille est deja mutee (SpecialEffects.
+	# execute_couronnement), il reste a synchroniser le pool possede et
+	# declencher figure_promoted (trigger du Sortilège "Adoubement") -- meme
+	# raison que EntityManager._apply_boost pour le Couronnement via la
+	# Colonne Convoitée.
+	for promotion in (_result.get("promotions", []) as Array):
+		var data: Dictionary = promotion as Dictionary
+		RunService.run_manager.promote_matching_button(data["family"] as TokenData.Family, data["old_value"] as int)
 	# Rebuild les sprites pour montrer l'etat apres l'effet
 	grid_visual.rebuild_sprites()
 	# Petite pause pour que le joueur voie le resultat de l'impact

@@ -585,13 +585,17 @@ const SHOP_BUTTON_RARE_VALUE_CHANCE: float = 0.01
 ## 25/25/25/15/10 : 1, 2 et 3 a poids egal, 4 et 5 degressifs.
 const SHOP_BUTTON_VALUE_WEIGHTS: Array[float] = [25.0, 25.0, 25.0, 15.0, 10.0]
 
-## Suite des figures (arcanes mineurs, session 18) : un jeton de base deja a
-## MAX_BUTTON_VALUE qui score avance automatiquement d'un cran dans cette
-## suite jusqu'a Roi (plafond definitif) — voir RunManager.promote_matching_
-## button et CascadeResolver._roll_face_promotions. Chemin EXCLUSIVEMENT
-## accessible par le score : Fusion/Augmenter/Poker Face restent plafonnes a
-## MAX_BUTTON_VALUE (voir fuse_buttons, increase_button_value), sinon on
-## pourrait acheter une figure sans jamais avoir a la jouer.
+## Suite des figures (arcanes mineurs, session 18, revu session 30) : un
+## jeton deja a MAX_BUTTON_VALUE avance d'un cran dans cette suite jusqu'a
+## Roi (plafond definitif) via un Couronnement (Colonne Convoitée, palier
+## Boost quel qu'il soit -- voir CursedColumnRewards.boosted_value et
+## RunManager.promote_matching_button). Plus aucune promotion automatique au
+## score depuis session 30 : ca detruisait Wedding/Royal Court des leur
+## premier succes (une figure qui rescore mutait malgre elle, cassant la
+## combinaison exacte que ces Sheets exigent). Fusion/Augmenter/Poker Face
+## restent plafonnes a MAX_BUTTON_VALUE (voir fuse_buttons,
+## increase_button_value) : la Colonne Convoitée reste l'unique chemin au-dela,
+## jamais un achat direct.
 const FACE_CARD_VALUES: Array[int] = [11, 12, 15, 20] # Valet, Chevalier, Reine, Roi
 const FACE_CARD_LABELS: Array[String] = ["J", "C", "Q", "K"] # Valet, Chevalier, Reine, Roi
 

@@ -34,6 +34,7 @@ const SPECIAL_SPRITES: Dictionary = {
 	TokenData.SpecialType.COMETE: "res://assets/special-tokens/comete.png",
 	TokenData.SpecialType.AMPLIFICATEUR: "res://assets/special-tokens/ampli.png",
 	TokenData.SpecialType.SIPHON: "res://assets/special-tokens/siphon.png",
+	TokenData.SpecialType.COURONNEMENT: "res://assets/special-tokens/couronnement.png",
 }
 
 ## Cache de textures chargees

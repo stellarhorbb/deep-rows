@@ -146,8 +146,12 @@ func place_token(token: TokenData, col: int, _row: int) -> int:
 
 
 ## Execute l'effet du special APRES l'animation de chute.
-## Appele par le TurnController une fois le drop anime.
-func execute_special(token: TokenData, col: int) -> int:
+## Appele par le TurnController une fois le drop anime. `figure_promotion_
+## locked` (malus de boss COUR ENDORMIE, voir RunManager.
+## is_figure_promotion_locked) est passe en parametre plutot que lu -- ce
+## Manager n'a pas de reference a RunManager (une Responsabilite = un
+## Manager) -- seul COURONNEMENT le consulte.
+func execute_special(token: TokenData, col: int, figure_promotion_locked: bool = false) -> int:
 	var result: Dictionary = {}
 	var score: int = 0
 	match token.special_type:
@@ -196,6 +200,10 @@ func execute_special(token: TokenData, col: int) -> int:
 			_place_persistent_special(token, col)
 		TokenData.SpecialType.SIPHON:
 			_place_persistent_special(token, col, GameRules.SIPHON_MAX_EATS)
+		TokenData.SpecialType.COURONNEMENT:
+			if not figure_promotion_locked:
+				var couronnement_row: int = column_height(col)
+				result["promotions"] = SpecialEffects.execute_couronnement(_grid, col, couronnement_row, _cols, _rows, _holes)
 	special_executed.emit(token.special_type, col, 0, result)
 	return score
 

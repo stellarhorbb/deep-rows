@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SheetData" format=3 uid="uid://d3aecs107hkg1"]
+
+[ext_resource type="Script" uid="uid://k37ydar6rjlo" path="res://scripts/data/sheet_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+sheet_name = &"rock_bookend"
+unlock_id = "sheet:rock_bookend"
+shape = &"rock_bookend"
+rule = &"rock_bookend"
+min_size = 4
+direction = &"horizontal"
+label = "SERRE-LIVRES"
+price = 12

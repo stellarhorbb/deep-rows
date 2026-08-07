@@ -65,6 +65,7 @@ func describe() -> String:
 		&"skull_line": shape_desc = "Ligne de 4+ jetons"
 		&"shadow_dance": shape_desc = "4 cases alternées"
 		&"black_hole": shape_desc = "Losange autour d'un trou"
+		&"rock_bookend": shape_desc = "2 Rocks horizontaux, 2-3 jetons entre"
 		_:          shape_desc = "Figure"
 
 	var rule_desc: String
@@ -72,7 +73,7 @@ func describe() -> String:
 		&"family": rule_desc = "même famille"
 		&"value":  rule_desc = "même valeur"
 		&"suite":  rule_desc = "valeurs consécutives"
-		&"rock":   rule_desc = "autour d'un Rock"
+		&"rock":   rule_desc = "coins en Rock, centre récolté"
 		&"rainbow":   rule_desc = "toutes familles différentes"
 		&"fibonacci": rule_desc = "suite Fibonacci (1,1,2,3,5,8)"
 		&"minima":    rule_desc = "toutes les valeurs ≤ %d" % GameRules.MINIMA_MAX_VALUE
@@ -85,6 +86,7 @@ func describe() -> String:
 		&"skull_line":   rule_desc = "4 jetons de l'entity"
 		&"shadow_dance": rule_desc = "alterne famille et entity"
 		&"black_hole":   rule_desc = "centre = un vrai trou"
+		&"rock_bookend": rule_desc = "multi = nombre de Rocks sur la grille"
 		_:         rule_desc = ""
 
 	var text: String = label

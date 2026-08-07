@@ -9,7 +9,7 @@ enum Family { BATONS, COUPES, EPEES, DENIERS }
 ## ARMAGEDDON (session 25) ajoute a la fin — jamais inserer un SpecialType au
 ## milieu, les .tres de la famille explosifs/Des a coudre referencent ces
 ## index par entier brut (special_type = N), un decalage romprait tout.
-enum SpecialType { NONE, FANTOME, BOMBE, MAREE, ENCLUME, PETARD_A_MECHE, CAVALIER, FROG, LIANE, CROW, UNDERGROUND, HYPERCUBE, ARMAGEDDON, CRISTAL, DIAMANT, COMETE, AMPLIFICATEUR, SIPHON }
+enum SpecialType { NONE, FANTOME, BOMBE, MAREE, ENCLUME, PETARD_A_MECHE, CAVALIER, FROG, LIANE, CROW, UNDERGROUND, HYPERCUBE, ARMAGEDDON, CRISTAL, DIAMANT, COMETE, AMPLIFICATEUR, SIPHON, COURONNEMENT }
 
 var kind: Kind = Kind.BASE
 var family: Family = Family.BATONS

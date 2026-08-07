@@ -357,7 +357,7 @@ func _drop_token(token: TokenData, col: int) -> int:
 	# play_special_from_inventory) -- ce jeton ne vient plus jamais du deck/
 	# stream (session 25).
 	if token.kind == TokenData.Kind.SPECIAL:
-		var special_score: int = grid_manager.execute_special(token, col)
+		var special_score: int = grid_manager.execute_special(token, col, run_manager.is_figure_promotion_locked())
 		if special_score > 0:
 			score_manager.add_score(special_score)
 			comete_scored.emit(special_score)
